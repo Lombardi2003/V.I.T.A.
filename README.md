@@ -1,1 +1,1 @@
-# V.I.T.A.
+# Virtual Intelligent Triage Assistant
