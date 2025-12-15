@@ -21,42 +21,50 @@ Costruito interamente in Python utilizzando **LangGraph** e **LangChain**, il si
 Il progetto si basa su un grafo a stati (**StateGraph**) che gestisce il flusso decisionale:
 
 ```mermaid
-graph TD
-    Start[User Input] --> Supervisor
-    Supervisor{Decisione Supervisore}
+graph
+    Start(**USER INPUT**) --Input--> Revisore
+    Revisore --Sufficiente--> Supervisor{Decisione Supervisore}
+    Revisore --Insufficiente--> Start(**USER INPUT**)
+
+    subgraph Specialisti
+        Cardio[Agente Cardiologo]
+        Neuro[Agente Neurologo]
+    end
     
-    Supervisor --"Cardiologo"--> Cardio[Agente Cardiologo]
-    Supervisor --"Neurologo"--> Neuro[Agente Neurologo]
-    
+    Supervisor --"Cardiologo"--> Cardio
+    Supervisor --"Neurologo"--> Neuro
+
     Cardio --> Supervisor
     Neuro --> Supervisor
-    
+
     Supervisor --"FINISH"--> Primary[Agente Primario/Synthesizer]
-    
-    Primary --> End((OUTPUT FINALE))
+    Primary --> End(**OUTPUT FINALE**)
+
+    style Start fill:#bfb,stroke:#333,stroke-width:2px
+    style End fill:#f88,stroke:#333,stroke-width:2px
+
 ```
 
 ## I Ruoli degli Agenti (Nodi)
-1. 👮 Supervisor (Router): Analizza l'input e decide quale specialista consultare o se terminare il consulto.
-2. 🫀 Cardiologo: Specialista in patologie cardiovascolari. Interviene su dolori toracici, aritmie, dispnea.
-3. 🧠 Neurologo: Specialista in patologie del sistema nervoso. Interviene su emicranie, svenimenti, parestesie.
-4. 👨‍⚕️ Primario (Synthesizer): Non dialoga. Rilegge l'intera conversazione tra gli specialisti e compila il Referto Clinico finale.
+1. **👮 Supervisor (Router)**: Analizza l'input e decide quale specialista consultare o se terminare il consulto.
+2. **🫀 Cardiologo**: Specialista in patologie cardiovascolari. Interviene su dolori toracici, aritmie, dispnea.
+3. **🧠 Neurologo**: Specialista in patologie del sistema nervoso. Interviene su emicranie, svenimenti, parestesie.
+4. **👨‍⚕️ Primario (Synthesizer)**: Non dialoga. Rilegge l'intera conversazione tra gli specialisti e compila il Referto Clinico finale.
 
-📂 Struttura del Progetto
-Plaintext
-```text
-VITA/
-├── main.py         # Entry point: costruisce ed esegue il Grafo
-├── nodes.py        # Logica degli agenti (funzioni dei nodi)
-├── state.py        # Definizione della struttura dati (MedicalState)
-├── config.py       # Gestione dei Prompt e configurazione Modello
-└── README.md       # Documentazione
+## 📂 Struttura del Progetto
+```bash
+    VITA/
+    ├── main.py         # Entry point: costruisce ed esegue il Grafo
+    ├── nodes.py        # Logica degli agenti (funzioni dei nodi)
+    ├── state.py        # Definizione della struttura dati (MedicalState)
+    ├── config.py       # Gestione dei Prompt e configurazione Modello
+    └── README.md       # Documentazione
 ```
 
 ## ▶️ Utilizzo
 Avvia il sistema eseguendo il file principale:
 ```bash
-python main.py
+    python main.py
 ```
 Il terminale chiederà di inserire i sintomi del paziente. **Esempio**:
 *"Il paziente lamenta forte dolore al petto irradiato al braccio sinistro e sudorazione fredda."*
