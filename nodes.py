@@ -1,12 +1,29 @@
 # Librerie per LLM e messaggi
 from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 # Import dei moduli locali
 from state import MedicalState
 from config import SUPERVISOR_PROMPT, SPECIALIST_PROMPTS, PRIMARY_PROMPT
 
+# Altre librerie
+import json
+
+# Configurazione API Key e modello LLM
+USE_CLOUD_ACCELERATION = True
+
+with open('api_key.json') as f:
+    API_KEY = json.load(f)
+
 # Configurazione del modello LLM
-llm = ChatOllama(model="llama3", temperature=0)         # temperature=0 è fondamentale in medicina per evitare "allucinazioni" creative.
+if USE_CLOUD_ACCELERATION:
+    llm = ChatGroq(
+        temperature=0, 
+        model_name="llama-3.1-8b-instant",
+        groq_api_key=API_KEY["groq_api_key"]
+    )
+else:
+    llm = ChatOllama(model="llama3", temperature=0)
 
 # Nodo del supervisore
 def supervisor_node(state: MedicalState):
