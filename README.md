@@ -9,10 +9,9 @@ Costruito interamente in Python utilizzando **LangGraph** e **LangChain**, il si
 ## 🚀 Caratteristiche Principali
 
 * **🧠 Architettura Multi-Agente:** Utilizza il pattern *Supervisor-Worker*. Un agente supervisore coordina il flusso, attivando specialisti (Cardiologo, Neurologo) solo quando necessario.
-* **🔒 Privacy-First:** Esegue l'intero processo in locale utilizzando **Ollama**, garantendo che nessun dato sensibile lasci la macchina.
-* **📝 Memoria di Stato Persistente:** Grazie a `MedicalState`, il sistema mantiene una cronologia coerente ("memory") di tutta la conversazione tra gli agenti.
-* **🚦 Triage Deterministico:** Separa la logica clinica (diagnosi) dalla logica di classificazione (codice colore), garantendo valutazioni di gravità più sicure e strutturate.
-* **📄 Output Strutturato:** Fornisce un report clinico finale chiaro e un codice colore standard (Rosso, Giallo, Verde, Bianco).
+* **🔒 Privacy-First:** Esegue l'intero processo in locale utilizzando **Ollama** e per migliorare la velocità esegue tramite *API-KEY* su architettura **GROQ**.
+* **📝 Memoria di Stato Persistente:** Grazie a `MedicalState`, il sistema mantiene una cronologia coerente ("general_hisory") di tutta la conversazione tra gli agenti.
+* **📄 Output Strutturato:** Fornisce un report clinico finale chiaro
 
 ---
 
@@ -42,14 +41,16 @@ graph
 
     style Start fill:#bfb,stroke:#333,stroke-width:2px
     style End fill:#f88,stroke:#333,stroke-width:2px
-
 ```
 
+---
+
 ## I Ruoli degli Agenti (Nodi)
-1. **👮 Supervisor (Router)**: Analizza l'input e decide quale specialista consultare o se terminare il consulto.
-2. **🫀 Cardiologo**: Specialista in patologie cardiovascolari. Interviene su dolori toracici, aritmie, dispnea.
-3. **🧠 Neurologo**: Specialista in patologie del sistema nervoso. Interviene su emicranie, svenimenti, parestesie.
-4. **👨‍⚕️ Primario (Synthesizer)**: Non dialoga. Rilegge l'intera conversazione tra gli specialisti e compila il Referto Clinico finale.
+1. **🧐 Revisore**: Analizza l'input e determina se sono necessari altre informazioni
+2. **👮 Supervisor (Router)**: Analizza l'input e decide quale specialista consultare o se terminare il consulto.
+3. **🫀 Cardiologo**: Specialista in patologie cardiovascolari. Interviene su dolori toracici, aritmie, dispnea.
+4. **🧠 Neurologo**: Specialista in patologie del sistema nervoso. Interviene su emicranie, svenimenti, parestesie.
+5. **👨‍⚕️ Primario (Synthesizer)**: Non dialoga. Rilegge l'intera conversazione tra gli specialisti e compila il Referto Clinico finale.
 
 ## 📂 Struttura del Progetto
 ```bash

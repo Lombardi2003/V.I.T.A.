@@ -8,10 +8,10 @@ class MedicalState(TypedDict):
     """ Stato minimale del grafo. """
     
     # CRONOLOGIA: Qui finiscono tutti i messaggi (Utente, Cardiologo, Neurologo, ecc...).
-    general_history: Annotated[list[BaseMessage], operator.add]    # operator.add serve ad aggiungere i nuovi messaggi alla lista esistente invece di sovrascriverli ogni volta
+    general_history: Annotated[list[str], operator.add]    # operator.add serve ad aggiungere i nuovi messaggi alla lista esistente invece di sovrascriverli ogni volta
 
     # CARTELA CLINICA: i dati raccolti attraverso i dati dell'utente
-    triage_history: Annotated[list[BaseMessage], operator.add]
+    triage_history: Annotated[list[str], operator.add]
 
     # DIAGNOSI FINALE: la diagnosi finale fornita dal sistema
     diagnosis: str

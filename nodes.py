@@ -27,7 +27,7 @@ else:
 # Nodo del revisore
 def reviewer_node(state: MedicalState):
     """ Analizza l'input dell'utente e decide se le informazioni sono sufficienti per fare una diagnosi."""
-    print("🧐 REVIEWER: ", end="")
+    print("🧐 REVIEWER: ", end="", flush=True)
     messages = state["triage_history"]
     prompt = [SystemMessage(content=REVIEWER_PROMPT)] + messages
     response = stream_response(prompt)
@@ -44,12 +44,15 @@ def reviewer_node(state: MedicalState):
 def request_more_information(state: MedicalState):
     """ Chiede ulteriori informazioni all'utente riguardo ai sintomi. """
     message = input("💬 USER: ")
+    while message == "" or message.isspace():
+        print("⚠️ Per favore, fornisci una risposta valida.")
+        message = input("💬 USER: ")
     return {"general_history": [HumanMessage(content=message)], "triage_history": [HumanMessage(content=message)]}
 
 # Nodo del supervisore
 def supervisor_node(state: MedicalState):
     """ Analizza la conversazione e decide chi deve intervenire. Stampa FINISH se la diagnosi è completa. """
-    print("🚦 SUPERVISOR: ", end="")
+    print("🚦 SUPERVISOR: ", end="", flush=True)
     messages = state["general_history"]
     prompt = [SystemMessage(content=SUPERVISOR_PROMPT)] + messages
     response = stream_response(prompt)
@@ -64,7 +67,6 @@ def supervisor_node(state: MedicalState):
 # Nodo generico per specialisti
 def specialist_node(state: MedicalState, role: str):
     """ Il cuore del ragionamento medico. Vale per qualsiasi specialista. """
-    print(f"👨‍⚕️ {role.upper()}: ", end="")
     messages = state["triage_history"]
     prompt = [SystemMessage(content=SPECIALIST_PROMPTS[role])] + messages
     full_response = stream_response(prompt)
@@ -73,19 +75,31 @@ def specialist_node(state: MedicalState, role: str):
 
 # Wrapper per i nodi specifici
 def cardiologist_node(state):
+    print(f"🫀  CARDIOLOGIT: ", end="", flush=True)
     return specialist_node(state, "cardiologo")
 
 def neurologist_node(state):
+    print(f"🧠 NEUROLOGIST: ", end="", flush=True)
     return specialist_node(state, "neurologo")
+
+
+# Nodo generico per specialisti
+def specialist_node(state: MedicalState, role: str):
+    """ Il cuore del ragionamento medico. Vale per qualsiasi specialista. """
+    messages = state["triage_history"]
+    prompt = [SystemMessage(content=SPECIALIST_PROMPTS[role])] + messages
+    full_response = stream_response(prompt)
+    final_content = f"**{role.upper()}**: {full_response}"
+    return {"general_history": [AIMessage(content=final_content)]}
 
 # Nodo del primario
 def primary_node(state: MedicalState):
     """ Nodo finale che genera il report conclusivo. """
-    print("🏥 PRIMARIO: ")
+    print("🏥 PRIMARIO: ", end="", flush=True)
     messages = state["general_history"]
     prompt = [SystemMessage(content=PRIMARY_PROMPT)] + messages
     full_response = stream_response(prompt)
-    return {"diagnosis": AIMessage(content=full_response)}
+    return {"diagnosis": AIMessage(content=full_response), "general_history": [AIMessage(content=full_response)]}
 
 # Funzione per lo streaming della risposta dei vari nodi
 def stream_response(prompt_messages):

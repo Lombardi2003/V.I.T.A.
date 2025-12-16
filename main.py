@@ -39,7 +39,7 @@ def generate_graph():
         {
             "cardiologo": "cardiologo",
             "neurologo": "neurologo",
-            "primario": "primario"
+            "primario": "primario",
         }
     )
     workflow.add_edge("cardiologo", "supervisor")
@@ -68,12 +68,16 @@ if __name__ == "__main__":
     terminal_width = shutil.get_terminal_size().columns
     titolo = "🩺 Virtual Intelligent Triage Assistant 🩺"
     print(titolo.center(terminal_width))
-    
 
     initial_message = input("💬 USER: ")
+    while initial_message == "" or initial_message.isspace():
+        print("⚠️ Per favore, fornisci una risposta valida.")
+        initial_message = input("💬 USER: ")
+    
     initial_state = {
         "general_history": [HumanMessage(content=initial_message)],
         "triage_history": [HumanMessage(content=initial_message)],
+        "diagnosis": "Non è stato posssibile formulare una diagnosi.",
     }
 
     app.invoke(initial_state)

@@ -14,7 +14,7 @@ REGOLE:
 - Se uno specialista ha già parlato e pensi serva il parere dell'altro, chiama l'altro.
 - Se la situazione è chiara o se hanno parlato entrambi e c'è una diagnosi sufficiente, rispondi 'FINISH'.
 
-RISPOSTA:
+RISPOSTA OBBLIGATORIA:
 Rispondi SOLAMENTE con una di queste tre parole: 'cardiologo', 'neurologo' e 'FINISH'.
 Non aggiungere spiegazioni."""
 
@@ -35,7 +35,7 @@ DATI NECESSARI (Schema Logico):
 REGOLE DI COMPORTAMENTO:
 - Analizza SEMPRE tutta la cronologia prima di fare domande.
 - Se il sintomo è già stato detto, passa subito a chiedere Anagrafica o Contesto.
-- Cerca di raggruppare le domande (es: "Come si chiama e da quanto tempo ha questo dolore?") per fare prima.
+- Cerca di raggruppare le domande (es: "Quale è il suo nome e da quanto tempo ha questo dolore?") per fare prima.
 - Se l'utente è vago, insisti gentilmente.
 - Se hai raccolto tutto (o se l'informazione è sufficiente per mandarlo dallo specialista), dai il via libera.
 
