@@ -3,7 +3,7 @@ from langgraph.graph import StateGraph, START,END
 from langchain_core.messages import HumanMessage
 # Import dei moduli locali
 from state import MedicalState
-from nodes import reviewer_node, user_node, supervisor_node, cardiologist_node, neurologist_node, primary_node
+from nodes import reviewer_node, user_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node
 
 # Altre librerie
 import os
@@ -16,6 +16,7 @@ def generate_graph():
     # Nodi
     workflow.add_node("reviewer", reviewer_node)
     workflow.add_node("user", user_node)
+    workflow.add_node("photography", photography_node)
     workflow.add_node("supervisor", supervisor_node)
     workflow.add_node("cardiologo", cardiologist_node)
     workflow.add_node("neurologo", neurologist_node)
@@ -28,12 +29,13 @@ def generate_graph():
         "reviewer",
         triage_complete,
         {
-            True: "supervisor",
+            True: "photography",
             False: "user",
         }
     )
     workflow.add_edge("user", "reviewer")
 
+    workflow.add_edge("photography", "supervisor")
     workflow.add_conditional_edges(
         "supervisor",
         router,

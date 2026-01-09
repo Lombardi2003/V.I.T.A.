@@ -21,9 +21,12 @@ Il progetto si basa su un grafo a stati (**StateGraph**) che gestisce il flusso 
 
 ```mermaid
 graph
-    Start(**USER INPUT**) --Input--> Revisore
-    Revisore --Sufficiente--> Supervisor{Decisione Supervisore}
-    Revisore --Insufficiente--> Start(**USER INPUT**)
+    Start(**USER**) --Input--> Revisore
+    Start(**USER**) -- Input Foto --> Fotografo
+    Revisore --> Fotografo
+    Fotografo -- Richiesta Foto --> Start(**USER**)
+    Fotografo ---> Supervisor{Decisione Supervisore}
+    Revisore --Insufficiente--> Start(**USER**)
 
     subgraph Specialisti
         Cardio[Agente Cardiologo]
@@ -37,7 +40,7 @@ graph
     Neuro --> Supervisor
 
     Supervisor --"FINISH"--> Primary[Agente Primario/Synthesizer]
-    Primary --> End(**OUTPUT FINALE**)
+    Primary --> End(**MEDICAL REPORT**)
 
     style Start fill:#bfb,stroke:#333,stroke-width:2px
     style End fill:#f88,stroke:#333,stroke-width:2px
@@ -75,3 +78,28 @@ Il sistema mostrerà a schermo il ragionamento degli agenti in tempo reale e con
 Cambiare modello o modificare il comportamento?
 - Cambiare Modello (es. Mistral, Gemma): Modifica la variabile llm in nodes.py.
 - Modificare i Prompt: Vai su config.py per cambiare le istruzioni date agli specialisti o le regole di assegnazione dei codici colore.
+
+```mermaid
+graph TD
+    Triage --> FanOut1[Inizio Parallelo]
+    
+    subgraph FASE 1: BOZZE
+        FanOut1 --> DraftCardio
+        FanOut1 --> DraftNeuro
+    end
+    
+    DraftCardio --> Sync1[Sincronizzazione]
+    DraftNeuro --> Sync1
+    
+    Sync1 --> FanOut2[Inizio Revisione]
+    
+    subgraph FASE 2: REVISIONE
+        FanOut2 --> ReviewCardio
+        FanOut2 --> ReviewNeuro
+    end
+    
+    ReviewCardio --> Sync2[Fine]
+    ReviewNeuro --> Sync2
+    
+    Sync2 --> Primario
+```
