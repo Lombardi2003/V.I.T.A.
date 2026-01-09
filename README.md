@@ -50,10 +50,11 @@ graph
 
 ## I Ruoli degli Agenti (Nodi)
 1. **🧐 Revisore**: Analizza l'input e determina se sono necessari altre informazioni
-2. **👮 Supervisor (Router)**: Analizza l'input e decide quale specialista consultare o se terminare il consulto.
-3. **🫀 Cardiologo**: Specialista in patologie cardiovascolari. Interviene su dolori toracici, aritmie, dispnea.
-4. **🧠 Neurologo**: Specialista in patologie del sistema nervoso. Interviene su emicranie, svenimenti, parestesie.
-5. **👨‍⚕️ Primario (Synthesizer)**: Non dialoga. Rilegge l'intera conversazione tra gli specialisti e compila il Referto Clinico finale.
+2. **📸 Fotografo**: Analizza una foto in input e da una descrizione dettagliata e oggettiva dell'elemento della foto
+3. **👮 Supervisor (Router)**: Analizza l'input e decide quale specialista consultare o se terminare il consulto.
+4. **🫀 Cardiologo**: Specialista in patologie cardiovascolari. Interviene su dolori toracici, aritmie, dispnea.
+5. **🧠 Neurologo**: Specialista in patologie del sistema nervoso. Interviene su emicranie, svenimenti, parestesie.
+6. **👨‍⚕️ Primario (Synthesizer)**: Non dialoga. Rilegge l'intera conversazione tra gli specialisti e compila il Referto Clinico finale.
 
 ## 📂 Struttura del Progetto
 ```bash
@@ -78,28 +79,3 @@ Il sistema mostrerà a schermo il ragionamento degli agenti in tempo reale e con
 Cambiare modello o modificare il comportamento?
 - Cambiare Modello (es. Mistral, Gemma): Modifica la variabile llm in nodes.py.
 - Modificare i Prompt: Vai su config.py per cambiare le istruzioni date agli specialisti o le regole di assegnazione dei codici colore.
-
-```mermaid
-graph TD
-    Triage --> FanOut1[Inizio Parallelo]
-    
-    subgraph FASE 1: BOZZE
-        FanOut1 --> DraftCardio
-        FanOut1 --> DraftNeuro
-    end
-    
-    DraftCardio --> Sync1[Sincronizzazione]
-    DraftNeuro --> Sync1
-    
-    Sync1 --> FanOut2[Inizio Revisione]
-    
-    subgraph FASE 2: REVISIONE
-        FanOut2 --> ReviewCardio
-        FanOut2 --> ReviewNeuro
-    end
-    
-    ReviewCardio --> Sync2[Fine]
-    ReviewNeuro --> Sync2
-    
-    Sync2 --> Primario
-```
