@@ -2,8 +2,8 @@
 from langgraph.graph import StateGraph, START,END
 from langchain_core.messages import HumanMessage
 # Import dei moduli locali
-from state import MedicalState
-from nodes import reviewer_node, user_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node
+from state import MedicalState, get_initial_state
+from nodes import reviewer_node, user_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node
 
 # Altre librerie
 import os
@@ -18,9 +18,21 @@ def generate_graph():
     workflow.add_node("user", user_node)
     workflow.add_node("photography", photography_node)
     workflow.add_node("supervisor", supervisor_node)
+    workflow.add_node("router", router)
+
+    # Specialisti
     workflow.add_node("cardiologo", cardiologist_node)
     workflow.add_node("neurologo", neurologist_node)
+    workflow.add_node("ortopedico", orthopedic_node)
+    workflow.add_node("gastroenterologo", gastroenterologist_node)
+    workflow.add_node("dermatologo", dermatologist_node)
+    workflow.add_node("pneumologo", pneumologist_node)
+    workflow.add_node("otorino", ent_node)
+    workflow.add_node("oculista", ophthalmologist_node)
+    workflow.add_node("urologo", urologist_node)
+    workflow.add_node("medico_generale", general_practitioner_node)
     workflow.add_node("primario", primary_node)
+    
     # Archi
     workflow.add_edge(START, "user") # Nodo iniziale (Entry Point)
     workflow.add_edge("user", "reviewer")
@@ -33,30 +45,51 @@ def generate_graph():
             False: "user",
         }
     )
-    workflow.add_edge("user", "reviewer")
 
     workflow.add_edge("photography", "supervisor")
+    workflow.add_edge("supervisor", "router")
     workflow.add_conditional_edges(
-        "supervisor",
-        router,
+        "router",
+        lambda x: x["next_step"],
         {
             "cardiologo": "cardiologo",
             "neurologo": "neurologo",
-            "primario": "primario",
+            "ortopedico": "ortopedico",
+            "gastroenterologo": "gastroenterologo",
+            "dermatologo": "dermatologo",
+            "pneumologo": "pneumologo",
+            "otorino": "otorino",
+            "oculista": "oculista",
+            "urologo": "urologo",
+            "medico_generale": "medico_generale",
+            "primario": "primario"
         }
     )
-    workflow.add_edge("cardiologo", "supervisor")
-    workflow.add_edge("neurologo", "supervisor")
+
+    workflow.add_edge("cardiologo", "router")
+    workflow.add_edge("neurologo", "router")
+    workflow.add_edge("ortopedico", "router")
+    workflow.add_edge("gastroenterologo", "router")
+    workflow.add_edge("dermatologo", "router")
+    workflow.add_edge("pneumologo", "router")
+    workflow.add_edge("otorino", "router")
+    workflow.add_edge("oculista", "router")
+    workflow.add_edge("urologo", "router")
+    workflow.add_edge("medico_generale", "router")
 
     workflow.add_edge("primario", END)
     return workflow.compile()
 
 # Funzioni di routing
 def router(state: MedicalState):
-    next_dest = state["next_step"]
-    if next_dest == "FINISH":
-        return "primario"
-    return next_dest
+    specialist = state.get("needed_specialists")
+    print("\n\n\n\n")
+    print("Routing specialisti, stato attuale:", specialist)
+    print("\n\n\n\n")
+    for role, status in specialist.items():
+        if not status:
+            return {"next_step": role}
+    return {"next_step": "primario"}
 
 def triage_complete(state: MedicalState):
     return state["triage_complete"]
@@ -64,13 +97,12 @@ def triage_complete(state: MedicalState):
 # Main
 if __name__ == "__main__":
     app = generate_graph()
-
     os.system('cls' if os.name == 'nt' else 'clear')
     terminal_width = shutil.get_terminal_size().columns
     titolo = "🩺 Virtual Intelligent Triage Assistant 🩺"
     print(titolo.center(terminal_width))
 
-    app.invoke(MedicalState())
+    app.invoke(get_initial_state())
 
     titolo = "✅ PROCESSO COMPLETATO ✅"
     print(titolo.center(terminal_width))

@@ -1,5 +1,5 @@
 import operator
-from typing import Annotated, List, TypedDict
+from typing import Annotated, List, TypedDict, Optional
 from langchain_core.messages import BaseMessage
 
 # Classe TypedDict per la cartella clinica del paziente
@@ -26,14 +26,7 @@ class SpecialistReport(TypedDict):
     esami_consigliati: List[str]
     livello_urgenza: str  # es. "ALTO", "MEDIO", "BASSO"
 
-# Classe TypedDict per la bacheca di discussione tra specialisti
-class DiscussionBoard(TypedDict):
-    """ Bacheca di discussione tra specialisti. """
-    cardiologo_active: bool  # True = Deve intervenire/replicare
-    neurologo_active: bool   # True = Deve intervenire/replicare
-    turn_count: int          # Contatore di sicurezza (anti-loop infinito)
-
-# Classe TypedDict che rappresenta lo stato minimale del grafo, cioè le informazioni essenziali che devono essere mantenute tra i nodi
+# Classe TypedDict che rappresenta lo stato minimale del grafo, cioè le informazioni che devono essere mantenute tra i nodi
 class MedicalState(TypedDict):
     """ Stato minimale del grafo. """
     general_history: Annotated[list[BaseMessage], operator.add] # CRONOLOGIA GENERALE: Qui finiscono tutti i messaggi generati durante la consultazione
@@ -43,26 +36,32 @@ class MedicalState(TypedDict):
     next_step: str                                              # PROSSIMO PASSO: indica quale specialista deve intervenire o se finire il processo
     
     patient_card: PatientCard                                   # CARTELLA CLINICA: i dati strutturati del paziente
-    photo: PhotoAnalysis                                        # FOTO ANALISI: dati relativi alla foto del danno del paziente
+    photo: Optional[PhotoAnalysis]                              # FOTO ANALISI: dati relativi alla foto del danno del paziente
+
+    needed_specialists: dict[str, bool]                         # SPECIALISTI NECESSARI: elenco degli specialisti richiesti per la consultazione
     medical_reports: dict[str, SpecialistReport]                # REPORT SPECIALISTICI: i report generati dagli specialisti coinvolti
 
-    def __init__(self):
-        self.general_history = list()
-        self.triage_history = list()
-        self.triage_complete = False
-        self.diagnosis = ""
-        self.next_step = ""
-        self.patient_card = PatientCard(
-            nome="",
-            eta="",
-            sintomo_principale="",
-            intensita="",
-            durata=""
-        )
-        self.photo = PhotoAnalysis(
-            photo_url="",
-            descrizione="",
-            tipo_lesione="",
-            gravita_stimata=""
-        )
-        self.medical_reports = dict()
+def get_empty_patient_card() -> PatientCard:
+    return {
+        "nome": "", 
+        "eta": "", 
+        "sintomo_principale": "", 
+        "intensita": "", 
+        "durata": ""
+    }
+
+def get_initial_state() -> MedicalState:
+    """ Crea lo stato iniziale pulito per il grafo. """
+    return {
+        "general_history": [],
+        "triage_history": [],
+        "triage_complete": False,
+        "diagnosis": "",
+        "next_step": "triage",
+        
+        "patient_card": get_empty_patient_card(),
+        "photo": None,
+        
+        "medical_reports": {},
+        "needed_specialists": {},
+    }

@@ -4,7 +4,7 @@ from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 # Import dei moduli locali
 from state import MedicalState, SpecialistReport, PatientCard
-from config import REVIEWER_PROMPT, SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, PHOTO_PROMPT
+from config import REVIEWER_PROMPT, SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, PHOTO_PROMPT, ALL_SPECIALISTS
 
 # Altre librerie
 import json, base64
@@ -35,8 +35,14 @@ else:
 def reviewer_node(state: MedicalState):
     """ Analizza la Patient Card e decide se sono necessarie più informazioni dall'utente. """
     print("🧐 REVIEWER: ", end="", flush=True)
-    current_card = state.get("patient_card", PatientCard())
-    user_msg = state["triage_history"][-1].content
+    # Nel reviewer_node
+    current_card = state["patient_card"]
+    
+    history = state.get("triage_history", [])
+    if history:
+        user_msg = history[-1].content
+    else:
+        user_msg = "Nessun messaggio utente trovato."
     card_str = json.dumps(current_card, ensure_ascii=False)  
     prompt = REVIEWER_PROMPT.format(patient_card=card_str, user_input=user_msg)    
     content = stream_response(prompt)
@@ -53,14 +59,14 @@ def reviewer_node(state: MedicalState):
         status = "INSUFFICIENTE"
         reply = "Scusa, non ho capito bene. Puoi ripetere i tuoi dati?"
     
+    display_reply = reply if reply else "Perfetto, raccolta dati completa ✨"
     print(f"   -> Status: {status}")
     print(f"   -> Dati attuali: {current_card}")
-    print(f"   -> Risposta all'utente: {reply if reply else "Perfetto, raccolta dati completa ✨"}")
-
+    print(f"   -> Risposta all'utente: {display_reply}")
     return {
         "patient_card": current_card,          
-        "triage_history": [AIMessage(content=reply)], 
-        "general_history": [AIMessage(content=reply)],
+        "triage_history": [AIMessage(content=display_reply)], 
+        "general_history": [AIMessage(content=display_reply)],
         "next_step": "user" if "INSUFFICIENTE" in status else "photography",
         "triage_complete": True if status == "SUFFICIENTE" else False
     }
@@ -85,14 +91,15 @@ def photography_node(state: MedicalState):
         except FileNotFoundError:
             return None
     print("📸 PHOTOGRAPH: ", end="", flush=True)    
-    user_choice = input("Vuoi inserire una foto?\n💬 USER: ").strip().lower()
+    user_choice = input("Vuoi inserire una foto? (Si/No)\n💬 USER: ").strip().lower()
     
     if user_choice not in ['si', 'sì', 'yes', 'y']:
         print("📸 PHOTOGRAPH:  Nessuna foto inserita")
         return {
             "general_history": [AIMessage(content="Il paziente non ha fornito foto della ferita.")],
             "triage_history": [AIMessage(content="Nessuna foto fornita dal paziente.")],
-            "photo": None 
+            "photo": None,
+            "next_step": "supervisor"
         }
 
     image_path = input("📸 PHOTOGRAPH: Inserisci il percorso dell'immagine (es. ferita.jpg)\n💬 USER: ").strip()
@@ -131,6 +138,7 @@ def photography_node(state: MedicalState):
                 "gravita_stimata": clinical_data.get("gravita_stimata", "N/A")
             },
             "general_history": [AIMessage(content=f"Foto analizzata: {clinical_data.get('tipo_lesione')} - Gravità {clinical_data.get('gravita_stimata')}")],
+            "next_step": "supervisor"
         }
 
     except json.JSONDecodeError:
@@ -149,97 +157,130 @@ def photography_node(state: MedicalState):
 
 # Nodo del supervisore
 def supervisor_node(state: MedicalState):
-    """ Analizza la conversazione e decide chi deve intervenire. Stampa FINISH se la diagnosi è completa. """
+    """ Analizza la conversazione e decide chi deve intervenire."""
     print("🚦 SUPERVISOR: ", end="", flush=True)
-    current_card = state["general_history"]
-    prompt = [SystemMessage(content=SUPERVISOR_PROMPT)] + current_card
-    response = stream_response(prompt)
-    decision_text = response.strip().lower()
-    next_node = "FINISH"
-    if "cardiologo" in decision_text:
-        next_node = "cardiologo"
-    elif "neurologo" in decision_text:
-        next_node = "neurologo"
-    return {"next_step": next_node}
+    card = state["patient_card"]
+    photo = state.get("photo")
+    card_str = json.dumps(card, ensure_ascii=False)
+    photo_str = json.dumps(photo, ensure_ascii=False) if photo else "Nessuna foto."
+
+    prompt = SUPERVISOR_PROMPT.format(patient_card=card_str, photo_analysis=photo_str)
+    content = stream_response(prompt)
+    selected_specialists = ["medico_generale"]
+
+    try:
+        clean_content = content.replace("```json", "").replace("```", "").strip()
+        data = json.loads(clean_content)
+        
+        specs = data.get("specialists", [])
+        
+        clean_specs = [s.lower() for s in specs if s.lower() in ALL_SPECIALISTS]
+        
+        if clean_specs:
+            selected_specialists = clean_specs
+            
+        print(f"-> Scelti: {selected_specialists}")
+
+    except json.JSONDecodeError:
+        print("-> Errore lettura JSON. Fallback su Medico Generale.")
+    
+    checklist = {nome: False for nome in selected_specialists}
+    print("Checklist specialisti necessari:", checklist)
+    return {
+        "needed_specialists": checklist
+    }
 
 # Nodo generico per specialisti
 def specialist_node(state: MedicalState, role: str):
-    current_reports = state.get("medical_reports", {})
-    if not current_reports: current_reports = {}
+    """ Funzione generica che esegue l'analisi per qualsiasi specialista. """
+      
+    card = state["patient_card"]
+    photo = state.get("photo")
+    card_str = json.dumps(card, ensure_ascii=False)
+    photo_str = json.dumps(photo, ensure_ascii=False) if photo else "Nessuna foto."
 
-    patient_card = state.get("patient_card", {})
-    card_str = json.dumps(patient_card, ensure_ascii=False)
+    prompt = SPECIALIST_PROMPT.format(
+        role=role,
+        card=card_str,
+        photo=photo_str
+    )
 
-    prompt_content = SPECIALIST_PROMPT.format(role=role,patient_card=card_str)
-    
-    # Passiamo la storia generale per fargli leggere il contesto
-    messages = [SystemMessage(content=prompt_content)] + state["general_history"]
-    
-    # 3. Chiamata LLM
-    response_str = stream_response(messages)
-    
-    # 4. Parsing JSON (Logica Robusta)
-    new_report = {}
-    flags = {}
+    content = stream_response(prompt)
     
     try:
-        # Pulizia JSON (trova le graffe esterne)
-        clean_json = response_str.replace("```json", "").replace("```", "").strip()
-        start = clean_json.find("{")
-        end = clean_json.rfind("}") + 1
+        clean_content = content.replace("```json", "").replace("```", "").strip()
+        report_data = json.loads(clean_content)
         
-        if start != -1 and end != -1:
-            data = json.loads(clean_json[start:end])
-            
-            # Estrazione del Report
-            raw_report = data.get("medical_report", {})
-            
-            # Creazione oggetto TypedDict (Validazione)
-            new_report: SpecialistReport = {
-                "diagnosi_sintetica": raw_report.get("diagnosi_sintetica", "Analisi completata"),
-                "dettagli": raw_report.get("dettagli", response_str[:100]), # Fallback sul testo grezzo
-                "esami_consigliati": raw_report.get("esami_consigliati", []),
-                "livello_urgenza": raw_report.get("livello_urgenza", "MEDIO")
-            }
-            
-        else:
-            raise ValueError("JSON non trovato nella risposta")
-
-    except Exception as e:
-        print(f"\n❌ ERRORE JSON SPECIALISTA: {e}")
-        # Fallback di emergenza per non bloccare il sistema
-        new_report = {
-            "diagnosi_sintetica": "Errore Formattazione",
-            "dettagli": f"Il modello ha risposto: {response_str}",
-            "esami_consigliati": [],
+        final_report: SpecialistReport = {
+            "diagnosi_sintetica": report_data.get("diagnosi_sintetica", "Non determinata"),
+            "dettagli": report_data.get("dettagli", "Nessun dettaglio"),
+            "esami_consigliati": report_data.get("esami_consigliati", []),
+            "livello_urgenza": report_data.get("livello_urgenza", "BASSO")
+        }
+        
+    except json.JSONDecodeError:
+        final_report = {
+            "diagnosi_sintetica": "Errore Tecnico",
+            "dettagli": "Impossibile generare report strutturato.",
+            "esami_consigliati": ["Visita di controllo"],
             "livello_urgenza": "BASSO"
         }
-
-    # 5. SALVATAGGIO NEL REGISTRO (Cruciale!)
-    # Aggiorniamo il dizionario dei report con la chiave del ruolo corrente
-    current_reports[role] = new_report
-    
-    print(f"\n   ✅ Referto salvato per {role}: {new_report['diagnosi_sintetica']}")
-
-    # 6. RETURN
-    # Restituiamo medical_reports aggiornato e un messaggio per la chat (così gli altri sanno che ha parlato)
-    chat_msg = f"**REFERTO {role.upper()}**: {new_report['diagnosi_sintetica']}\n(Vedi dettagli in cartella clinica)"
-    
+    current_specialist = state["needed_specialists"]
+    current_specialist[role] = True
     return {
-        "medical_reports": current_reports,  # <--- Il registro aggiornato
-        "general_history": [AIMessage(content=chat_msg)], # <--- La notifica in chat
-        # "discussion_board": ... (implementeremo dopo)
-        "next_step": "check_board" # O supervisor, a seconda del tuo grafo attuale
+        "medical_reports": {role: final_report},
+        "needed_specialists": current_specialist
     }
 
-# Wrapper per i nodi specifici
+# Wrapper per i nodi specifici (versione con emoji)
 def cardiologist_node(state):
-    print(f"🫀  CARDIOLOGIT: ", end="", flush=True)
+    print(f"🫀 CARDIOLOGO: ", end="", flush=True)
     return specialist_node(state, "cardiologo")
 
+
 def neurologist_node(state):
-    print(f"🧠 NEUROLOGIST: ", end="", flush=True)
+    print(f"🧠 NEUROLOGO: ", end="", flush=True)
     return specialist_node(state, "neurologo")
+
+
+def orthopedic_node(state):
+    print(f"🦴 ORTOPEDICO: ", end="", flush=True)
+    return specialist_node(state, "ortopedico")
+
+
+def gastroenterologist_node(state):
+    print(f"🍽️ GASTROENTEROLOGO: ", end="", flush=True)
+    return specialist_node(state, "gastroenterologo")
+
+
+def dermatologist_node(state):
+    print(f"🧴 DERMATOLOGO: ", end="", flush=True)
+    return specialist_node(state, "dermatologo")
+
+
+def pneumologist_node(state):
+    print(f"🫁 PNEUMOLOGO: ", end="", flush=True)
+    return specialist_node(state, "pneumologo")
+
+
+def ent_node(state):  # Otorino (Ear Nose Throat)
+    print(f"👂 OTORINO: ", end="", flush=True)
+    return specialist_node(state, "otorino")
+
+
+def ophthalmologist_node(state):
+    print(f"👁️ OCULISTA: ", end="", flush=True)
+    return specialist_node(state, "oculista")
+
+
+def urologist_node(state):
+    print(f"🚻 UROLOGO: ", end="", flush=True)
+    return specialist_node(state, "urologo")
+
+
+def general_practitioner_node(state):
+    print(f"👨‍⚕️ MEDICO GENERALE: ", end="", flush=True)
+    return specialist_node(state, "medico_generale")
 
 # Nodo del primario
 def primary_node(state: MedicalState):
