@@ -3,8 +3,8 @@ from langchain_ollama import ChatOllama
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 # Import dei moduli locali
-from state import MedicalState, SpecialistReport, PatientCard
-from config import REVIEWER_PROMPT, SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, PHOTO_PROMPT, ALL_SPECIALISTS
+from src.state import MedicalState, SpecialistReport, PatientCard
+from src.config import REVIEWER_PROMPT, SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, PHOTO_PROMPT, ALL_SPECIALISTS
 
 # Altre librerie
 import json, base64

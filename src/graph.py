@@ -1,13 +1,9 @@
 # Librerie di base per la costruzione del grafo
 from langgraph.graph import StateGraph, START,END
-from langchain_core.messages import HumanMessage
-# Import dei moduli locali
-from state import MedicalState, get_initial_state
-from nodes import reviewer_node, user_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node
 
-# Altre librerie
-import os
-import shutil
+# Import dei moduli locali
+from src.state import MedicalState, get_initial_state
+from src.nodes import reviewer_node, user_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node
 
 # Funzione per la creazione del grafo di stato
 def generate_graph():
@@ -93,16 +89,3 @@ def router(state: MedicalState):
 
 def triage_complete(state: MedicalState):
     return state["triage_complete"]
-
-# Main
-if __name__ == "__main__":
-    app = generate_graph()
-    os.system('cls' if os.name == 'nt' else 'clear')
-    terminal_width = shutil.get_terminal_size().columns
-    titolo = "🩺 Virtual Intelligent Triage Assistant 🩺"
-    print(titolo.center(terminal_width))
-
-    app.invoke(get_initial_state())
-
-    titolo = "✅ PROCESSO COMPLETATO ✅"
-    print(titolo.center(terminal_width))
