@@ -1,0 +1,160 @@
+[project]
+# Elenco delle variabili d'ambiente che devono essere fornite da ogni utente per utilizzare l'app.
+user_env = []
+
+# Durata (in secondi) durante la quale la sessione viene salvata quando si perde la connessione
+session_timeout = 3600
+
+# Durata (in secondi) della scadenza della sessione utente
+user_session_timeout = 1296000  # 15 giorni
+
+# Abilita la cache di terze parti (es. cache di LangChain)
+cache = false
+
+# Se salvare o meno le variabili d'ambiente utente (chiavi API) nel database
+# Imposta a true per memorizzare le var. d'ambiente utente nel DB, false per escluderle per sicurezza
+persist_user_env = false
+
+# Se mascherare o meno le variabili d'ambiente utente (chiavi API) nell'interfaccia utente come password
+# Imposta a true per mostrare le chiavi API come ***, false per mostrarle in testo normale
+mask_user_env = false
+
+# Origini autorizzate
+allow_origins = ["*"]
+
+[features]
+# Elabora e visualizza l'HTML nei messaggi. Questo può comportare un rischio per la sicurezza (vedi https://stackoverflow.com/questions/19603097/why-is-it-dangerous-to-render-user-generated-html-or-javascript)
+unsafe_allow_html = false
+
+# Elabora e visualizza espressioni matematiche. Questo può entrare in conflitto con i caratteri "$" nei messaggi.
+latex = false
+
+# Scorrimento automatico dei nuovi messaggi utente verso la parte superiore della finestra
+user_message_autoscroll = true
+
+# Scorrimento automatico dei nuovi messaggi dell'assistente
+assistant_message_autoscroll = true
+
+# Tagga automaticamente le discussioni con il profilo chat corrente (se viene utilizzato un profilo chat)
+auto_tag_thread = true
+
+# Consenti agli utenti di modificare i propri messaggi
+edit_message = true
+
+# Consenti agli utenti di condividere le discussioni (backend + interfaccia utente). Richiede un callback on_shared_thread_view definito dall'app.
+allow_thread_sharing = false
+
+[features.slack]
+# Aggiungi una reazione emoji quando viene ricevuto un messaggio (richiede ambito OAuth reactions:write)
+reaction_on_message_received = false
+
+# Autorizza gli utenti a caricare spontaneamente file con i messaggi
+[features.spontaneous_file_upload]
+    enabled = true
+    # Definisci i tipi di file accettati usando i tipi MIME
+    # Esempi:
+    # 1. Per tipi di file specifici:
+    #    accept = ["image/jpeg", "image/png", "application/pdf"]
+    # 2. Per tutti i file di un certo tipo:
+    #    accept = ["image/*", "audio/*", "video/*"]
+    # 3. Per estensioni di file specifiche:
+    #    accept = { "application/octet-stream" = [".xyz", ".pdb"] }
+    # Nota: L'uso di "*/*" non è raccomandato in quanto potrebbe causare avvisi del browser
+    accept = ["*/*"]
+    max_files = 20
+    max_size_mb = 500
+
+[features.audio]
+    # Abilita le funzionalità audio
+    enabled = false
+    # Frequenza di campionamento dell'audio
+    sample_rate = 24000
+
+[features.mcp]
+    # Abilita le funzionalità del Model Context Protocol (MCP)
+    enabled = false
+
+[features.mcp.sse]
+    enabled = true
+
+[features.mcp.streamable-http]
+    enabled = true
+
+[features.mcp.stdio]
+    enabled = true
+    # Solo gli eseguibili nell'elenco consentito possono essere utilizzati per il server stdio MCP.
+    # È necessario solo il nome base dell'eseguibile, es. "npx", non "/usr/bin/npx".
+    # Per favore non commentare questa riga per ora, ne abbiamo bisogno per analizzare il nome dell'eseguibile.
+    allowed_executables = [ "npx", "uvx" ]
+
+[UI]
+# Nome dell'assistente.
+name = "V.I.T.A"
+
+# default_theme = "dark"
+
+# Forza una lingua specifica per tutti gli utenti (es. "en-US", "he-IL", "fr-FR")
+# Se non impostato, verrà utilizzata la lingua del browser
+# language = "en-US"
+
+# layout = "wide"
+
+# default_sidebar_state = "open"
+
+# Descrizione dell'assistente. Questa viene utilizzata per i tag HTML.
+# description = ""
+
+# Modalità di visualizzazione del Chain of Thought (CoT). Può essere "hidden" (nascosto), "tool_call" o "full" (completo).
+cot = "full"
+
+# Specifica un file CSS che può essere utilizzato per personalizzare l'interfaccia utente.
+# Il file CSS può essere servito dalla directory pubblica o tramite un link esterno.
+custom_css = "public/style.css"
+
+# Specifica attributi aggiuntivi per un file CSS personalizzato
+# custom_css_attributes = "media=\"print\""
+
+# Specifica un file JavaScript che può essere utilizzato per personalizzare l'interfaccia utente.
+# Il file JavaScript può essere servito dalla directory pubblica.
+# custom_js = "/public/test.js"
+
+# Lo stile delle caselle di avviso. Può essere "classic" o "modern".
+alert_style = "classic"
+
+# Specifica attributi aggiuntivi per il file JS personalizzato
+# custom_js_attributes = "async type = \"module\""
+
+# Immagine personalizzata della pagina di login, relativa alla directory pubblica o URL esterno
+# login_page_image = "/public/custom-background.jpg"
+
+# Filtro immagine della pagina di login personalizzata (filtri interni Tailwind, nessuna variante dark/light)
+# login_page_image_filter = "brightness-50 grayscale"
+# login_page_image_dark_filter = "contrast-200 blur-sm"
+
+# Specifica un meta URL personalizzato (usato per meta tag come og:url)
+# custom_meta_url = "https://github.com/Chainlit/chainlit"
+
+# Specifica un URL personalizzato per l'immagine meta.
+# custom_meta_image_url = "https://chainlit-cloud.s3.eu-west-3.amazonaws.com/logo/chainlit_banner.png"
+
+# Carica il logo dell'assistente direttamente da URL.
+logo_file_url = ""
+
+# Carica l'immagine avatar dell'assistente direttamente da URL.
+default_avatar_file_url = ""
+
+# Specifica una directory di build personalizzata per il frontend.
+# Questo può essere usato per personalizzare il codice del frontend.
+# Attenzione: se questo è un percorso relativo, non deve iniziare con una barra.
+# custom_build = "./public/build"
+
+# Specifica uno o più link personalizzati opzionali nell'intestazione.
+# [[UI.header_links]]
+#     name = "Issues"
+#     display_name = "Segnala problema"
+#     icon_url = "https://avatars.githubusercontent.com/u/128686189?s=200&v=4"
+#     url = "https://github.com/Chainlit/chainlit/issues"
+#     target = "_blank" (default)  # Opzionale: "_self", "_parent", "_top".
+
+[meta]
+generated_by = "2.9.4"

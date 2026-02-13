@@ -71,14 +71,33 @@ def reviewer_node(state: MedicalState):
         "triage_complete": True if status == "SUFFICIENTE" else False
     }
 
-# Nodo per richiedere più informazioni all'utente
 def user_node(state: MedicalState):
-    """ Chiede ulteriori informazioni all'utente riguardo ai sintomi. """
+    """ 
+    Nodo Utente Ibrido:
+    - Funziona con Chainlit (non chiede input se il messaggio c'è già)
+    - Funziona col Terminale (chiede input se manca)
+    """
+    
+    history = state.get("triage_history", [])
+    
+    # Per Chainlit: non chiediamo input, passiamo direttamente al nodo successivo.
+    if history and isinstance(history[-1], HumanMessage):
+        print("💬 USER: "+history[-1].content)
+        return {
+            "general_history": [history[-1]], 
+            "triage_history": [history[-1]]
+        }
+
+    # Per input da terminale
     message = input("💬 USER: ")
     while message == "" or message.isspace():
         print("⚠️ Per favore, fornisci una risposta valida.")
         message = input("💬 USER: ")
-    return {"general_history": [HumanMessage(content=message)], "triage_history": [HumanMessage(content=message)]}
+        
+    return {
+        "general_history": [HumanMessage(content=message)], 
+        "triage_history": [HumanMessage(content=message)]
+    }
 
 # Nodo per l'analisi dell'immagine del danno
 def photography_node(state: MedicalState):

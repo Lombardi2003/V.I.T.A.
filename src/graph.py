@@ -1,5 +1,6 @@
 # Librerie di base per la costruzione del grafo
 from langgraph.graph import StateGraph, START,END
+from langgraph.checkpoint.memory import MemorySaver
 
 # Import dei moduli locali
 from src.state import MedicalState, get_initial_state
@@ -74,7 +75,8 @@ def generate_graph():
     workflow.add_edge("medico_generale", "router")
 
     workflow.add_edge("primario", END)
-    return workflow.compile()
+    memory = MemorySaver()
+    return workflow.compile(checkpointer=memory)
 
 # Funzioni di routing
 def router(state: MedicalState):
