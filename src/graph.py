@@ -3,7 +3,7 @@ from langgraph.graph import StateGraph, START,END
 from langgraph.checkpoint.memory import MemorySaver
 
 # Import dei moduli locali
-from src.state import MedicalState, get_initial_state
+from src.state import MedicalState
 from src.nodes import reviewer_node, user_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node
 
 # Funzione per la creazione del grafo di stato
