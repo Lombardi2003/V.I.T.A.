@@ -75,8 +75,9 @@ def generate_graph():
     workflow.add_edge("medico_generale", "router")
 
     workflow.add_edge("primario", END)
-    memory = MemorySaver()
-    return workflow.compile(checkpointer=memory)
+    #memory = MemorySaver()
+    #return workflow.compile(checkpointer=memory)
+    return workflow.compile()
 
 # Funzioni di routing
 def router(state: MedicalState):

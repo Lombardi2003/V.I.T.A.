@@ -77,8 +77,7 @@ def user_node(state: MedicalState):
     - Funziona con Chainlit (non chiede input se il messaggio c'è già)
     - Funziona col Terminale (chiede input se manca)
     """
-    
-    history = state.get("triage_history", [])
+    history = state.triage_history
     
     # Per Chainlit: non chiediamo input, passiamo direttamente al nodo successivo.
     if history and isinstance(history[-1], HumanMessage):
