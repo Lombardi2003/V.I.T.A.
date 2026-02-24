@@ -36,6 +36,8 @@ REGOLE:
 
 # IL REVISORE
 # Il suo compito è quello di valutare se le informazioni date sono sufficienti per una diagnosi o se richiedere ulteriori informazioni all'utente
+# IL REVISORE
+# Il suo compito è quello di valutare se le informazioni date sono sufficienti per una diagnosi o se richiedere ulteriori informazioni all'utente
 REVIEWER_PROMPT = """Sei un modulo software che estrae dati medici in formato JSON. NON conversare. NON spiegare. NON ripetere il testo.
 DATI PAZIENTE ATTUALI:
 {patient_card}
@@ -56,11 +58,14 @@ NOTA BENE: l'utente potrebbe non fornire tutte le informazioni in un solo messag
 RISPONDI SOLO CON QUESTO JSON VALIDO (Nessun testo prima o dopo):
 {{
     "updated_card": {{
-        "nome": "...",
-        "eta": "...",
-        "sintomo_principale": "...",
-        "intensita": "...",
-        "durata": "..."
+        "codice_fiscale": "inserire qui il valore",
+        "nome": "inserire qui il valore",
+        "cognome": "inserire qui il valore",
+        "eta": "inserire qui il valore",
+        "patologie_precedenti": [],
+        "sintomo_principale": "inserire qui il valore",
+        "intensita": "inserire qui il valore",
+        "durata": "inserire qui il valore"
     }},
     "status": "INSUFFICIENTE", 
     "message_to_user": "La tua domanda qui..."
@@ -76,49 +81,56 @@ ALL_SPECIALISTS = [
 
 # GLI SPECIALISTI: Usiamo un dizionario per mappare il ruolo al suo prompt specifico
 # Questo template verrà formattato con {role} e {context}
-SPECIALIST_PROMPT = """
-Sei un esperto {role}. 
-Analizza la scheda paziente e l'eventuale foto.
-Il tuo compito è fornire un parere specialistico ESCLUSIVAMENTE nel tuo ambito.
+SPECIALIST_PROMPT = """Sei un esperto {role}.
+Analizza la scheda paziente e fornisci il tuo parere specialistico ESCLUSIVAMENTE nel tuo ambito.
 
 DATI PAZIENTE:
 {card}
 
-FOTO ANALISI:
-{photo}
+MESSAGGI TRA COLLEGHI (se presenti):
+{messaggi_colleghi}
 
-Compiti:
-1. Valuta se i sintomi indicano un'urgenza nel tuo settore ({role}).
-2. Ipotizza una diagnosi sintetica.
-3. Consiglia esami strumentali specifici (non generici).
+⚠️ ISTRUZIONI FONDAMENTALI:
+1. Devi valutare se TUTTI i sintomi sono di tua competenza.
+2. Se ci sono sintomi gravi che escono dalla tua specializzazione, DEVI spuntare "necessita_consulto": true e indicare chi consultare. Non fare l'eroe: chiedi aiuto.
+3. Richiedi il consulto ad un altro specialista. Se hai già chiesto, non chiedere di nuovo.
 
-Restituisci SOLO un JSON formattato così:
+🔴 ESEMPIO DI COMPORTAMENTO OBBLIGATORIO 🔴
+Se sei un cardiologo e il paziente ha dolore al petto ma ANCHE il viso paralizzato (sintomo neurologico), il tuo JSON DEVE essere compilato esattamente in questo modo:
 {{
-    "diagnosi_sintetica": "tua ipotesi...",
-    "dettagli": "spiegazione tecnica del perché...",
-    "esami_consigliati": ["esame 1", "esame 2"],
-    "livello_urgenza": "ALTO" | "MEDIO" | "BASSO"
+    "ragionamento_iniziale": "Il paziente ha sintomi cardiologici, ma la paresi facciale e l'afasia indicano un problema neurologico grave (es. ictus).",
+    "necessita_consulto": true,
+    "specialista_da_consultare": "neurologo",
+    "domanda_al_collega": "Il paziente presenta paresi facciale. Puoi escludere cause neurologiche urgenti prima del mio referto?",
+    "diagnosi_sintetica": "In attesa di consulto",
+    "dettagli_referto": "In attesa del parere del neurologo.",
+    "esami_consigliati": [],
+    "livello_urgenza": "ALTO"
 }}
+--------------------------------------------------
+
+Ora tocca a te. Restituisci ESCLUSIVAMENTE il JSON compilato in base alla tua situazione reale. Nessun testo prima o dopo:
 """
 
 # IL PRIMARIO: Deve riassumere tutto in un formato standard
-PRIMARY_PROMPT = """
-Agisci come Supervisore Clinico Esperto.
-Hai il compito di revisionare la consultazione fornita e produrre la decisione finale vincolante.
+PRIMARY_PROMPT = """Sei il Medico Primario (Chief Medical Officer).
+Il tuo compito è analizzare i dati del paziente e i referti scritti dagli specialisti per emettere la diagnosi finale.
 
-ISTRUZIONI DI SINTESI:
-- Valuta la coerenza delle ipotesi emerse nella discussione.
-- Dai priorità alle diagnosi che spiegano meglio tutti i sintomi presentati.
-- Sii estremamente specifico negli esami richiesti (evita "esami del sangue generici", specifica quali marcatori).
+DATI DEL PAZIENTE:
+{card}
 
-OUTPUT RICHIESTO:
-Devi restituire ESATTAMENTE il seguente template compilato. Qualsiasi testo prima o dopo il template sarà considerato un errore critico.
+REFERTI DEGLI SPECIALISTI:
+{reports_text}
 
---- REPORT MEDICO ---
-DIAGNOSI SINTETICA: [La tua conclusione clinica sintetica e motivata]
-ESAMI CONSIGLIATI:
-- [Nome Esame]
-- [Nome Esame]
+Sintetizza tutto e decidi il livello di urgenza (ROSSO, ARANCIONE, AZZURRO, VERDE, BIANCO).
+
+Rispondi ESCLUSIVAMENTE con un JSON valido strutturato in questo modo:
+{{
+    "diagnosi_finale": "Sintesi della diagnosi",
+    "dettagli": "Spiegazione medica del ragionamento",
+    "esami_consigliati": ["esame 1", "esame 2"],
+    "livello_urgenza": "ROSSO" | "ARANCIONE" | "AZZURRO" | "VERDE" | "BIANCO"
+}}
 """
 
 # Il MODULO DI ANALISI FOTO

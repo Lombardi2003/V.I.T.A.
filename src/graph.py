@@ -4,7 +4,7 @@ from langgraph.checkpoint.memory import MemorySaver
 
 # Import dei moduli locali
 from src.state import MedicalState
-from src.nodes import reviewer_node, user_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node
+from src.nodes import reviewer_node, user_node, read_db_node, save_db_node, modify_db_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node
 
 # Funzione per la creazione del grafo di stato
 def generate_graph():
@@ -12,10 +12,13 @@ def generate_graph():
     workflow = StateGraph(MedicalState)
     # Nodi
     workflow.add_node("reviewer", reviewer_node)
+    workflow.add_node("read_db", read_db_node)
     workflow.add_node("user", user_node)
     workflow.add_node("photography", photography_node)
     workflow.add_node("supervisor", supervisor_node)
     workflow.add_node("router", router)
+    workflow.add_node("save_db", save_db_node)
+    workflow.add_node("modify_db", modify_db_node)
 
     # Specialisti
     workflow.add_node("cardiologo", cardiologist_node)
@@ -31,7 +34,8 @@ def generate_graph():
     workflow.add_node("primario", primary_node)
     
     # Archi
-    workflow.add_edge(START, "user") # Nodo iniziale (Entry Point)
+    workflow.add_edge(START, "read_db") # Nodo iniziale (Entry Point)
+    workflow.add_edge("read_db", "user")
     workflow.add_edge("user", "reviewer")
 
     workflow.add_conditional_edges(
@@ -74,21 +78,60 @@ def generate_graph():
     workflow.add_edge("urologo", "router")
     workflow.add_edge("medico_generale", "router")
 
-    workflow.add_edge("primario", END)
+    workflow.add_conditional_edges(
+        "primario",
+        patient_exists,
+        {
+            True: "modify_db",
+            False: "save_db",
+        }
+    )
+
+    workflow.add_edge("save_db", END) # Nodo finale (Exit Point)
+    workflow.add_edge("modify_db", END) # Nodo finale (Exit Point)
     #memory = MemorySaver()
     #return workflow.compile(checkpointer=memory)
     return workflow.compile()
 
 # Funzioni di routing
 def router(state: MedicalState):
-    specialist = state.get("needed_specialists")
-    print("\n\n\n\n")
-    print("Routing specialisti, stato attuale:", specialist)
-    print("\n\n\n\n")
+    specialist = state.get("needed_specialists", {})
+    consultation = state.get("inter_consultation")
+    
+    print("\n\n" + "="*40)
+    print("🔀 ROUTER: Controllo la direzione...")
+    print("Stato specialisti:", specialist)
+    if consultation:
+        print("⚠️ CONSULTO IN CORSO:", consultation)
+    print("="*40 + "\n\n")
+
+    # 1. PRECEDENZA ASSOLUTA: C'è un consulto in sospeso?
+    if consultation:
+        # Se c'è una domanda senza risposta, mandiamo dal destinatario ('a')
+        if not consultation.get("risposta"):
+            print(f"   -> 🚨 Deviazione: Mando la cartella al {consultation['a'].upper()} per rispondere alla domanda!")
+            return {"next_step": consultation["a"]}
+            
+        # Se c'è la risposta, rimandiamo la cartella a chi l'aveva chiesta ('da')
+        else:
+            print(f"   -> 🚨 Risposta pronta: Rimando la cartella al {consultation['da'].upper()} per fargli finire il referto!")
+            return {"next_step": consultation["da"]}
+
+    # 2. LOGICA NORMALE: Nessun consulto tra medici, smistamento classico
     for role, status in specialist.items():
         if not status:
+            print(f"   -> Smisto la visita normale al: {role}")
             return {"next_step": role}
+            
+    # 3. Se tutti hanno visitato, andiamo dal primario
+    print("   -> Tutti i medici hanno concluso. Passo al PRIMARIO.")
     return {"next_step": "primario"}
 
 def triage_complete(state: MedicalState):
     return state["triage_complete"]
+
+def patient_exists(state: MedicalState):
+    print("\n\n\n\n")
+    print("Verifica esistenza paziente, stato attuale:", state.get("patient_exists"))
+    print("\n\n\n\n")
+    return state.get("patient_exists")

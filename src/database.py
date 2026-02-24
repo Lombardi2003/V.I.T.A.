@@ -26,26 +26,30 @@ class MedicalDatabase:
         print("✅ Connessione al Database pronta e tabelle verificate!")
 
     def save_patient(self, patient_card):
-        """Salva un nuovo paziente nel database. Se il codice fiscale esiste già, sovrascrive i dati esistenti."""
+        """Salva i dati estratti nel database."""
+        
+        # Usiamo .get() ovunque. Se un campo manca, mettiamo una stringa vuota "" o una lista vuota []
         nuovo_record = PatientRecord(
-            codice_fiscale=patient_card.codice_fiscale,
-            nome=patient_card.nome,
-            cognome=patient_card.cognome,
-            eta=patient_card.eta,
-            patologie_precedenti=patient_card.patologie_precedenti
+            codice_fiscale=patient_card.get("codice_fiscale", "DA_RICHIEDERE"),
+            nome=patient_card.get("nome", ""),
+            cognome=patient_card.get("cognome", ""),
+            eta=patient_card.get("eta", ""),
+            # Ecco la riga magica che risolve l'errore: se non c'è, mette una lista vuota []
+            patologie_precedenti=patient_card.get("patologie_precedenti", []) 
         )
+        
         with Session(self.engine) as session:
             session.add(nuovo_record)
             session.commit()
-            print(f"💾 Salvataggio completato per: {patient_card.nome} {patient_card.cognome}")
+            print(f"💾 Salvataggio completato per: {nuovo_record.nome} {nuovo_record.cognome}")
 
     def modify_patology_patient(self, patient: PatientCard, nuova_patologia: str):
         """Aggiorna la lista delle patologie di un paziente esistente."""
         with Session(self.engine) as session:
-            paziente = session.get(PatientRecord, patient.codice_fiscale)
+            paziente = session.get(PatientRecord, patient["codice_fiscale"])
             
             if not paziente:
-                print(f"❌ Nessun paziente trovato con CF: {patient.codice_fiscale}")
+                print(f"❌ Nessun paziente trovato con CF: {patient['codice_fiscale']}")
                 return
                 
             # Creiamo una copia della lista, aggiungiamo il dato e riassegniamo
