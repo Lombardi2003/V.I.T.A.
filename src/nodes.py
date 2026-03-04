@@ -7,6 +7,8 @@ from src.state import MedicalState, SpecialistReport, PatientCard
 from src.config import REVIEWER_PROMPT, SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, PHOTO_PROMPT, ALL_SPECIALISTS
 from src.database import MedicalDatabase
 
+import chainlit as cl
+
 def stream_response(prompt_current_card):
     full_response = ""
     for chunk in llm_agents.stream(prompt_current_card):
@@ -45,34 +47,45 @@ else:
 mdb = MedicalDatabase()
 
 # Nodo per la lettura del database
-def read_db_node(state: MedicalState):
-    """ Legge i dati del paziente dal database se esistono. """
-    codice_fiscale = input("📂 READ_DB: Inserisci il tuo codice fiscale\n💬 USER: ")
+async def read_db_node(state: MedicalState):
+    """ Legge i dati dal DB e stampa i log su Chainlit """
+    try:
+        cf = state["general_history"][-1].content.strip().upper()
+    except (KeyError, IndexError):
+        return {"next_step": "read_db"}
+
+    await cl.Message(content=f"📂 **LOG TERMINALE**: Analisi CF `{cf}` in corso...").send()
     
-    if mdb.verify_patient_exists(codice_fiscale):
-        record = mdb.read_patient(codice_fiscale)
-        print(f"📂 READ_DB: Benvenuto - {record.nome} {record.cognome} - Inserisci i tuoi sintomi")
+    # 3. Logica DB
+    if mdb.verify_patient_exists(cf):
+        record = mdb.read_patient(cf)
+        log_msg = f"📂 READ_DB: Benvenuto - {record.nome} {record.cognome} - Inserisci i tuoi sintomi"
+        print(log_msg) # Terminale fisico
+        await cl.Message(content=log_msg).send()
+        
         return {
             "patient_card": {
-                "codice_fiscale": codice_fiscale,
+                "codice_fiscale": cf,
                 "nome": record.nome,
                 "cognome": record.cognome,
                 "eta": record.eta,
                 "patologie_precedenti": record.patologie_precedenti
             },
-            "patient_exists": True
+            "patient_exists": True,
+            "general_history": [AIMessage(content="Bentornato! Ho caricato i tuoi dati. Ora descrivimi i tuoi sintomi.")]
         }
     else:
-        print(f"📂 READ_DB: Benvenuto nuovo paziente - Inserisci i tuoi dati")
+        log_msg = "📂 READ_DB: Benvenuto nuovo paziente - Inserisci i tuoi dati"
+        print(log_msg)
+        await cl.Message(content=log_msg).send()
+        
         return {
-            "patient_card": {
-                "codice_fiscale": codice_fiscale,
-            },
-            "patient_exists": False
+            "patient_card": {"codice_fiscale": cf},
+            "patient_exists": False,
+            "general_history": [AIMessage(content="Codice Fiscale non trovato. Procederò con una nuova registrazione. Descrivimi pure i tuoi sintomi.")]
         }
-
 # Nodo per il salvataggio nel database
-def save_db_node(state: MedicalState):
+async def save_db_node(state: MedicalState):
     """ Salva o aggiorna i dati del paziente nel database. """
     print("💾 SAVE_DB: Avvio salvataggio...")
     
@@ -97,12 +110,13 @@ def save_db_node(state: MedicalState):
     # 5. Invio al database
     mdb.save_patient(card)
     print("✅ SAVE_DB: Dati salvati con successo.")
+    await cl.Message(content=f"✅ I tuoi dati sono stati salvati con la diagnosi: {testo_diagnosi}").send()
     
     # Restituiamo la card aggiornata allo stato del grafo
     return {"patient_card": card}
 
 # Nodo per modificare un paziente esistente nel database
-def modify_db_node(state: MedicalState):
+async def modify_db_node(state: MedicalState):
     """ Modifica i dati di un paziente esistente nel database. """
     print("🔄 MODIFY_DB: Avvio modifica dati...")
     
@@ -116,16 +130,17 @@ def modify_db_node(state: MedicalState):
     
     mdb.modify_patology_patient(card, nuova_patologia)
     print("✅ MODIFY_DB: Dati modificati con successo.")
-    
+    await cl.Message(content=f"✅ I tuoi dati sono stati aggiornati con la nuova diagnosi: {nuova_patologia}").send()
     return {"patient_card": card}
 
 # Nodo del revisore
-def reviewer_node(state: MedicalState):
+async def reviewer_node(state: MedicalState):
     """ Analizza la Patient Card e decide se sono necessarie più informazioni dall'utente. """
     print("\n\n\n\n")
     print(state)    
     print("\n\n\n\n")
     print("🧐 REVIEWER: ", end="", flush=True)
+    message = "🧐 REVIEWER: "
     # Nel reviewer_node
     current_card = state["patient_card"]
     
@@ -154,6 +169,8 @@ def reviewer_node(state: MedicalState):
     print(f"   -> Status: {status}")
     print(f"   -> Dati attuali: {current_card}")
     print(f"   -> Risposta all'utente: {display_reply}")
+    message += f"{display_reply}"
+    await cl.Message(content=message).send()
     return {
         "patient_card": current_card,          
         "triage_history": [AIMessage(content=display_reply)], 
@@ -268,7 +285,7 @@ def photography_node(state: MedicalState):
         }
 
 # Nodo del supervisore
-def supervisor_node(state: MedicalState):
+async def supervisor_node(state: MedicalState):
     """ Analizza la conversazione e decide chi deve intervenire."""
     print("🚦 SUPERVISOR: ", end="", flush=True)
     card = state["patient_card"]
@@ -292,6 +309,7 @@ def supervisor_node(state: MedicalState):
             selected_specialists = clean_specs
             
         print(f"-> Scelti: {selected_specialists}")
+        await cl.Message(content=f"🚦 SUPERVISOR: ho deciso di coinvolgere: {', '.join(selected_specialists).upper()}").send()
 
     except json.JSONDecodeError:
         print("-> Errore lettura JSON. Fallback su Medico Generale.")
@@ -302,7 +320,7 @@ def supervisor_node(state: MedicalState):
         "needed_specialists": checklist
     }
 
-def specialist_node(state: MedicalState, role: str):
+async def specialist_node(state: MedicalState, role: str):
     print(f"\n🩺 {role.upper()}: Analisi in corso...", flush=True)
       
     card = state.get("patient_card", {})
@@ -366,6 +384,8 @@ def specialist_node(state: MedicalState, role: str):
             print(f"   -> 🏁 {role.upper()} chiude il referto dopo il consulto.")
             new_consultation = None 
 
+    await cl.Message(content=f"✅ Referto del {role.upper()} pronto. {final_report}").send()
+
     return {
         "medical_reports": {role: final_report},
         "needed_specialists": current_specialist,
@@ -374,57 +394,67 @@ def specialist_node(state: MedicalState, role: str):
     }
 
 # Wrapper per i nodi specifici (versione con emoji)
-def cardiologist_node(state):
+async def cardiologist_node(state):
     print(f"🫀 CARDIOLOGO: ", end="", flush=True)
-    return specialist_node(state, "cardiologo")
+    await cl.Message(content="🫀 CARDIOLOGO: ").send()
+    return await specialist_node(state, "cardiologo")
 
 
-def neurologist_node(state):
+async def neurologist_node(state):
     print(f"🧠 NEUROLOGO: ", end="", flush=True)
-    return specialist_node(state, "neurologo")
+    await cl.Message(content="🧠 NEUROLOGO: ").send()
+    return await specialist_node(state, "neurologo")
 
 
-def orthopedic_node(state):
+async def orthopedic_node(state):
     print(f"🦴 ORTOPEDICO: ", end="", flush=True)
-    return specialist_node(state, "ortopedico")
+    await cl.Message(content="🦴 ORTOPEDICO: ").send()
+    return await specialist_node(state, "ortopedico")
 
 
-def gastroenterologist_node(state):
+async def gastroenterologist_node(state):
     print(f"🍽️ GASTROENTEROLOGO: ", end="", flush=True)
-    return specialist_node(state, "gastroenterologo")
+    await cl.Message(content="🍽️ GASTROENTEROLOGO: ").send()
+    return await specialist_node(state, "gastroenterologo")
 
 
-def dermatologist_node(state):
+async def dermatologist_node(state):
     print(f"🧴 DERMATOLOGO: ", end="", flush=True)
-    return specialist_node(state, "dermatologo")
+    await cl.Message(content="🧴 DERMATOLOGO: ").send()
+    return await specialist_node(state, "dermatologo")
 
 
-def pneumologist_node(state):
+async def pneumologist_node(state):
     print(f"🫁 PNEUMOLOGO: ", end="", flush=True)
-    return specialist_node(state, "pneumologo")
+    await cl.Message(content="🫁 PNEUMOLOGO: ").send()
+    return await specialist_node(state, "pneumologo")
 
 
-def ent_node(state):  # Otorino (Ear Nose Throat)
+async def ent_node(state):  # Otorino (Ear Nose Throat)
     print(f"👂 OTORINO: ", end="", flush=True)
-    return specialist_node(state, "otorino")
+    await cl.Message(content="👂 OTORINO: ").send()
+    return await specialist_node(state, "otorino")
 
 
-def ophthalmologist_node(state):
+async def ophthalmologist_node(state):
     print(f"👁️ OCULISTA: ", end="", flush=True)
-    return specialist_node(state, "oculista")
+    await cl.Message(content="👁️ OCULISTA: ").send()
+    return await specialist_node(state, "oculista")
 
 
-def urologist_node(state):
+async def urologist_node(state):
     print(f"🚻 UROLOGO: ", end="", flush=True)
-    return specialist_node(state, "urologo")
+    await cl.Message(content="🚻 UROLOGO: ").send()
+    return await specialist_node(state, "urologo")
 
 
-def general_practitioner_node(state):
+async def general_practitioner_node(state):
     print(f"👨‍⚕️ MEDICO GENERALE: ", end="", flush=True)
-    return specialist_node(state, "medico_generale")
+    await cl.Message(content="👨‍⚕️ MEDICO GENERALE: ").send()
+    return await specialist_node(state, "medico_generale")
 
 # Nodo del primario
-def primary_node(state: MedicalState):
+async def primary_node(state: MedicalState):
     """ Analizza tutti i referti specialistici e redige il report finale. """
     print("👨‍⚕️ PRIMARIO: Analisi dei referti in corso...", flush=True)
     
@@ -464,7 +494,7 @@ def primary_node(state: MedicalState):
         livello_urgenza = "BIANCO"
         
     print(f"   -> Urgenza assegnata: {livello_urgenza}")
-    
+    await cl.Message(content=f"👨‍⚕️ PRIMARIO: Diagnosi finale - {diagnosi_finale} \n Dettagli: {dettagli}\nUrgenza: {livello_urgenza}").send()
     # 5. Prepariamo un messaggio per l'utente/interfaccia
     messaggio_finale = f"Il Primario ha concluso la valutazione.\nDiagnosi: {diagnosi_finale}\nCodice: {livello_urgenza}"
     

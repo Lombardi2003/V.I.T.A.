@@ -44,7 +44,8 @@ class MedicalState(TypedDict):
     triage_history: Annotated[list[BaseMessage], operator.add]  # CRONOLOGIA TRIAGE: Qui finiscono tutti i messaggi relativi al triage iniziale
     triage_complete: bool                                       # FLAG DI COMPLETAMENTO TRIAGE: indica se il triage è completo       
     report: Report                                              # DIAGNOSI FINALE: il testo della diagnosi finale generata dal primario   
-    next_step: str                                              # PROSSIMO PASSO: indica quale specialista deve intervenire o se finire il processo
+    next_step: str  
+                                                # PROSSIMO PASSO: indica quale specialista deve intervenire o se finire il processo
     
     patient_card: PatientCard                                   # CARTELLA CLINICA: i dati strutturati del paziente
     photo: Optional[PhotoAnalysis]                              # FOTO ANALISI: dati relativi alla foto del danno del paziente

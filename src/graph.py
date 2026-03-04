@@ -51,7 +51,7 @@ def generate_graph():
     workflow.add_edge("supervisor", "router")
     workflow.add_conditional_edges(
         "router",
-        lambda x: x["next_step"],
+        router_decision,
         {
             "cardiologo": "cardiologo",
             "neurologo": "neurologo",
@@ -89,8 +89,11 @@ def generate_graph():
 
     workflow.add_edge("save_db", END) # Nodo finale (Exit Point)
     workflow.add_edge("modify_db", END) # Nodo finale (Exit Point)
-    #memory = MemorySaver()
-    #return workflow.compile(checkpointer=memory)
+    memory = MemorySaver()
+    return workflow.compile(
+        checkpointer=memory,
+        interrupt_before=["user"]
+    )
     return workflow.compile()
 
 # Funzioni di routing
@@ -135,3 +138,9 @@ def patient_exists(state: MedicalState):
     print("Verifica esistenza paziente, stato attuale:", state.get("patient_exists"))
     print("\n\n\n\n")
     return state.get("patient_exists")
+
+def router_decision(state: MedicalState):
+    # Recuperiamo la decisione presa dal nodo router
+    destinazione = state.get("next_step")
+    print(f"🛤️ ROUTER: Smistamento verso -> {destinazione}")
+    return destinazione
