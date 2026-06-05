@@ -80,121 +80,14 @@ Cambiare modello o modificare il comportamento?
 - Cambiare Modello (es. Mistral, Gemma): Modifica la variabile llm in nodes.py.
 - Modificare i Prompt: Vai su config.py per cambiare le istruzioni date agli specialisti o le regole di assegnazione dei codici colore.
 
-## Prova
-# Grafo LangGraph – MedicalState
+## ⚙️ Configurazione e Setup API
 
-Schema del grafo di stato LangGraph per il sistema medico multi-agente.
+Per eseguire l'assistente di triage V.I.T.A. in locale, è necessaria una chiave API Groq valida per alimentare l'architettura LLM multi-agente sottostante.
 
-```mermaid
-flowchart TD
-    START([START]) --> read_db
+1. Nella cartella principale del progetto, crea un nuovo file chiamato `apikeys.json`.
+2. Aggiungi le tue credenziali API utilizzando esattamente questa struttura JSON:
 
-    read_db["📋 read_db\nLegge il DB"]
-    read_db --> user
-
-    user["👤 user\nRaccoglie input"]
-    user --> reviewer
-
-    reviewer["🔍 reviewer\nVerifica il triage"]
-
-    reviewer -->|"False\ntriage incompleto"| user
-    reviewer -->|"True\ntriage completo"| photography
-
-    photography["📷 photography\nAnalisi immagini"]
-    photography --> supervisor
-
-    supervisor["🧑‍⚕️ supervisor\nCoordina il caso"]
-    supervisor --> router
-
-    router{"🔀 router\nSmista allo specialista"}
-
-    router -->|cardiologo| cardiologo
-    router -->|neurologo| neurologo
-    router -->|ortopedico| ortopedico
-    router -->|gastroenterologo| gastroenterologo
-    router -->|dermatologo| dermatologo
-    router -->|pneumologo| pneumologo
-    router -->|otorino| otorino
-    router -->|oculista| oculista
-    router -->|urologo| urologo
-    router -->|medico_generale| medico_generale
-    router -->|primario| primario
-
-    cardiologo["❤️ cardiologo\nCardiologia"] --> router
-    neurologo["🧠 neurologo\nNeurologia"] --> router
-    ortopedico["🦴 ortopedico\nOrtopedia"] --> router
-    gastroenterologo["🫁 gastroenterologo\nGastroenterologia"] --> router
-    dermatologo["🩺 dermatologo\nDermatologia"] --> router
-    pneumologo["🫁 pneumologo\nPneumologia"] --> router
-    otorino["👂 otorino\nOtorinolaringoiatria"] --> router
-    oculista["👁️ oculista\nOculistica"] --> router
-    urologo["🔬 urologo\nUrologia"] --> router
-    medico_generale["🩻 medico_generale\nMedicina generale"] --> router
-
-    primario["⭐ primario\nDecisione finale"]
-
-    primario -->|"True\npaziente esiste"| modify_db
-    primario -->|"False\nnuovo paziente"| save_db
-
-    modify_db["💾 modify_db\nAggiorna paziente"]
-    save_db["💾 save_db\nSalva nuovo paziente"]
-
-    modify_db --> END1([END])
-    save_db --> END2([END])
-
-    %% Stili
-    classDef db fill:#B5D4F4,stroke:#185FA5,color:#042C53
-    classDef input fill:#9FE1CB,stroke:#0F6E56,color:#04342C
-    classDef supervision fill:#CECBF6,stroke:#534AB7,color:#26215C
-    classDef routing fill:#FAC775,stroke:#854F0B,color:#412402
-    classDef specialist fill:#F5C4B3,stroke:#993C1D,color:#4A1B0C
-    classDef chief fill:#F7C1C1,stroke:#A32D2D,color:#501313
-    classDef terminal fill:#D3D1C7,stroke:#5F5E5A,color:#2C2C2A
-
-    class read_db,save_db,modify_db db
-    class user,reviewer input
-    class photography,supervisor supervision
-    class router routing
-    class cardiologo,neurologo,ortopedico,gastroenterologo,dermatologo,pneumologo,otorino,oculista,urologo,medico_generale specialist
-    class primario chief
-    class START,END1,END2 terminal
-```
-
----
-
-## Legenda
-
-| Colore | Categoria | Nodi |
-|--------|-----------|------|
-| 🔵 Blu | Persistenza DB | `read_db`, `save_db`, `modify_db` |
-| 🟢 Verde acqua | Input / revisione | `user`, `reviewer` |
-| 🟣 Viola | Supervisione e analisi | `photography`, `supervisor` |
-| 🟠 Ambra | Router decisionale | `router` |
-| 🩸 Coral | Specialisti medici | tutti i 10 specialisti |
-| 🟥 Rosso | Decisione finale | `primario` |
-| ⬜ Grigio | Entry / exit point | `START`, `END` |
-
----
-
-## Archi condizionali
-
-| Nodo | Condizione | Ramo True | Ramo False |
-|------|-----------|-----------|------------|
-| `reviewer` | `triage_complete` | → `photography` | → `user` (loop) |
-| `primario` | `patient_exists` | → `modify_db` | → `save_db` |
-
----
-
-## Configurazione tecnica
-
-```python
-memory = MemorySaver()
-graph = workflow.compile(
-    checkpointer=memory,
-    interrupt_before=["user"]  # pausa prima di raccogliere input utente
-)
-```
-
-- **Checkpointer**: `MemorySaver` — persistenza in memoria degli stati intermedi
-- **Interrupt**: il grafo si interrompe prima del nodo `user` per attendere l'input umano
-- **Ciclo specialisti**: tutti i nodi specialista (tranne `primario`) riportano al `router`, permettendo consulenze multiple prima della decisione finale
+```json
+{
+  "GROQ_API_KEY": "inserisci_qui_la_tua_chiave_api_groq_reale"
+}
