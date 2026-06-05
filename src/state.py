@@ -1,85 +1,73 @@
+from pydantic import BaseModel, Field
+from typing import List, Optional, Annotated, Literal
 import operator
-from typing import Annotated, List, TypedDict, Optional
 from langchain_core.messages import BaseMessage
 
-# Classe TypedDict per la cartella clinica del paziente
-class PatientCard(TypedDict):
-    """ Cartella clinica del paziente. """
-    codice_fiscale: str
-    nome: str
-    cognome: str
-    eta: str
-    patologie_precedenti: List[str]
-
-    sintomo_principale: str
-    intensita: str
-    durata: str
-
-class PhotoAnalysis(TypedDict):
+# Classe BaseModel per l'analisi della foto del danno del paziente
+class PhotoAnalysis(BaseModel):
     """Output dell'analisi visiva per il Triage"""
-    photo_url: str
-    descrizione: str      # Dettagli clinici visivi (es. "Ferita profonda su...")
-    tipo_lesione: str     # Classificazione breve (es. "Lacerazione")
-    gravita_stimata: str  # Scala: "Bassa", "Media", "Alta"
+    photo_url: str = ""        # URL o percorso della foto
+    descrizione: str = ""      # Dettagli clinici visivi (es. "Ferita profonda su...")
+    tipo_danno: str = ""       # Classificazione breve (es. "Lacerazione")
 
-# Classe TypedDict per il report dello specialista
-class SpecialistReport(TypedDict):
+# Classe BaseModel per il profilo dei sintomi del paziente
+class SymptomProfile(BaseModel):
+    """ Profilo dei sintomi del paziente. """
+    sintomo_principale: str = ""
+    intensita: str = ""
+    durata: str = ""
+    photo: Optional[PhotoAnalysis] = None     # Opzionali: diciamo che di base partono come None 
+
+# Classe BaseModel per la cartella clinica del paziente
+class PatientCard(BaseModel):
+    """ Cartella clinica del paziente. """
+    # Anagrafica
+    codice_fiscale: str = ""
+    nome: str = ""
+    cognome: str = ""
+    eta: str = ""
+    sesso: str = ""
+
+    # Allergie
+    allergie: List[str] = Field(default_factory=list)
+    # Storia clinica
+    patologie_precedenti: List[str] = Field(default_factory=list)
+    # Dati medici
+    symptom: SymptomProfile = Field(default_factory=SymptomProfile)
+
+# Classe BaseModel per il report dello specialista
+class SpecialistReport(BaseModel):
     """ Report di diagnosi e consigli di uno specialista. """
-    diagnosi_sintetica: str
-    dettagli: str
-    esami_consigliati: List[str]
-    livello_urgenza: str  # es. "ALTO", "MEDIO", "BASSO"
+    diagnosi_sintetica: str = ""
+    dettagli: str = ""
+    esami_consigliati: List[str] = Field(default_factory=list)
+    livello_urgenza: Literal["ESI-1", "ESI-2", "ESI-3", "ESI-4", "ESI-5"] = "ESI-5"
 
-class Report(TypedDict):
-    """ Report finale del primario, che sintetizza tutto. """
-    diagnosi_finale: str
-    dettagli: str
-    esami_consigliati: List[str]
-    livello_urgenza: str  # ROSSO, ARANCIONE, AZZURRO, VERDE, BIANCO
+# Classe BaseModel per la diagnosi finale e le raccomandazioni
+class FinalDiagnosis(BaseModel):
+    diagnosi: str = ""
+    livello_urgenza: Literal["ESI-1", "ESI-2", "ESI-3", "ESI-4", "ESI-5"] = "ESI-5"
+    specialisti_coinvolti: List[str] = Field(default_factory=list)
+    indicazioni_operative: str = ""
+    raccomandazioni: str = ""
 
-# Classe TypedDict che rappresenta lo stato minimale del grafo, cioè le informazioni che devono essere mantenute tra i nodi
-class MedicalState(TypedDict):
+# Classe BaseModel che rappresenta lo stato minimale del grafo
+class MedicalState(BaseModel):
     """ Stato minimale del grafo. """
-    general_history: Annotated[list[BaseMessage], operator.add] # CRONOLOGIA GENERALE: Qui finiscono tutti i messaggi generati durante la consultazione
-    triage_history: Annotated[list[BaseMessage], operator.add]  # CRONOLOGIA TRIAGE: Qui finiscono tutti i messaggi relativi al triage iniziale
-    triage_complete: bool                                       # FLAG DI COMPLETAMENTO TRIAGE: indica se il triage è completo       
-    report: Report                                              # DIAGNOSI FINALE: il testo della diagnosi finale generata dal primario   
-    next_step: str  
-                                                # PROSSIMO PASSO: indica quale specialista deve intervenire o se finire il processo
+    # Liste: usiamo default_factory per creare liste separate per ogni conversazione
+    general_history: Annotated[list[BaseMessage], operator.add] = Field(default_factory=list)
+    triage_history: Annotated[list[BaseMessage], operator.add] = Field(default_factory=list)
     
-    patient_card: PatientCard                                   # CARTELLA CLINICA: i dati strutturati del paziente
-    photo: Optional[PhotoAnalysis]                              # FOTO ANALISI: dati relativi alla foto del danno del paziente
-    patient_exists: bool
+    triage_complete: bool = False                                      
+    patient_exists: bool = False
+    iteration_count: int = 0        # Ricontrollare questo!!!                                            
+    next_step: str = ""                                                
+    
+    # Oggetti complessi: diciamo a Pydantic di istanziarli vuoti in automatico
+    patient_card: PatientCard = Field(default_factory=PatientCard)                               
 
-    needed_specialists: dict[str, bool]                         # SPECIALISTI NECESSARI: elenco degli specialisti richiesti per la consultazione
-    medical_reports: dict[str, SpecialistReport]                # REPORT SPECIALISTICI: i report generati dagli specialisti coinvolti
-    inter_consultation: Optional[dict]
+    # Dizionari: usiamo default_factory=dict
+    needed_specialists: dict[str, bool] = Field(default_factory=dict)
+    medical_reports: dict[str, SpecialistReport] = Field(default_factory=dict)
 
-def get_empty_patient_card() -> PatientCard:
-    return {
-        "codice_fiscale": "",
-        "nome": "",
-        "cognome": "",
-        "eta": "",
-        "patologie_precedenti": [],
-        "sintomo_principale": "",
-        "intensita": "",
-        "durata": ""
-    }
-
-def get_initial_state() -> MedicalState:
-    """ Crea lo stato iniziale pulito per il grafo. """
-    return {
-        "general_history": [],
-        "triage_history": [],
-        "triage_complete": False,
-        "diagnosis": "",
-        "next_step": "triage",
-        "patient_exists": False,
-        
-        "patient_card": get_empty_patient_card(),
-        "photo": None,
-        
-        "medical_reports": {},
-        "needed_specialists": {},
-    }
+    final_diagnosis: FinalDiagnosis = Field(default_factory=FinalDiagnosis)

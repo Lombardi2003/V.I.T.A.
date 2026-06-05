@@ -1,12 +1,21 @@
 import chainlit as cl
 import uuid
-from langchain_core.messages import HumanMessage, AIMessage
-from src.state import get_initial_state
+from langchain_core.messages import HumanMessage
+from src.state import MedicalState
 from src.graph import generate_graph
 from src.logger_ui import ui_print
+from pathlib import Path
+import shutil
+import os
+
+
+
 
 # Inizializziamo il grafo
 app = generate_graph()
+NODI_PENSIERO = {"reviewer", "photography", "supervisor", "router", "cardiologo", "neurologo", "ortopedico", "gastroenterologo", "dermatologo", "pneumologo", "otorino", "oculista", "urologo", "medico_generale", "primario"}
+TEMP_IMAGE_DIR = Path("temp_images")  # cartella base nel progetto
+
 
 @cl.on_chat_start
 async def start():
@@ -16,30 +25,83 @@ async def start():
     config = {"configurable": {"thread_id": thread_id}}
     
     # Prepariamo lo stato iniziale
-    initial_state = get_initial_state()
-    app.update_state(config, initial_state)
-
-    await cl.Message(content="🩺 **V.I.T.A. System**\nConnessione stabilita. Per favore, inserisci il tuo **Codice Fiscale** per iniziare.").send()
+    initial_state = MedicalState()
+    app.update_state(config, initial_state.model_dump())
 
 @cl.on_message
 async def main(message: cl.Message):
     thread_id = cl.user_session.get("thread_id")
     config = {"configurable": {"thread_id": thread_id}}
 
-    # 1. Aggiorniamo lo stato con il nuovo messaggio dell'utente SENZA far partire il grafo
-    # Questo aggiunge i sintomi allo 'zaino' (stato) proprio dove il grafo li aspetta
-    app.update_state(config, {
+    # Protezione: se session_dir non esiste ancora, creala
+    session_dir_str = cl.user_session.get("session_dir")
+    if not session_dir_str:
+        session_dir = TEMP_IMAGE_DIR / thread_id
+        session_dir.mkdir(parents=True, exist_ok=True)
+        cl.user_session.set("session_dir", str(session_dir))
+        session_dir_str = str(session_dir)
+    
+    session_dir = Path(session_dir_str)
+
+    image_path = None
+
+    if message.elements:
+        for element in message.elements:
+            if element.mime and element.mime.startswith("image/"):
+                # Copia dalla cartella temporanea di Chainlit alla tua cartella sessione
+                dest = session_dir / element.name
+                shutil.copy(element.path, dest)
+                image_path = str(dest)
+                break
+
+
+    update = {
         "general_history": [HumanMessage(content=message.content)],
         "triage_history": [HumanMessage(content=message.content)]
-    })
+    }
+    
+    if image_path:
+        update["patient_card"] = {
+            "symptom": {
+                "photo": {
+                    "photo_url": image_path,
+                    "descrizione": "",
+                    "tipo_danno": ""
+                }
+            }
+        }
 
-    # 2. Ora diciamo al grafo di PROSEGUIRE. 
-    # Passando 'None' come primo argomento, LangGraph capisce che non deve ricominciare 
-    # dall'inizio, ma deve riprendere dal nodo dove c'era l'interrupt (es. user_node)
-    async for event in app.astream_events(None, config=config, version="v1"):
-        kind = event["event"]
-        node_name = event.get("metadata", {}).get("langgraph_node", "")
+    app.update_state(config, update)
 
-        # Qui metti i tuoi ui_print o log tecnici
-        if kind == "on_chain_start" and node_name:
-            await ui_print(f"🚀 Ripresa esecuzione dal nodo: {node_name}")
+    try:
+        async for event in app.astream_events(None, config=config, version="v2"):
+            kind = event["event"]
+            node_name = event.get("metadata", {}).get("langgraph_node", "")
+
+            if kind == "on_chain_error":
+                node_name = event.get("metadata", {}).get("langgraph_node", "")
+                error = event.get("data", {}).get("error", "")
+                print(f"❌ ERRORE in {node_name}: {error}")  # ← aggiungi error
+                import traceback
+                traceback.print_exc()
+                await cl.Message(content=f"❌ Errore durante l'elaborazione: {error}").send()
+
+            if kind == "on_chain_start" and node_name in NODI_PENSIERO:
+                await ui_print(f"⚙️ {node_name} in elaborazione...")
+
+            if kind == "on_chat_model_stream" and node_name == "primario":
+                chunk = event["data"].get("chunk")
+                if chunk and hasattr(chunk, "content") and chunk.content:
+                    await cl.Message(content=chunk.content).stream_token(chunk.content)  # type: ignore
+
+    except Exception as e:
+        await cl.Message(
+            content=f"❌ Errore durante l'elaborazione: {str(e)}"
+        ).send()
+
+@cl.on_chat_end
+async def end():
+    import shutil
+    temp_dir = cl.user_session.get("temp_dir")
+    if temp_dir and os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)

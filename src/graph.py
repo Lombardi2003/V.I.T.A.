@@ -8,8 +8,8 @@ from src.nodes import reviewer_node, user_node, read_db_node, save_db_node, modi
 
 # Funzione per la creazione del grafo di stato
 def generate_graph():
-    # Configurazione dello stato
     workflow = StateGraph(MedicalState)
+
     # Nodi
     workflow.add_node("reviewer", reviewer_node)
     workflow.add_node("read_db", read_db_node)
@@ -32,22 +32,39 @@ def generate_graph():
     workflow.add_node("urologo", urologist_node)
     workflow.add_node("medico_generale", general_practitioner_node)
     workflow.add_node("primario", primary_node)
-    
+
     # Archi
-    workflow.add_edge(START, "read_db") # Nodo iniziale (Entry Point)
+    workflow.add_edge(START, "read_db")
     workflow.add_edge("read_db", "user")
-    workflow.add_edge("user", "reviewer")
+
+    # user → routing dinamico tramite next_step
+    workflow.add_conditional_edges(
+        "user",
+        lambda state: state.next_step if state.next_step else "reviewer",
+        {
+            "reviewer":    "reviewer",
+            "photography": "photography",
+            "supervisor":  "supervisor",
+        }
+        )
 
     workflow.add_conditional_edges(
         "reviewer",
         triage_complete,
         {
-            True: "photography",
+            True:  "photography",
             False: "user",
         }
     )
 
-    workflow.add_edge("photography", "supervisor")
+    workflow.add_conditional_edges(
+        "photography",
+        lambda state: state.next_step,
+        {
+            "photography": "user",      # ← chiedi foto → vai a user (interrupt)
+            "supervisor":  "supervisor",
+        }
+    )
     workflow.add_edge("supervisor", "router")
     workflow.add_conditional_edges(
         "router",
@@ -94,8 +111,6 @@ def generate_graph():
         checkpointer=memory,
         interrupt_before=["user"]
     )
-    return workflow.compile()
-
 # Funzioni di routing
 def router(state: MedicalState):
     specialist = state.get("needed_specialists", {})
@@ -130,8 +145,11 @@ def router(state: MedicalState):
     print("   -> Tutti i medici hanno concluso. Passo al PRIMARIO.")
     return {"next_step": "primario"}
 
+def photo_next(state: MedicalState):
+    return state.next_step  # "photography" oppure "supervisor"
+
 def triage_complete(state: MedicalState):
-    return state["triage_complete"]
+    return state.triage_complete
 
 def patient_exists(state: MedicalState):
     print("\n\n\n\n")
@@ -144,3 +162,7 @@ def router_decision(state: MedicalState):
     destinazione = state.get("next_step")
     print(f"🛤️ ROUTER: Smistamento verso -> {destinazione}")
     return destinazione
+
+# Funzione di routing da user
+def user_next(state: MedicalState):
+    return state.next_step  # "reviewer" oppure "photography"

@@ -1,18 +1,555 @@
 /* public/style.css */
 
-.markdown-body {
-    /* Cambia 1.5s con 3s (o anche 4s se la vuoi lentissima) */
-    animation: slideInFromTop 10s ease-out; 
+/*
+ * TAVOLOZZA DEI COLORI
+ */
+
+:root {
+    /*
+     * TAVOLOZZA DEI COLORI
+     */
+    --background-color-light: #fcfcfc;
+    --background-color-dark: #0d0f13;
+    --left-color:#00ffb3;
+    --shade-left-color:#00ffb364;
+    --right-color:#00b3ff;
+    --shade-right-color:#00b3ff6c;
+
+    --button-color: #1bd39d;
+    --pulse-color-rgb: 0, 204, 153;
+
+    --dark-chat-color-user: #242937;
+    --light-chat-color-user: #e0f3ff;
+    --dark-chat-color-bot: #122b22;
+    --light-chat-color-bot: #d1f4ec;
+
+    --dark-code-color-bot: #526b62;     /* Sfondo blocchi di codice bot */
+    --light-code-color-bot: #91d9c9;    /* Sfondo blocchi di codice bot in light mode */
+    --chat-text-dark-mode: #fcfcfc;     /* Colore del testo chiaro per la dark mode */
+    --chat-text-light-mode: #1f2937;    /* Colore del testo scuro per la light mode */
+
+    --dark-scrollbar-color-hover: #8a92a2;           /* Colore del thumb della scrollbar in dark mode */
+    --dark-scrollbar-color-thumb: #6a788b;
+
+    /*
+     * VARIABILI PER LA CHAT
+     */
+    --chat-gap: 10px;                     /* Spazio ESATTO tra icona e fumetto */
+    --chat-avatar-size: 40px;             /* Dimensione delle icone */
+    --chat-avatar-radius: 10px;           /* Arrotondamento delle icone */
+    --chat-bubble-radius-user: 18px;      /* Arrotondamento fumetto utente */
+    --chat-bubble-radius-bot: 18px;       /* Arrotondamento fumetto bot */
+    --chat-max-width: 80%;                /* Larghezza massima dei messaggi, per evitare che siano troppo larghi su schermi grandi */
 }
 
-/* Il resto rimane uguale */
-@keyframes slideInFromTop {
-    0% {
-        transform: translateY(-100%);
-        opacity: 0;
-    }
-    100% {
-        transform: translateY(0);
-        opacity: 1;
-    }
+/*
+ * LOGO
+ */
+.logo {
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 1000px !important; 
+    max-width: 100% !important; 
+    height: auto !important;
+}
+.dark .logo {
+    content: url('/public/icon/logo_dark.svg') !important;
+}
+.light .logo {
+    content: url('/public/icon/logo_light.svg') !important;
+}
+/*
+ * SFONDO DELLA CHAT
+ */
+.light #root {
+    background-color: var(--background-color-light) !important;
+    background-image: 
+        radial-gradient(circle at 0% 0%, var(--shade-left-color) 0%, transparent 40%),
+        radial-gradient(circle at 100% 100%, var(--shade-right-color) 0%, transparent 40%);
+    
+    background-attachment: fixed !important;
+}
+.dark #root {
+    background-color: var(--background-color-dark) !important;
+    background-image: 
+        radial-gradient(circle at 0% 0%, var(--shade-left-color) 0%, transparent 40%),
+        radial-gradient(circle at 100% 100%, var(--shade-right-color) 0%, transparent 40%);
+    
+    background-attachment: fixed !important;
+}
+
+/*
+ * STILE DELLA BARRA DI INPUT
+ */
+
+.light #message-composer {
+    position: relative !important;
+    z-index: 1 !important;
+    border-radius: 30px !important;
+
+    background-color: var(--background-color-light) !important;
+    
+    border: 2px solid transparent !important;
+    background-image: 
+        linear-gradient(var(--background-color-light), var(--background-color-light)), 
+        linear-gradient(90deg, var(--left-color) 0%, var(--right-color) 100%) !important;
+
+    background-origin: padding-box, border-box !important;
+    background-clip: padding-box, border-box !important;
+}
+
+.dark #message-composer {
+    position: relative !important;
+    z-index: 1 !important;
+    border-radius: 30px !important;
+
+    background-color: var(--background-color-dark) !important;
+    
+    border: 2px solid transparent !important;
+    background-image: 
+        linear-gradient(var(--background-color-dark), var(--background-color-dark)), 
+        linear-gradient(90deg, var(--left-color) 0%, var(--right-color) 100%) !important;
+
+    background-origin: padding-box, border-box !important;
+    background-clip: padding-box, border-box !important;
+}
+
+/*
+ * BOTTONE DI INVIO
+ */
+#chat-submit {
+    background-color: var(--button-color) !important;
+    color: transparent !important;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.4 2.6a1 1 0 0 0-1-.2L2.4 8.9a1 1 0 0 0 0 1.9l7.5 2.5 2.5 7.5a1 1 0 0 0 1.9 0l6.5-18a1 1 0 0 0-.4-1.2z" fill="white"/><path d="M10 13l4-4" stroke="rgba(255,255,255,0.4)" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>') !important;
+    background-repeat: no-repeat !important;
+    background-position: 48% 52% !important;
+    background-size: 18px !important;
+    border-radius: 50% !important;
+}
+
+#chat-submit:hover {
+    background-color: var(--button-color) !important;
+    transform: scale(1.08) !important;
+    box-shadow: 0 0 0 0 rgba(var(--pulse-color-rgb), 0.5) !important;
+    animation: pulse-border 1.2s ease-out infinite !important;
+}
+
+#chat-submit:active {
+    transform: scale(0.96) !important;
+    opacity: 0.85 !important;
+    animation: none !important;
+}
+
+#chat-submit svg {
+    display: none !important;
+}
+
+@keyframes pulse-border {
+    0%   { box-shadow: 0 0 0 0px rgba(var(--pulse-color-rgb), 0.45); }
+    70%  { box-shadow: 0 0 0 10px rgba(var(--pulse-color-rgb), 0); }
+    100% { box-shadow: 0 0 0 0px rgba(var(--pulse-color-rgb), 0); }
+}
+
+/*
+ * STILE DROPDOWN DELLE IMPOSTAZIONI DI SCELTA DEL TEMA
+ */ 
+.light div[role="menu"] {
+    background-color: var(--background-color-dark) !important;
+    border-radius: 12px !important;
+    
+    border: 2px solid transparent !important;
+    background-image: 
+        linear-gradient(var(--background-color-dark), var(--background-color-dark)), 
+        linear-gradient(90deg, var(--left-color) 0%, var(--right-color) 100%) !important;
+    
+    background-origin: border-box !important;
+    background-clip: padding-box, border-box !important;
+}
+
+.light div[role="menu"] > div:hover,
+.light div[role="menu"] > [role="menuitem"]:hover {
+    background-color: var(--button-color) !important;
+    border-radius: 8px !important;
+    color: var(--background-color-dark) !important;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dark div[role="menu"] {
+    background-color: var(--background-color-dark) !important;
+    border-radius: 12px !important;
+    
+    border: 2px solid transparent !important;
+    background-image: 
+        linear-gradient(var(--background-color-dark), var(--background-color-dark)), 
+        linear-gradient(90deg, var(--left-color) 0%, var(--right-color) 100%) !important;
+
+    background-origin: border-box !important;
+    background-clip: padding-box, border-box !important;
+}
+
+.dark div[role="menu"] > div:hover,
+.dark div[role="menu"] > [role="menuitem"]:hover {
+    background-color: var(--button-color) !important;
+    border-radius: 8px !important;
+    color: var(--background-color-dark) !important;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/*
+ * STILE DELLA FINESTRA DI CREAZIONE NUOVA CHAT
+ */
+.light #new-chat-dialog {
+    background-color: var(--background-color-light) !important;
+    
+    border: 2px solid transparent !important;
+    background-image: 
+        linear-gradient(var(--background-color-light), var(--background-color-light)), 
+        linear-gradient(135deg, #00a87a 0%, var(--background-color-light) 30%, var(--background-color-light) 70%, #0099d6 100%) !important;
+    
+    background-origin: padding-box, border-box !important;
+    background-clip: padding-box, border-box !important;
+    
+    border-radius: 16px !important;
+    box-shadow: 0 0 30px rgba(0, 204, 153, 0.15), 0 0 30px rgba(0, 179, 255, 0.12) !important;
+}
+
+.dark #new-chat-dialog {
+    background-color: var(--background-color-dark) !important;
+    
+    border: 2px solid transparent !important;
+    background-image: 
+        linear-gradient(var(--background-color-dark), var(--background-color-dark)), 
+        linear-gradient(135deg, var(--left-color) 0%, var(--background-color-dark) 30%, var(--background-color-dark) 70%, var(--right-color) 100%) !important;
+    
+    background-origin: padding-box, border-box !important;
+    background-clip: padding-box, border-box !important;    
+    
+    border-radius: 16px !important;
+    box-shadow: 0 0 40px rgba(0, 255, 179, 0.06), 0 0 40px rgba(0, 179, 255, 0.06) !important;
+}
+/*
+ * BOTTONE DI CREAZIONE NUOVA CHAT
+ */
+#confirm {
+    background-color: var(--button-color) !important;
+    color: var(--background-color-light)!important;
+    transition: background-color 0.3s ease, transform 0.2s ease !important;
+}
+
+#confirm:hover {
+    background-color: var(--button-color) !important;
+    transform: scale(1.03) !important;
+}
+
+#confirm:active {
+    transform: scale(0.97) !important;
+    opacity: 0.9 !important;
+}
+/*
+ * STILE DELLE IMPOSTAZIONI DEL TEMA
+ */
+*, ::before, ::after {
+    --tw-ring-color: var(--button-color) !important;
+}
+
+
+.light #theme-toggle:hover, 
+button:hover {
+    background-color: var(--button-color) !important; /* Il tuo colore sfumato */
+    color: var(--background-color-dark) !important; /* Il colore dell'icona */
+    background-image: none !important; /* Rimuove eventuali gradienti di default */
+}
+
+.dark #theme-toggle:hover,
+button:hover {
+    background-color: var(--button-color) !important; /* Il tuo colore sfumato */
+    color: var(--background-color-dark) !important; /* Il colore dell'icona */
+    background-image: none !important; /* Rimuove eventuali gradienti di default */
+}
+
+/*
+ * STILE DEI LINK
+ */
+a,
+a:link,
+a:visited {
+    color: var(--button-color) !important; /* #00ffb3 */
+    text-decoration: none !important;
+}
+
+/*
+ * STILE DELLA SCROLLBAR
+ */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--dark-scrollbar-color-thumb);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--dark-scrollbar-color-hover);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--dark-scrollbar-color-thumb) transparent;
+}
+
+/*
+ * BOTTONE SCORRIMENTO RAPIDO
+ */
+.dark button:has(svg.lucide-arrow-down) {  
+    background-color: var(--background-color-dark) !important;
+    color: #ffffff !important;            /* Cambia il colore della freccia */
+    border: 2px solid var(--button-color) !important; /* Cambia lo spessore e il colore del bordo */
+}
+.dark button:has(svg.lucide-arrow-down):hover {
+    background-color: var(--button-color) !important; /* Sfondo leggermente più scuro */
+    transition: all 0.2s ease-in-out;
+    color: #000000 !important; /* Colore della freccia al passaggio del mouse */
+}
+
+.light button:has(svg.lucide-arrow-down) {  
+    background-color: var(--background-color-light) !important;
+    color: #000000 !important;            /* Cambia il colore della freccia */
+    border: 2px solid var(--button-color) !important; /* Cambia lo spessore e il colore del bordo */
+}
+.light button:has(svg.lucide-arrow-down):hover {
+    background-color: var(--button-color) !important; /* Sfondo leggermente più scuro */
+    transition: all 0.2s ease-in-out;
+    color: #000000 !important; /* Colore della freccia al passaggio del mouse */
+}
+
+/*
+ * README 
+ */
+.dark div[role="dialog"].h-screen.w-screen {
+    background-color: var(--background-color-dark) !important;
+    background-image: 
+        radial-gradient(ellipse at -10% -10%, var(--shade-left-color) 0%, transparent 55%),
+        radial-gradient(ellipse at 110% -10%, var(--shade-right-color) 0%, transparent 55%) !important;
+}
+.light div[role="dialog"].h-screen.w-screen {
+    background-color: var(--background-color-light) !important;
+    background-image: 
+        radial-gradient(ellipse at -10% -10%, var(--shade-left-color) 0%, transparent 55%),
+        radial-gradient(ellipse at 110% -10%, var(--shade-right-color) 0%, transparent 55%) !important;
+}
+
+/*
+ * STILE DELLA CHAT
+ */
+/* CHAT UTENTE */
+.dark .bg-accent.rounded-3xl {
+    background-color: var(--dark-chat-color-user) !important;
+    background-image: none !important;
+    border: none !important;
+    border-radius: var(--chat-bubble-radius-user) !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.dark .bg-accent.rounded-3xl [role="article"] {
+    color: var(--chat-text-dark-mode) !important;
+}
+
+.light .bg-accent.rounded-3xl {
+    background-color: var(--light-chat-color-user) !important;
+    background-image: none !important;
+    border: none !important;
+    border-radius: var(--chat-bubble-radius-user) !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.light .bg-accent.rounded-3xl [role="article"] {
+    color: var(--background-color-dark) !important;
+}
+
+/* CHAT BOT */
+.dark .ai-message .message-content {
+    background-color: var(--dark-chat-color-bot) !important; 
+    background-image: none !important;
+    border: none !important;
+    border-radius: var(--chat-bubble-radius-bot) !important; 
+    padding: 14px 20px !important;  
+    color: var(--chat-text-dark-mode) !important;
+    box-shadow: none !important; 
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.dark .ai-message .message-content [role="article"] {
+    color: var(--chat-text-dark-mode) !important;
+    line-height: 1.6 !important; 
+}
+
+.dark .ai-message .message-content code {
+    background-color: var(--dark-code-color-bot) !important;
+    color: var(--chat-text-dark-mode) !important;
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
+    font-size: 0.9em !important;
+}
+
+.light .ai-message .message-content {
+    background-color: var(--light-chat-color-bot) !important; 
+    background-image: none !important;
+    border: none !important;
+    border-radius: var(--chat-bubble-radius-bot) !important; 
+    padding: 14px 20px !important;  
+    color: var(--chat-text-light-mode) !important;
+    box-shadow: none !important; 
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.light .ai-message .message-content [role="article"] {
+    color: var(--chat-text-light-mode) !important;
+    line-height: 1.6 !important; 
+}
+
+.light .ai-message .message-content code {
+    background-color: var(--light-code-color-bot) !important;
+    color: var(--chat-text-light-mode) !important;
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
+    font-size: 0.9em !important;
+}
+
+/*
+ * AVATAR
+ */
+[data-step-type="user_message"] .flex.flex-row.items-center.gap-1::after,
+[data-step-type="assistant_message"] .ai-message::before {
+    content: '' !important;
+    display: block !important;
+    width: var(--chat-avatar-size) !important;
+    height: var(--chat-avatar-size) !important;
+    border-radius: var(--chat-avatar-radius) !important;
+    flex-shrink: 0 !important;
+    background-size: cover !important;
+    background-color: #fcfcfc !important;
+    margin-top: 3px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* AVATAR UTENTE */
+[data-step-type="user_message"] .flex.flex-row.items-center.gap-1 {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: flex-end !important;
+    gap: var(--chat-gap) !important; /* Il gestore reale dello spazio */
+}
+
+[data-step-type="user_message"] .flex.flex-row.items-center.gap-1::after {
+    order: 2 !important; /* Sposta l'avatar a destra del testo */
+    background-image: url('/public/avatars/user.svg') !important;
+    border: 2.5px solid var(--right-color) !important;
+    box-shadow: 0 0 8px var(--right-color) !important;
+}
+
+/* AVATAR BOT */
+[data-step-type="assistant_message"] .ai-message > span.inline-block {
+    display: none !important;                   /* Nasconde l'icona originale */
+}
+
+[data-step-type="assistant_message"] .ai-message {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: var(--chat-gap) !important;            /* Il gestore reale dello spazio */
+}
+
+[data-step-type="assistant_message"] .ai-message::before {
+    background-image: url('/public/avatars/system.png') !important; 
+    border: 2.5px solid var(--left-color) !important;
+    box-shadow: 0 0 8px var(--left-color) !important;
+}
+
+[data-step-type="user_message"] .bg-accent.rounded-3xl,
+[data-step-type="assistant_message"] .message-content {
+    max-width: var(--chat-max-width) !important;
+    width: fit-content !important; 
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+    white-space: pre-wrap !important;
+}
+
+/*
+ * MESSAGGI POPUP
+ */
+.dark div[data-radix-popper-content-wrapper] > div {
+    border: 2px solid transparent !important;
+    border-radius: 8px !important;
+
+    color: #ffffff !important;
+    background: 
+        linear-gradient(var(--background-color-dark), var(--background-color-dark)) padding-box, 
+        linear-gradient(180deg, var(--left-color) 0%, var(--right-color) 100%) border-box !important;
+
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.light div[data-radix-popper-content-wrapper] > div {
+    border: 2px solid transparent !important;
+    border-radius: 8px !important;
+
+    color: #000000 !important;
+    background: 
+        linear-gradient(var(--background-color-light), var(--background-color-light)) padding-box, 
+        linear-gradient(180deg, var(--left-color) 0%, var(--right-color) 100%) border-box !important;
+
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/*
+ * STILE IMMAGINI
+ */
+/* Limita le immagini all'interno delle bolle dei messaggi */
+/* Contenitore immagine utente */
+/* Rimuovi il bordo della bolla testo quando c'è un'immagine sopra */
+/* Contenitore immagine - allineato a destra come la bolla */
+/* 1. Contenitore immagine: stessa larghezza e allineamento della bolla */
+.flex.flex-col.gap-4.items-end {
+    width: 70% !important;
+    margin-left: auto !important;
+}
+
+/* 2. Immagine: bordi arrotondati solo in alto, stesso colore bolla */
+.dark .flex.flex-col.gap-4.items-end .rounded-sm.bg-accent {
+    background-color: var(--dark-chat-color-user) !important;
+    border-radius: var(--chat-bubble-radius-user) !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+.light .flex.flex-col.gap-4.items-end .rounded-sm.bg-accent {
+    background-color: var(--light-chat-color-user) !important;
+    border-radius: var(--chat-bubble-radius-user) !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+/* 3. Bolla testo: bordi arrotondati solo in basso */
+.dark .flex.flex-col.gap-4.items-end + .flex.flex-row .bg-accent.rounded-3xl {
+    border-top-right-radius: 0 !important;
+    border-top-left-radius: 0 !important;
+}
+.light .flex.flex-col.gap-4.items-end + .flex.flex-row .bg-accent.rounded-3xl {
+    border-top-right-radius: 0 !important;
+    border-top-left-radius: 0 !important;
+}
+
+/* 4. Gap 0 tra immagine e testo */
+.flex.flex-col.w-full.gap-1 {
+    gap: 0 !important;
 }

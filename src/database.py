@@ -10,6 +10,8 @@ class PatientRecord(SQLModel, table=True):
     nome: str = ""
     cognome: str = ""
     eta: str = ""
+    sesso: str = ""
+    allergie: List[str] = Field(default_factory=list, sa_column=Column(JSON)) # JSON per memorizzare liste in SQLite
     patologie_precedenti: List[str] = Field(default_factory=list, sa_column=Column(JSON)) # JSON per memorizzare liste in SQLite
 
 # Classe che gestisce tutte le comunicazioni con il database

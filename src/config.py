@@ -38,37 +38,39 @@ REGOLE:
 # Il suo compito è quello di valutare se le informazioni date sono sufficienti per una diagnosi o se richiedere ulteriori informazioni all'utente
 # IL REVISORE
 # Il suo compito è quello di valutare se le informazioni date sono sufficienti per una diagnosi o se richiedere ulteriori informazioni all'utente
-REVIEWER_PROMPT = """Sei un modulo software che estrae dati medici in formato JSON. NON conversare. NON spiegare. NON ripetere il testo.
-DATI PAZIENTE ATTUALI:
+REVIEWER_PROMPT = """Sei un estrattore di dati medici. Rispondi SOLO con JSON valido, zero testo aggiuntivo.
+
+SCHEDA PAZIENTE ATTUALE:
 {patient_card}
 
-INPUT UTENTE:
+ULTIMO MESSAGGIO UTENTE:
 "{user_input}"
 
-COMPITO:
-1. Aggiorna i dati del paziente basandoti sull'input utente.
-2. Se mancano campi obbligatori (nome, sintomo, eta, intensita, durata), genera una domanda cortese in 'message_to_user' e fai attenzione che riempiano tutti questi campi.
-3. Imposta 'status' a 'INSUFFICIENTE' se mancano dati, 'SUFFICIENTE' SOLO se hai tutto.
-4. Imposta 'SUFFICIENTE' SOLO se TUTTI i campi obbligatori sono presenti.
-5. Imposta i campi SOLO se l'utente li ha forniti e in modo valido e coerente.
-6. Attenzione al sintomo_principale, deve essere specifico e chiaro.
+ISTRUZIONI:
+1. Estrai SOLO i dati che l'utente ha fornito esplicitamente in questo messaggio.
+2. NON sovrascrivere campi già compilati con valori vuoti o null.
+3. 'intensita' deve essere una di: "lieve", "moderata", "forte", "insopportabile". Normalizza espressioni simili al valore più vicino.
+4. 'durata' deve essere specifica: es. "2 giorni", "3 ore".
+5. 'sintomo_principale' deve essere clinicamente specifico: es. "dolore toracico acuto", NON "mi fa male".
+6. In 'message_to_user' metti una conferma neutra di cosa hai capito, senza fare domande.
 
-NOTA BENE: l'utente potrebbe non fornire tutte le informazioni in un solo messaggio. Controlla attentamente ogni campo soprattutto attenzione a "sintomo_principale".
-
-RISPONDI SOLO CON QUESTO JSON VALIDO (Nessun testo prima o dopo):
+RISPONDI ESCLUSIVAMENTE CON QUESTO JSON:
 {{
     "updated_card": {{
-        "codice_fiscale": "inserire qui il valore",
-        "nome": "inserire qui il valore",
-        "cognome": "inserire qui il valore",
-        "eta": "inserire qui il valore",
+        "codice_fiscale": "",
+        "nome": "",
+        "cognome": "",
+        "eta": "",
+        "sesso": "",
+        "allergie": [],
         "patologie_precedenti": [],
-        "sintomo_principale": "inserire qui il valore",
-        "intensita": "inserire qui il valore",
-        "durata": "inserire qui il valore"
+        "symptom": {{
+            "sintomo_principale": "",
+            "intensita": "",
+            "durata": ""
+        }}
     }},
-    "status": "INSUFFICIENTE", 
-    "message_to_user": "La tua domanda qui..."
+    "message_to_user": "Ho capito che..."
 }}
 """
 
@@ -138,22 +140,25 @@ PHOTO_PROMPT = """
 Sei un AI Medical Imaging Analyst esperto in Triage di Pronto Soccorso.
 Analizza l'immagine fornita e restituisci un oggetto JSON con ESATTAMENTE questi 3 campi. Non aggiungere altro testo.
 
-1. "tipo_lesione": Classifica la lesione in poche parole.
+1. "tipo_lesione": Classifica la lesione in poche parole (es. "lacerazione", "ustione di secondo grado", "frattura esposta").
 
-2. "gravita_stimata": Valuta l'urgenza visiva scegliendo SOLO tra: "Bassa", "Media", "Alta".
-   - Bassa: lesioni superficiali, piccoli tagli.
-   - Media: ferite profonde, ustioni estese, sospette fratture.
-   - Alta: emorragie attive, ossa esposte, necrosi avanzata, cianosi.
+2. "gravita_stimata": Valuta l'urgenza visiva scegliendo SOLO tra: "ESI-1", "ESI-2", "ESI-3", "ESI-4", "ESI-5".
+   - ESI-5: nessuna lesione visibile o lesioni irrilevanti.
+   - ESI-4: lesioni superficiali, piccoli tagli, abrasioni.
+   - ESI-3: ferite che richiedono attenzione medica ma non immediata.
+   - ESI-2: ferite profonde, ustioni estese, sospette fratture, dolore severo.
+   - ESI-1: emorragie attive, ossa esposte, necrosi, cianosi, rischio vita immediato.
 
 3. "descrizione": Scrivi una descrizione clinica oggettiva.
-   - Specifica: parte del corpo, dimensioni stimate, stato dei margini, colore della pelle e presenza di sangue o corpi estranei.
-   - Stile: professionale e medico 
-Se l'immagine non è chiara, scrivi "NON VALUTABILE" in tutti i campi.
+   - Specifica: parte del corpo, dimensioni stimate, stato dei margini, colore della pelle, presenza di sangue o corpi estranei.
+   - Stile: professionale e medico.
+
+Se l'immagine non è chiara o non mostra lesioni corporee, scrivi "NON VALUTABILE" in tutti i campi.
 
 SCHEMA JSON DI OUTPUT:
 {
     "tipo_lesione": "...",
-    "gravita_stimata": "...",
+    "gravita_stimata": "ESI-X",
     "descrizione": "..."
 }
 """

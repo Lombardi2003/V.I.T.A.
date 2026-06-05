@@ -39,7 +39,7 @@ assistant_message_autoscroll = true
 auto_tag_thread = true
 
 # Consenti agli utenti di modificare i propri messaggi
-edit_message = true
+edit_message = false
 
 # Consenti agli utenti di condividere le discussioni (backend + interfaccia utente). Richiede un callback on_shared_thread_view definito dall'app.
 allow_thread_sharing = false
@@ -89,7 +89,7 @@ reaction_on_message_received = false
 
 [UI]
 # Nome dell'assistente.
-name = "V.I.T.A"
+name = "V.I.T.A."
 
 # default_theme = "dark"
 
@@ -116,10 +116,10 @@ custom_css = "public/style.css"
 
 # Specifica un file JavaScript che può essere utilizzato per personalizzare l'interfaccia utente.
 # Il file JavaScript può essere servito dalla directory pubblica.
-# custom_js = "/public/test.js"
+custom_js = "/public/script.js"
 
 # Lo stile delle caselle di avviso. Può essere "classic" o "modern".
-alert_style = "classic"
+alert_style = "modern"
 
 # Specifica attributi aggiuntivi per il file JS personalizzato
 # custom_js_attributes = "async type = \"module\""
@@ -138,7 +138,7 @@ alert_style = "classic"
 # custom_meta_image_url = "https://chainlit-cloud.s3.eu-west-3.amazonaws.com/logo/chainlit_banner.png"
 
 # Carica il logo dell'assistente direttamente da URL.
-logo_file_url = ""
+logo_file_url = "/public/icon/logo_dark.svg"
 
 # Carica l'immagine avatar dell'assistente direttamente da URL.
 default_avatar_file_url = ""

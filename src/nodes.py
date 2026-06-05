@@ -3,11 +3,14 @@ from langchain_ollama import ChatOllama
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 # Import dei moduli locali
-from src.state import MedicalState, SpecialistReport, PatientCard
+from src.state import MedicalState, PatientCard, PhotoAnalysis
 from src.config import REVIEWER_PROMPT, SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, PHOTO_PROMPT, ALL_SPECIALISTS
 from src.database import MedicalDatabase
 
 import chainlit as cl
+import re
+import asyncio
+
 
 def stream_response(prompt_current_card):
     full_response = ""
@@ -46,44 +49,154 @@ else:
 # Database
 mdb = MedicalDatabase()
 
+
 # Nodo per la lettura del database
 async def read_db_node(state: MedicalState):
-    """ Legge i dati dal DB e stampa i log su Chainlit """
-    try:
-        cf = state["general_history"][-1].content.strip().upper()
-    except (KeyError, IndexError):
-        return {"next_step": "read_db"}
+    """Legge il CF, lo valida minimamente e interroga il DB."""
 
-    await cl.Message(content=f"📂 **LOG TERMINALE**: Analisi CF `{cf}` in corso...").send()
-    
-    # 3. Logica DB
-    if mdb.verify_patient_exists(cf):
-        record = mdb.read_patient(cf)
-        log_msg = f"📂 READ_DB: Benvenuto - {record.nome} {record.cognome} - Inserisci i tuoi sintomi"
-        print(log_msg) # Terminale fisico
-        await cl.Message(content=log_msg).send()
-        
+    # 1. Estrazione input
+    try:
+        raw = state.general_history[-1].content.strip().upper()
+    except (IndexError, AttributeError):
+        await cl.Message(content="⚠️ Inserisci il tuo Codice Fiscale.").send()
+        return {"next_step": "reviewer"}
+
+    # 2. Validazione minima: 16 caratteri alfanumerici
+    if not re.fullmatch(r'[A-Z0-9]{16}', raw) and raw != "1234":
+        msg = (
+            "⚠️ Il valore inserito non sembra un Codice Fiscale valido.\n"
+            "Deve essere composto da 16 caratteri (lettere e numeri). Riprova."
+        )
+        await cl.Message(content=msg).send()
         return {
-            "patient_card": {
-                "codice_fiscale": cf,
-                "nome": record.nome,
-                "cognome": record.cognome,
-                "eta": record.eta,
-                "patologie_precedenti": record.patologie_precedenti
-            },
-            "patient_exists": True,
-            "general_history": [AIMessage(content="Bentornato! Ho caricato i tuoi dati. Ora descrivimi i tuoi sintomi.")]
+            "next_step": "reviewer",  # user → reviewer che chiederà di reinserire
+            "general_history": [AIMessage(content=msg)],
         }
+
+    # 3. Query DB
+    await cl.Message(content=f"📂 Ricerca CF `{raw}` in corso...").send()
+
+    try:
+        if mdb.verify_patient_exists(raw):
+            record = mdb.read_patient(raw)
+            msg = (
+                f"✅ Bentornato **{record.nome} {record.cognome}**! "
+                "Ho caricato la tua scheda. Descrivimi i tuoi sintomi."
+            )
+            await cl.Message(content=msg).send()
+            print(f"READ_DB | Paziente trovato: {raw}")
+            return {
+                "patient_card": {
+                    "codice_fiscale":       raw,
+                    "nome":                 record.nome,
+                    "cognome":              record.cognome,
+                    "eta":                  record.eta,
+                    "sesso":                getattr(record, "sesso", ""),
+                    "allergie":             getattr(record, "allergie", []),
+                    "patologie_precedenti": record.patologie_precedenti,
+                },
+                "patient_exists": True,
+                "next_step":      "reviewer",  # user → reviewer
+                "general_history": [AIMessage(content=msg)],
+            }
+
+        else:
+            msg = (
+                "📋 CF non trovato nel sistema: verrà creata una nuova scheda.\n"
+                "Descrivimi pure i tuoi sintomi."
+            )
+            await cl.Message(content=msg).send()
+            print(f"READ_DB | Nuovo paziente: {raw}")
+            return {
+                "patient_card":    {"codice_fiscale": raw},
+                "patient_exists":  False,
+                "next_step":       "reviewer",  # user → reviewer
+                "general_history": [AIMessage(content=msg)],
+            }
+
+    except Exception as e:
+        msg = "⚠️ Errore di connessione al database. Riprova tra qualche istante."
+        await cl.Message(content=msg).send()
+        print(f"READ_DB | Errore DB: {e}")
+        return {
+            "next_step":       "reviewer",
+            "general_history": [AIMessage(content=msg)],
+        }
+
+# Nodo del revisore
+async def reviewer_node(state: MedicalState):
+    """Il modello estrae i dati → Python valida → Python decide se continuare."""
+
+    INTENSITA_VALIDE = {"lieve", "moderata", "forte", "insopportabile"}
+
+    def _missing_fields(card: PatientCard) -> list[str]:
+        missing = []
+        if not card.nome.strip():
+            missing.append("nome")
+        if not card.eta.strip():
+            missing.append("età")
+        if not card.symptom.sintomo_principale.strip():
+            missing.append("sintomo principale")
+        if card.symptom.intensita.strip().lower() not in INTENSITA_VALIDE:
+            missing.append(f"intensità (valori: {', '.join(INTENSITA_VALIDE)})")
+        if not card.symptom.durata.strip():
+            missing.append("durata del sintomo")
+        return missing
+
+    def _merge(base: dict, update: dict) -> dict:
+        for k, v in update.items():
+            if isinstance(v, dict) and isinstance(base.get(k), dict):
+                base[k] = _merge(base[k], v)
+            elif v not in (None, "", []):
+                base[k] = v
+        return base
+
+    # 1. Stato attuale
+    current_card: PatientCard = state.patient_card
+    user_msg = state.triage_history[-1].content if state.triage_history else ""
+
+    # 2. Chiamata LLM
+    prompt = REVIEWER_PROMPT.format(
+        patient_card=current_card.model_dump_json(indent=2),
+        user_input=user_msg
+    )
+    content = stream_response(prompt)
+    # 3. Parsing + merge
+    try:
+        clean = content.replace("```json", "").replace("```", "").strip()
+        data = json.loads(clean)
+        extracted: dict = data.get("updated_card", {})
+        llm_reply: str = data.get("message_to_user", "")
+    except json.JSONDecodeError:
+        extracted = {}
+        llm_reply = ""
+
+    merged_dict = _merge(current_card.model_dump(), extracted)
+    merged_card = PatientCard(**merged_dict)  # ricostruisce il Pydantic model
+
+    # 4. Validazione Python
+    missing = _missing_fields(merged_card)
+    triage_complete = len(missing) == 0
+
+    if triage_complete:
+        reply = llm_reply or "✨ Perfetto, ho tutti i dati necessari. Procedo con il triage."
     else:
-        log_msg = "📂 READ_DB: Benvenuto nuovo paziente - Inserisci i tuoi dati"
-        print(log_msg)
-        await cl.Message(content=log_msg).send()
-        
-        return {
-            "patient_card": {"codice_fiscale": cf},
-            "patient_exists": False,
-            "general_history": [AIMessage(content="Codice Fiscale non trovato. Procederò con una nuova registrazione. Descrivimi pure i tuoi sintomi.")]
-        }
+        elenco = "\n".join(f"  • {campo}" for campo in missing)
+        reply = f"Per completare la scheda ho ancora bisogno di:\n{elenco}\nPuoi fornirmi queste informazioni?"
+
+    # 5. Log + output
+    print(f"🧐 REVIEWER → completo={triage_complete} | mancanti={missing}")
+    print(f"   Card: {merged_card.model_dump_json()}")
+    await cl.Message(content=f"🧐 {reply}").send()
+
+    return {
+        "patient_card":    merged_card.model_dump(),
+        "triage_history":  [AIMessage(content=reply)],
+        "general_history": [AIMessage(content=reply)],
+        "triage_complete": triage_complete,
+        "next_step": "photography" if triage_complete else "reviewer",
+    }
+
 # Nodo per il salvataggio nel database
 async def save_db_node(state: MedicalState):
     """ Salva o aggiorna i dati del paziente nel database. """
@@ -133,163 +246,122 @@ async def modify_db_node(state: MedicalState):
     await cl.Message(content=f"✅ I tuoi dati sono stati aggiornati con la nuova diagnosi: {nuova_patologia}").send()
     return {"patient_card": card}
 
-# Nodo del revisore
-async def reviewer_node(state: MedicalState):
-    """ Analizza la Patient Card e decide se sono necessarie più informazioni dall'utente. """
-    print("\n\n\n\n")
-    print(state)    
-    print("\n\n\n\n")
-    print("🧐 REVIEWER: ", end="", flush=True)
-    message = "🧐 REVIEWER: "
-    # Nel reviewer_node
-    current_card = state["patient_card"]
-    
-    history = state.get("triage_history", [])
-    if history:
-        user_msg = history[-1].content
-    else:
-        user_msg = "Nessun messaggio utente trovato."
-    card_str = json.dumps(current_card, ensure_ascii=False)  
-    prompt = REVIEWER_PROMPT.format(patient_card=card_str, user_input=user_msg)    
-    content = stream_response(prompt)
-    
-    try:
-        clean_content = content.replace("```json", "").replace("```", "").strip()
-        data = json.loads(clean_content)
-        extracted_card = data.get("updated_card", {})
-        status = data.get("status", "INSUFFICIENTE").upper()
-        reply = data.get("message_to_user")
-        current_card.update({k: v for k, v in extracted_card.items() if v}) # aggiorna solo se c'è un valore
-        
-    except json.JSONDecodeError:
-        status = "INSUFFICIENTE"
-        reply = "Scusa, non ho capito bene. Puoi ripetere i tuoi dati?"
-    
-    display_reply = reply if reply else "Perfetto, raccolta dati completa ✨"
-    print(f"   -> Status: {status}")
-    print(f"   -> Dati attuali: {current_card}")
-    print(f"   -> Risposta all'utente: {display_reply}")
-    message += f"{display_reply}"
-    await cl.Message(content=message).send()
-    return {
-        "patient_card": current_card,          
-        "triage_history": [AIMessage(content=display_reply)], 
-        "general_history": [AIMessage(content=display_reply)],
-        "next_step": "user" if "INSUFFICIENTE" in status else "photography",
-        "triage_complete": True if status == "SUFFICIENTE" else False
-    }
 
-def user_node(state: MedicalState):
-    """ 
-    Nodo Utente Ibrido:
-    - Funziona con Chainlit (non chiede input se il messaggio c'è già)
-    - Funziona col Terminale (chiede input se manca)
-    """
-    
-    print(state["patient_card"])
 
-    history = state.get("triage_history", [])
-    
-    # Per Chainlit: non chiediamo input, passiamo direttamente al nodo successivo.
+async def user_node(state: MedicalState):
+    """Passa il messaggio utente già ricevuto da Chainlit al nodo successivo."""
+    print(state.patient_card)
+
+    history = state.triage_history
+
     if history and isinstance(history[-1], HumanMessage):
-        print("💬 USER: "+history[-1].content)
+        content = history[-1].content.strip().lower()
+        print("💬 USER: " + content)
         return {
-            "general_history": [history[-1]], 
-            "triage_history": [history[-1]]
+            "general_history": [history[-1]],
+            "triage_history":  [history[-1]],
+            # NON toccare next_step: rimane quello impostato dal nodo precedente
         }
 
-    # Per input da terminale
-    message = input("💬 USER: ")
-    while message == "" or message.isspace():
-        print("⚠️ Per favore, fornisci una risposta valida.")
-        message = input("💬 USER: ")
-        
-    return {
-        "general_history": [HumanMessage(content=message)], 
-        "triage_history": [HumanMessage(content=message)]
-    }
+    return {}
 
 # Nodo per l'analisi dell'immagine del danno
-def photography_node(state: MedicalState):
-    """ Analizza l'immagine del danno inviata dall'utente. """
-    def encode_image(image_path):
-        """Funzione helper per convertire immagine in base64"""
+async def photography_node(state: MedicalState):
+
+    def encode_image(image_path: str) -> str | None:
         try:
             with open(image_path, "rb") as f:
                 return base64.b64encode(f.read()).decode("utf-8")
         except FileNotFoundError:
             return None
-    print("📸 PHOTOGRAPH: ", end="", flush=True)    
-    user_choice = input("Vuoi inserire una foto? (Si/No)\n💬 USER: ").strip().lower()
-    
-    if user_choice not in ['si', 'sì', 'yes', 'y']:
-        print("📸 PHOTOGRAPH:  Nessuna foto inserita")
+
+    last_user = state.triage_history[-1] if state.triage_history else None
+    ultimo_testo = last_user.content.strip().lower() if last_user and isinstance(last_user, HumanMessage) else ""
+
+    # 1. Utente ha scritto 'no' → salta foto
+    if ultimo_testo in {"no", "nessuna", "non ho", "skip"}:
+        msg = "📸 Nessuna foto fornita, procedo con la sola descrizione dei sintomi."
+        await cl.Message(content=msg).send()
         return {
-            "general_history": [AIMessage(content="Il paziente non ha fornito foto della ferita.")],
-            "triage_history": [AIMessage(content="Nessuna foto fornita dal paziente.")],
-            "photo": None,
-            "next_step": "supervisor"
+            "general_history": [AIMessage(content=msg)],
+            "next_step": "supervisor",
         }
 
-    image_path = input("📸 PHOTOGRAPH: Inserisci il percorso dell'immagine (es. ferita.jpg)\n💬 USER: ").strip()
-    base64_image = encode_image(image_path)
-    
-    if not base64_image:
-        print(f"❌ Errore: Immagine '{image_path}' non trovata.")
-        return {"general_history": [AIMessage(content="Errore nel caricamento della foto.")]}
+    # 2. Foto presente nello stato → analizza
+    photo: PhotoAnalysis | None = state.patient_card.symptom.photo
+    if photo and photo.photo_url:
+        image_path = photo.photo_url
+        print(f"📸 PHOTOGRAPHY: analisi immagine → {image_path}")
+        await cl.Message(content="📸 Immagine ricevuta, analisi in corso...").send()
 
-    messages = [
-        SystemMessage(content=PHOTO_PROMPT),
-        HumanMessage(
-            content=[
+        base64_image = encode_image(image_path)
+        if not base64_image:
+            msg = f"❌ Impossibile aprire l'immagine. Procedo senza foto."
+            await cl.Message(content=msg).send()
+            return {"general_history": [AIMessage(content=msg)], "next_step": "supervisor"}
+
+        messages = [
+            SystemMessage(content=PHOTO_PROMPT),
+            HumanMessage(content=[
                 {"type": "text", "text": "Analizza questa immagine clinica e produci il JSON richiesto."},
-                {
-                    "type": "image_url", 
-                    "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
-                }
-            ]
-        )
-    ]
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
+            ]),
+        ]
 
-    try:
-        response = llm_photography.invoke(messages)
-        clean_content = response.content.replace("```json", "").replace("```", "").strip()
-        clinical_data = json.loads(clean_content)
+        try:
+            response = llm_photography.invoke(messages)
+            clean = response.content.replace("```json", "").replace("```", "").strip()
+            clinical_data = json.loads(clean)
 
-        print("📸 PHOTOGRAPH: ", end="", flush=True) 
-        print(json.dumps(clinical_data, indent=4, ensure_ascii=False))
+            tipo    = clinical_data.get("tipo_lesione", "N/A")
+            gravita = clinical_data.get("gravita_stimata", "N/A")
+            descr   = clinical_data.get("descrizione", "N/A")
 
-        return {
-            "photo": {
-                "photo_url": image_path,
-                "descrizione": clinical_data.get("descrizione", "N/A"),
-                "tipo_lesione": clinical_data.get("tipo_lesione", "N/A"),
-                "gravita_stimata": clinical_data.get("gravita_stimata", "N/A")
-            },
-            "general_history": [AIMessage(content=f"Foto analizzata: {clinical_data.get('tipo_lesione')} - Gravità {clinical_data.get('gravita_stimata')}")],
-            "next_step": "supervisor"
-        }
+            print(f"📸 PHOTOGRAPHY: {tipo} | gravità {gravita}")
+            await cl.Message(content=f"📸 Analisi completata: **{tipo}** — gravità stimata **{gravita}**.").send()
 
-    except json.JSONDecodeError:
-        print("❌ Errore: Il modello non ha prodotto un JSON valido.")
-        print("Raw output:", response.content)
-        return {
-            "general_history": [AIMessage(content="Errore tecnico nell'analisi della foto.")],
-            "photo": None
-        }
-    except Exception as e:
-        print(f"❌ Errore generico: {e}")
-        return {
-            "general_history": [AIMessage(content="Errore durante l'elaborazione della foto.")],
-            "photo": None
-        }
+            updated_card = state.patient_card.model_dump()
+            updated_card["symptom"]["photo"] = {
+                "photo_url":   image_path,
+                "descrizione": descr,
+                "tipo_danno":  tipo,
+            }
+            return {
+                "patient_card":    updated_card,
+                "general_history": [AIMessage(content=f"Foto analizzata: {tipo} — gravità {gravita}. {descr}")],
+                "next_step":       "supervisor",
+            }
+
+        except json.JSONDecodeError:
+            msg = "❌ Errore tecnico nell'analisi della foto. Procedo con la sola descrizione."
+            await cl.Message(content=msg).send()
+            return {"general_history": [AIMessage(content=msg)], "next_step": "supervisor"}
+
+        except Exception as e:
+            msg = "❌ Errore durante l'elaborazione della foto. Procedo comunque."
+            print(f"📸 PHOTOGRAPHY: errore generico → {e}")
+            await cl.Message(content=msg).send()
+            return {"general_history": [AIMessage(content=msg)], "next_step": "supervisor"}
+
+    # 3. Nessuna foto e nessun 'no' → chiedi all'utente
+    msg = (
+        "📸 Se hai una foto della zona interessata (ferita, gonfiore, eruzioni, ecc.) "
+        "inviala ora per una valutazione più accurata.\n"
+        "Altrimenti scrivi **'no'** per continuare senza foto."
+    )
+    await cl.Message(content=msg).send()
+    return {
+        "general_history": [AIMessage(content=msg)],
+        "triage_history":  [AIMessage(content=msg)],
+        "next_step": "photography",  # user leggerà questo e tornerà qui
+    }
 
 # Nodo del supervisore
 async def supervisor_node(state: MedicalState):
     """ Analizza la conversazione e decide chi deve intervenire."""
     print("🚦 SUPERVISOR: ", end="", flush=True)
-    card = state["patient_card"]
-    photo = state.get("photo")
+    card = state.patient_card
+    photo = state.get.photo_analysis
     card_str = json.dumps(card, ensure_ascii=False)
     photo_str = json.dumps(photo, ensure_ascii=False) if photo else "Nessuna foto."
 
