@@ -91,3 +91,6 @@ Per eseguire l'assistente di triage V.I.T.A. in locale, è necessaria una chiave
 {
   "GROQ_API_KEY": "inserisci_qui_la_tua_chiave_api_groq_reale"
 }
+```
+
+🛡️ Nota di Sicurezza: Il file apikeys.json viene esplicitamente ignorato tramite il file .gitignore per prevenire l'esposizione accidentale delle credenziali. Non caricare mai le tue vere chiavi API in una repository pubblic
