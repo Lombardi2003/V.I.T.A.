@@ -1,22 +1,22 @@
-"""Crea, completa o aggiorna .env.
+"""Create, complete, or update .env.
 
-L'elenco dei valori richiesti non e' scritto qui: viene letto direttamente
-da src.settings.Settings, cosi' quando in futuro si aggiunge un nuovo campo
-alla classe Settings, questo script lo chiedera' in automatico senza bisogno
-di mantenere un secondo file (es. .env.example) allineato a mano.
+The list of required values isn't written here: it's read directly from
+src.settings.Settings, so when a new field is added to the Settings class
+in the future, this script will ask for it automatically, with no need to
+keep a second file (e.g. .env.example) in sync by hand.
 
-Uso:
-    python scripts/setup_env.py            # chiede solo i valori mancanti
-    python scripts/setup_env.py --update   # richiede TUTTI i valori (es. chiave scaduta),
-                                            # Invio per lasciare invariato quello attuale
+Usage:
+    python scripts/setup_env.py            # asks only for missing values
+    python scripts/setup_env.py --update   # asks for ALL values (e.g. expired key),
+                                            # Enter to keep the current one unchanged
 """
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-# Su console Windows (cp1252) le stampe con emoji vanno in UnicodeEncodeError:
-# forziamo l'output UTF-8 quando lo stream lo consente (es. non in pipe).
+# On Windows consoles (cp1252), printing emoji raises UnicodeEncodeError:
+# force UTF-8 output when the stream allows it (e.g. not piped).
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
@@ -54,34 +54,34 @@ def _prompt_fields(names: list[str], existing: dict[str, str]) -> dict[str, str]
     for name in names:
         env_key = name.upper()
         current = existing.get(env_key, "")
-        hint = f" (Invio per lasciare invariato: {_mask(current)})" if current else ""
-        value = input(f"   Inserisci un valore per {env_key}{hint}: ").strip()
+        hint = f" (Enter to keep unchanged: {_mask(current)})" if current else ""
+        value = input(f"   Enter a value for {env_key}{hint}: ").strip()
         if value:
             updated[env_key] = value
     return updated
 
 
 def ensure_env() -> None:
-    """Se manca qualche valore richiesto da Settings, lo chiede e aggiorna .env."""
+    """If any value required by Settings is missing, ask for it and update .env."""
     existing = _load_existing()
     missing_fields = [name for name in Settings.model_fields if not existing.get(name.upper())]
 
     if not missing_fields:
         return
 
-    print("🔧 Il file .env non e' ancora completo, servono alcuni valori:")
+    print("🔧 The .env file isn't complete yet, some values are needed:")
     updated = _prompt_fields(missing_fields, existing)
     _write_env(updated)
-    print(f"✅ .env aggiornato in {ENV_PATH}")
+    print(f"✅ .env updated at {ENV_PATH}")
 
 
 def update_env() -> None:
-    """Richiede TUTTI i valori, per aggiornare chiavi esistenti (es. scadute/revocate)."""
+    """Ask for ALL values, to update existing keys (e.g. expired/revoked)."""
     existing = _load_existing()
-    print("🔄 Aggiornamento .env: premi Invio per lasciare invariato un valore, altrimenti scrivine uno nuovo.")
+    print("🔄 Updating .env: press Enter to keep a value unchanged, otherwise type a new one.")
     updated = _prompt_fields(list(Settings.model_fields), existing)
     _write_env(updated)
-    print(f"✅ .env aggiornato in {ENV_PATH}")
+    print(f"✅ .env updated at {ENV_PATH}")
 
 
 if __name__ == "__main__":
@@ -89,4 +89,4 @@ if __name__ == "__main__":
         update_env()
     else:
         ensure_env()
-    print("✅ Configurazione .env completa.")
+    print("✅ .env configuration complete.")

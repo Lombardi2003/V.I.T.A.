@@ -1,39 +1,39 @@
 <div align=center>
 
-<h1> 🩺 V.I.T.A. — Virtual Intelligent Triage Assistant</h1>
+# 🩺 V.I.T.A. — Virtual Intelligent Triage Assistant
 </div>
 <div align=justify>
-Assistente di triage medico multi-agente che simula il processo di pronto soccorso: raccoglie i dati del paziente, li smista tra specialisti AI e produce un referto clinico con codice di priorità.
+A multi-agent medical triage assistant that simulates the emergency room process: it collects patient data, routes it among AI specialists, and produces a clinical report with a priority code.
 
-## 📖 Descrizione
+## 📖 Description
 
-**V.I.T.A.** è costruito interamente in Python con **LangGraph** e **LangChain**, e orchestra una squadra di agenti AI specializzati che collaborano lungo un grafo a stati per riprodurre un flusso di triage realistico:
+**V.I.T.A.** is built entirely in Python with **LangGraph** and **LangChain**, and orchestrates a team of specialized AI agents that collaborate along a state graph to reproduce a realistic triage flow:
 
-1. Un agente **Reviewer** raccoglie ed estrae i dati clinici dal linguaggio naturale del paziente, verificando che la scheda sia completa prima di proseguire.
-2. Un agente **Photography** può analizzare una foto della lesione/zona interessata, stimandone gravità e descrizione clinica.
-3. Un **Supervisor** decide quali tra i 10 specialisti disponibili (cardiologo, neurologo, dermatologo, ortopedico, gastroenterologo, pneumologo, otorino, oculista, urologo, medico generale) devono essere coinvolti, e un **Router** smista la cartella tra loro — permettendo anche consulti tra specialisti quando un sintomo esce dal proprio ambito.
-4. Un **Primario** sintetizza tutti i referti in una diagnosi finale con codice colore (ROSSO / ARANCIONE / AZZURRO / VERDE / BIANCO).
+1. A **Reviewer** agent collects and extracts clinical data from the patient's natural language, checking that the record is complete before proceeding.
+2. A **Photography** agent can analyze a photo of the injury/affected area, estimating its severity and clinical description.
+3. A **Supervisor** decides which of the 10 available specialists (cardiologist, neurologist, dermatologist, orthopedist, gastroenterologist, pulmonologist, ENT, ophthalmologist, urologist, general practitioner) need to be involved, and a **Router** routes the patient record among them — also allowing consultations between specialists when a symptom falls outside their field.
+4. A **Chief Physician** synthesizes all reports into a final diagnosis with a color-coded priority (RED / ORANGE / BLUE / GREEN / WHITE).
 
-I pazienti vengono riconosciuti tramite Codice Fiscale su un database SQLite persistente, che accumula lo storico delle patologie diagnosticate nel tempo. L'interfaccia conversazionale è servita tramite **Chainlit**, e il motore LLM è configurabile tra **Groq** (cloud) e **Ollama** (locale).
+Patients are recognized via their Tax ID (Codice Fiscale) on a persistent SQLite database, which accumulates the history of diagnosed conditions over time. The conversational interface is served via **Chainlit**, and the LLM engine is configurable between **Groq** (cloud) and **Ollama** (local).
 
 ---
 
-## 🚀 Come iniziare
+## 🚀 Getting Started
 
-### 1. Dipendenze
+### 1. Dependencies
 ```bash
     pip install -r requirements.txt
 ```
 
-### 2. Chiavi/config esterne
-Non serve creare `.env` a mano: al primo avvio (`chainlit run app.py`) i valori mancanti vengono controllati e richiesti in automatico — se `.env` è già completo non viene chiesto nulla. Questo controllo verifica solo che il valore sia *presente*, non che sia *valido*: una chiave scaduta/revocata va aggiornata a mano.
+### 2. External keys/config
+No need to create `.env` by hand: on first startup (`chainlit run app.py`) any missing values are checked and requested automatically — if `.env` is already complete, nothing is asked. This check only verifies that the value is *present*, not that it is *valid*: an expired/revoked key must be updated manually.
 
 ```bash
-    python scripts/setup_env.py            # completa i valori mancanti
-    python scripts/setup_env.py --update   # richiede di nuovo tutti i valori (es. chiave scaduta)
+    python scripts/setup_env.py            # fills in missing values
+    python scripts/setup_env.py --update   # asks for all values again (e.g. expired key)
 ```
 
-### 3. Avvio del programma
+### 3. Running the program
 ```bash
     chainlit run app.py -w
 ```

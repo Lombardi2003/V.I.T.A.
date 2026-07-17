@@ -21,17 +21,17 @@ def generate_graph():
     workflow.add_node("modify_db", modify_db_node)
 
     # Specialisti
-    workflow.add_node("cardiologo", cardiologist_node)
-    workflow.add_node("neurologo", neurologist_node)
-    workflow.add_node("ortopedico", orthopedic_node)
-    workflow.add_node("gastroenterologo", gastroenterologist_node)
-    workflow.add_node("dermatologo", dermatologist_node)
-    workflow.add_node("pneumologo", pneumologist_node)
-    workflow.add_node("otorino", ent_node)
-    workflow.add_node("oculista", ophthalmologist_node)
-    workflow.add_node("urologo", urologist_node)
-    workflow.add_node("medico_generale", general_practitioner_node)
-    workflow.add_node("primario", primary_node)
+    workflow.add_node("cardiologist", cardiologist_node)
+    workflow.add_node("neurologist", neurologist_node)
+    workflow.add_node("orthopedist", orthopedic_node)
+    workflow.add_node("gastroenterologist", gastroenterologist_node)
+    workflow.add_node("dermatologist", dermatologist_node)
+    workflow.add_node("pulmonologist", pneumologist_node)
+    workflow.add_node("ent", ent_node)
+    workflow.add_node("ophthalmologist", ophthalmologist_node)
+    workflow.add_node("urologist", urologist_node)
+    workflow.add_node("general_practitioner", general_practitioner_node)
+    workflow.add_node("chief_physician", primary_node)
 
     # Archi
     workflow.add_edge(START, "read_db")
@@ -70,33 +70,33 @@ def generate_graph():
         "router",
         router_decision,
         {
-            "cardiologo": "cardiologo",
-            "neurologo": "neurologo",
-            "ortopedico": "ortopedico",
-            "gastroenterologo": "gastroenterologo",
-            "dermatologo": "dermatologo",
-            "pneumologo": "pneumologo",
-            "otorino": "otorino",
-            "oculista": "oculista",
-            "urologo": "urologo",
-            "medico_generale": "medico_generale",
-            "primario": "primario"
+            "cardiologist": "cardiologist",
+            "neurologist": "neurologist",
+            "orthopedist": "orthopedist",
+            "gastroenterologist": "gastroenterologist",
+            "dermatologist": "dermatologist",
+            "pulmonologist": "pulmonologist",
+            "ent": "ent",
+            "ophthalmologist": "ophthalmologist",
+            "urologist": "urologist",
+            "general_practitioner": "general_practitioner",
+            "chief_physician": "chief_physician"
         }
     )
 
-    workflow.add_edge("cardiologo", "router")
-    workflow.add_edge("neurologo", "router")
-    workflow.add_edge("ortopedico", "router")
-    workflow.add_edge("gastroenterologo", "router")
-    workflow.add_edge("dermatologo", "router")
-    workflow.add_edge("pneumologo", "router")
-    workflow.add_edge("otorino", "router")
-    workflow.add_edge("oculista", "router")
-    workflow.add_edge("urologo", "router")
-    workflow.add_edge("medico_generale", "router")
+    workflow.add_edge("cardiologist", "router")
+    workflow.add_edge("neurologist", "router")
+    workflow.add_edge("orthopedist", "router")
+    workflow.add_edge("gastroenterologist", "router")
+    workflow.add_edge("dermatologist", "router")
+    workflow.add_edge("pulmonologist", "router")
+    workflow.add_edge("ent", "router")
+    workflow.add_edge("ophthalmologist", "router")
+    workflow.add_edge("urologist", "router")
+    workflow.add_edge("general_practitioner", "router")
 
     workflow.add_conditional_edges(
-        "primario",
+        "chief_physician",
         patient_exists,
         {
             True: "modify_db",
@@ -115,7 +115,7 @@ def generate_graph():
 def router(state: MedicalState):
     specialist = state.get("needed_specialists", {})
     consultation = state.get("inter_consultation")
-    
+
     print("\n\n" + "="*40)
     print("🔀 ROUTER: Controllo la direzione...")
     print("Stato specialisti:", specialist)
@@ -129,7 +129,7 @@ def router(state: MedicalState):
         if not consultation.get("risposta"):
             print(f"   -> 🚨 Deviazione: Mando la cartella al {consultation['a'].upper()} per rispondere alla domanda!")
             return {"next_step": consultation["a"]}
-            
+
         # Se c'è la risposta, rimandiamo la cartella a chi l'aveva chiesta ('da')
         else:
             print(f"   -> 🚨 Risposta pronta: Rimando la cartella al {consultation['da'].upper()} per fargli finire il referto!")
@@ -140,10 +140,10 @@ def router(state: MedicalState):
         if not status:
             print(f"   -> Smisto la visita normale al: {role}")
             return {"next_step": role}
-            
+
     # 3. Se tutti hanno visitato, andiamo dal primario
     print("   -> Tutti i medici hanno concluso. Passo al PRIMARIO.")
-    return {"next_step": "primario"}
+    return {"next_step": "chief_physician"}
 
 def photo_next(state: MedicalState):
     return state.next_step  # "photography" oppure "supervisor"

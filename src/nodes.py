@@ -78,20 +78,20 @@ async def read_db_node(state: MedicalState):
         if mdb.verify_patient_exists(raw):
             record = mdb.read_patient(raw)
             msg = (
-                f"✅ Bentornato **{record.nome} {record.cognome}**! "
+                f"✅ Bentornato **{record.first_name} {record.last_name}**! "
                 "Ho caricato la tua scheda. Descrivimi i tuoi sintomi."
             )
             await cl.Message(content=msg).send()
             print(f"READ_DB | Paziente trovato: {raw}")
             return {
                 "patient_card": {
-                    "codice_fiscale":       raw,
-                    "nome":                 record.nome,
-                    "cognome":              record.cognome,
-                    "eta":                  record.eta,
-                    "sesso":                getattr(record, "sesso", ""),
-                    "allergie":             getattr(record, "allergie", []),
-                    "patologie_precedenti": record.patologie_precedenti,
+                    "fiscal_code":         raw,
+                    "first_name":          record.first_name,
+                    "last_name":           record.last_name,
+                    "age":                 record.age,
+                    "sex":                 getattr(record, "sex", ""),
+                    "allergies":           getattr(record, "allergies", []),
+                    "previous_conditions": record.previous_conditions,
                 },
                 "patient_exists": True,
                 "next_step":      "reviewer",  # user → reviewer
@@ -106,7 +106,7 @@ async def read_db_node(state: MedicalState):
             await cl.Message(content=msg).send()
             print(f"READ_DB | Nuovo paziente: {raw}")
             return {
-                "patient_card":    {"codice_fiscale": raw},
+                "patient_card":    {"fiscal_code": raw},
                 "patient_exists":  False,
                 "next_step":       "reviewer",  # user → reviewer
                 "general_history": [AIMessage(content=msg)],
@@ -125,19 +125,19 @@ async def read_db_node(state: MedicalState):
 async def reviewer_node(state: MedicalState):
     """Il modello estrae i dati → Python valida → Python decide se continuare."""
 
-    INTENSITA_VALIDE = {"lieve", "moderata", "forte", "insopportabile"}
+    VALID_INTENSITY_VALUES = {"lieve", "moderata", "forte", "insopportabile"}
 
     def _missing_fields(card: PatientCard) -> list[str]:
         missing = []
-        if not card.nome.strip():
+        if not card.first_name.strip():
             missing.append("nome")
-        if not card.eta.strip():
+        if not card.age.strip():
             missing.append("età")
-        if not card.symptom.sintomo_principale.strip():
+        if not card.symptom.main_symptom.strip():
             missing.append("sintomo principale")
-        if card.symptom.intensita.strip().lower() not in INTENSITA_VALIDE:
-            missing.append(f"intensità (valori: {', '.join(INTENSITA_VALIDE)})")
-        if not card.symptom.durata.strip():
+        if card.symptom.intensity.strip().lower() not in VALID_INTENSITY_VALUES:
+            missing.append(f"intensità (valori: {', '.join(VALID_INTENSITY_VALUES)})")
+        if not card.symptom.duration.strip():
             missing.append("durata del sintomo")
         return missing
 
@@ -199,30 +199,30 @@ async def reviewer_node(state: MedicalState):
 async def save_db_node(state: MedicalState):
     """ Salva o aggiorna i dati del paziente nel database. """
     print("💾 SAVE_DB: Avvio salvataggio...")
-    
+
     card = state.get("patient_card", {})
-    
+
     # 1. Controllo di sicurezza sul codice fiscale (Ottimo che tu lo abbia già messo!)
-    if "codice_fiscale" not in card or not card["codice_fiscale"]:
+    if "fiscal_code" not in card or not card["fiscal_code"]:
         print("❌ SAVE_DB: Codice fiscale mancante, impossibile salvare.")
         return {}
-        
-    # 2. IL FIX: Assicuriamoci che 'patologie_precedenti' esista e sia una vera Lista!
-    if "patologie_precedenti" not in card or not isinstance(card["patologie_precedenti"], list):
-        card["patologie_precedenti"] = []
-        
+
+    # 2. IL FIX: Assicuriamoci che 'previous_conditions' esista e sia una vera Lista!
+    if "previous_conditions" not in card or not isinstance(card["previous_conditions"], list):
+        card["previous_conditions"] = []
+
     # 3. Estrazione sicura della diagnosi
     diagnosi_obj = state.get("report")
-    testo_diagnosi = diagnosi_obj["diagnosi_finale"] if diagnosi_obj else "Nessuna diagnosi specifica"
-    
+    testo_diagnosi = diagnosi_obj["final_diagnosis"] if diagnosi_obj else "Nessuna diagnosi specifica"
+
     # 4. Ora possiamo fare l'append in totale sicurezza
-    card["patologie_precedenti"].append(testo_diagnosi)
-    
+    card["previous_conditions"].append(testo_diagnosi)
+
     # 5. Invio al database
     mdb.save_patient(card)
     print("✅ SAVE_DB: Dati salvati con successo.")
     await cl.Message(content=f"✅ I tuoi dati sono stati salvati con la diagnosi: {testo_diagnosi}").send()
-    
+
     # Restituiamo la card aggiornata allo stato del grafo
     return {"patient_card": card}
 
@@ -230,16 +230,16 @@ async def save_db_node(state: MedicalState):
 async def modify_db_node(state: MedicalState):
     """ Modifica i dati di un paziente esistente nel database. """
     print("🔄 MODIFY_DB: Avvio modifica dati...")
-    
+
     card = state.get("patient_card", {})
-    
-    if "codice_fiscale" not in card or not card["codice_fiscale"]:
+
+    if "fiscal_code" not in card or not card["fiscal_code"]:
         print("❌ MODIFY_DB: Codice fiscale mancante, impossibile modificare.")
         return {}
-    
-    nuova_patologia = state.get("report", {}).get("diagnosi_finale", "Nessuna diagnosi specifica")
-    
-    mdb.modify_patology_patient(card, nuova_patologia)
+
+    nuova_patologia = state.get("report", {}).get("final_diagnosis", "Nessuna diagnosi specifica")
+
+    mdb.update_patient_conditions(card, nuova_patologia)
     print("✅ MODIFY_DB: Dati modificati con successo.")
     await cl.Message(content=f"✅ I tuoi dati sono stati aggiornati con la nuova diagnosi: {nuova_patologia}").send()
     return {"patient_card": card}
@@ -311,18 +311,18 @@ async def photography_node(state: MedicalState):
             clean = response.content.replace("```json", "").replace("```", "").strip()
             clinical_data = json.loads(clean)
 
-            tipo    = clinical_data.get("tipo_lesione", "N/A")
-            gravita = clinical_data.get("gravita_stimata", "N/A")
-            descr   = clinical_data.get("descrizione", "N/A")
+            tipo    = clinical_data.get("lesion_type", "N/A")
+            gravita = clinical_data.get("estimated_severity", "N/A")
+            descr   = clinical_data.get("description", "N/A")
 
             print(f"📸 PHOTOGRAPHY: {tipo} | gravità {gravita}")
             await cl.Message(content=f"📸 Analisi completata: **{tipo}** — gravità stimata **{gravita}**.").send()
 
             updated_card = state.patient_card.model_dump()
             updated_card["symptom"]["photo"] = {
-                "photo_url":   image_path,
-                "descrizione": descr,
-                "tipo_danno":  tipo,
+                "photo_url":    image_path,
+                "description":  descr,
+                "injury_type":  tipo,
             }
             return {
                 "patient_card":    updated_card,
@@ -365,26 +365,26 @@ async def supervisor_node(state: MedicalState):
 
     prompt = SUPERVISOR_PROMPT.format(patient_card=card_str, photo_analysis=photo_str)
     content = stream_response(prompt)
-    selected_specialists = ["medico_generale"]
+    selected_specialists = ["general_practitioner"]
 
     try:
         clean_content = content.replace("```json", "").replace("```", "").strip()
         data = json.loads(clean_content)
-        
+
         specs = data.get("specialists", [])
-        
+
         clean_specs = [s.lower() for s in specs if s.lower() in ALL_SPECIALISTS]
-        
+
         if clean_specs:
             selected_specialists = clean_specs
-            
+
         print(f"-> Scelti: {selected_specialists}")
         await cl.Message(content=f"🚦 SUPERVISOR: ho deciso di coinvolgere: {', '.join(selected_specialists).upper()}").send()
 
     except json.JSONDecodeError:
         print("-> Errore lettura JSON. Fallback su Medico Generale.")
-    
-    checklist = {nome: False for nome in selected_specialists}
+
+    checklist = {specialist: False for specialist in selected_specialists}
     print("Checklist specialisti necessari:", checklist)
     return {
         "needed_specialists": checklist
@@ -392,7 +392,7 @@ async def supervisor_node(state: MedicalState):
 
 async def specialist_node(state: MedicalState, role: str):
     print(f"\n🩺 {role.upper()}: Analisi in corso...", flush=True)
-      
+
     card = state.get("patient_card", {})
     consultation = state.get("inter_consultation")
     card_str = json.dumps(card, ensure_ascii=False)
@@ -400,9 +400,9 @@ async def specialist_node(state: MedicalState, role: str):
     messaggi_colleghi = ""
     if consultation:
         if consultation.get("a") == role and not consultation.get("risposta"):
-            messaggi_colleghi = f"⚠️ DOMANDA DAL {consultation['da'].upper()}: '{consultation['domanda']}'.\n-> Rispondi nel campo 'dettagli_referto'."
+            messaggi_colleghi = f"⚠️ DOMANDA DAL {consultation['da'].upper()}: '{consultation['domanda']}'.\n-> Rispondi nel campo 'details_report'."
         elif consultation.get("da") == role and consultation.get("risposta"):
-            messaggi_colleghi = f"✅ RISPOSTA DAL {consultation['a'].upper()}: '{consultation['risposta']}'.\n-> Usa questa info per concludere il referto. Ora 'necessita_consulto' deve essere FALSE."
+            messaggi_colleghi = f"✅ RISPOSTA DAL {consultation['a'].upper()}: '{consultation['risposta']}'.\n-> Usa questa info per concludere il referto. Ora 'needs_consultation' deve essere FALSE."
 
     prompt = SPECIALIST_PROMPT.format(role=role, card=card_str, messaggi_colleghi=messaggi_colleghi)
     content = stream_response(prompt)
@@ -410,49 +410,49 @@ async def specialist_node(state: MedicalState, role: str):
     try:
         clean_content = content.replace("```json", "").replace("```", "").strip()
         data = json.loads(clean_content)
-        
-        print(f"   -> 🧠 Ragionamento: {data.get('ragionamento_iniziale', '')}")
-        
-        necessita_consulto = data.get("necessita_consulto", False)
-        if necessita_consulto and not (consultation and consultation.get("a") == role):
-            target = data.get("specialista_da_consultare", "").lower().strip()
-            domanda = data.get("domanda_al_collega", "")
-            
+
+        print(f"   -> 🧠 Ragionamento: {data.get('initial_reasoning', '')}")
+
+        needs_consultation = data.get("needs_consultation", False)
+        if needs_consultation and not (consultation and consultation.get("a") == role):
+            target = data.get("specialist_to_consult", "").lower().strip()
+            domanda = data.get("question_for_colleague", "")
+
             if target and target != role:
                 print(f"   -> 🔄 PAUSA: Il {role.upper()} chiede un consulto al {target.upper()}!")
                 return {
                     "inter_consultation": {"da": role, "a": target, "domanda": domanda, "risposta": None},
-                    "next_step": target 
+                    "next_step": target
                 }
-            
+
         final_report = {
-            "diagnosi_sintetica": data.get("diagnosi_sintetica", "Non determinata"),
-            "dettagli": data.get("dettagli_referto", "Nessun dettaglio"),
-            "esami_consigliati": data.get("esami_consigliati", []),
-            "livello_urgenza": data.get("livello_urgenza", "BASSO")
+            "summary_diagnosis": data.get("summary_diagnosis", "Non determinata"),
+            "details": data.get("details_report", "Nessun dettaglio"),
+            "recommended_exams": data.get("recommended_exams", []),
+            "urgency_level": data.get("urgency_level", "BASSO")
         }
-        
+
     except Exception as e:
         print(f"   -> ❌ Errore Lettura LLM: Procedo con referto di emergenza.")
         final_report = {
-            "diagnosi_sintetica": "Errore", "dettagli": "Impossibile leggere i dati.",
-            "esami_consigliati": [], "livello_urgenza": "BASSO"
+            "summary_diagnosis": "Errore", "details": "Impossibile leggere i dati.",
+            "recommended_exams": [], "urgency_level": "BASSO"
         }
 
     current_specialist = state.get("needed_specialists", {})
-    current_specialist[role] = True 
-    
+    current_specialist[role] = True
+
     next_step = "router"
     new_consultation = consultation
 
     if consultation:
         if consultation.get("a") == role and not consultation.get("risposta"):
             print(f"   -> ✅ Risposta formulata per il {consultation['da'].upper()}")
-            new_consultation["risposta"] = final_report["dettagli"]
+            new_consultation["risposta"] = final_report["details"]
             next_step = consultation["da"]
         elif consultation.get("da") == role and consultation.get("risposta"):
             print(f"   -> 🏁 {role.upper()} chiude il referto dopo il consulto.")
-            new_consultation = None 
+            new_consultation = None
 
     await cl.Message(content=f"✅ Referto del {role.upper()} pronto. {final_report}").send()
 
@@ -467,73 +467,73 @@ async def specialist_node(state: MedicalState, role: str):
 async def cardiologist_node(state):
     print(f"🫀 CARDIOLOGO: ", end="", flush=True)
     await cl.Message(content="🫀 CARDIOLOGO: ").send()
-    return await specialist_node(state, "cardiologo")
+    return await specialist_node(state, "cardiologist")
 
 
 async def neurologist_node(state):
     print(f"🧠 NEUROLOGO: ", end="", flush=True)
     await cl.Message(content="🧠 NEUROLOGO: ").send()
-    return await specialist_node(state, "neurologo")
+    return await specialist_node(state, "neurologist")
 
 
 async def orthopedic_node(state):
     print(f"🦴 ORTOPEDICO: ", end="", flush=True)
     await cl.Message(content="🦴 ORTOPEDICO: ").send()
-    return await specialist_node(state, "ortopedico")
+    return await specialist_node(state, "orthopedist")
 
 
 async def gastroenterologist_node(state):
     print(f"🍽️ GASTROENTEROLOGO: ", end="", flush=True)
     await cl.Message(content="🍽️ GASTROENTEROLOGO: ").send()
-    return await specialist_node(state, "gastroenterologo")
+    return await specialist_node(state, "gastroenterologist")
 
 
 async def dermatologist_node(state):
     print(f"🧴 DERMATOLOGO: ", end="", flush=True)
     await cl.Message(content="🧴 DERMATOLOGO: ").send()
-    return await specialist_node(state, "dermatologo")
+    return await specialist_node(state, "dermatologist")
 
 
 async def pneumologist_node(state):
     print(f"🫁 PNEUMOLOGO: ", end="", flush=True)
     await cl.Message(content="🫁 PNEUMOLOGO: ").send()
-    return await specialist_node(state, "pneumologo")
+    return await specialist_node(state, "pulmonologist")
 
 
 async def ent_node(state):  # Otorino (Ear Nose Throat)
     print(f"👂 OTORINO: ", end="", flush=True)
     await cl.Message(content="👂 OTORINO: ").send()
-    return await specialist_node(state, "otorino")
+    return await specialist_node(state, "ent")
 
 
 async def ophthalmologist_node(state):
     print(f"👁️ OCULISTA: ", end="", flush=True)
     await cl.Message(content="👁️ OCULISTA: ").send()
-    return await specialist_node(state, "oculista")
+    return await specialist_node(state, "ophthalmologist")
 
 
 async def urologist_node(state):
     print(f"🚻 UROLOGO: ", end="", flush=True)
     await cl.Message(content="🚻 UROLOGO: ").send()
-    return await specialist_node(state, "urologo")
+    return await specialist_node(state, "urologist")
 
 
 async def general_practitioner_node(state):
     print(f"👨‍⚕️ MEDICO GENERALE: ", end="", flush=True)
     await cl.Message(content="👨‍⚕️ MEDICO GENERALE: ").send()
-    return await specialist_node(state, "medico_generale")
+    return await specialist_node(state, "general_practitioner")
 
 # Nodo del primario
 async def primary_node(state: MedicalState):
     """ Analizza tutti i referti specialistici e redige il report finale. """
     print("👨‍⚕️ PRIMARIO: Analisi dei referti in corso...", flush=True)
-    
+
     # 1. Recuperiamo i dati
     card = state.get("patient_card", {})
     reports_dict = state.get("medical_reports", {})
-    
+
     card_str = json.dumps(card, ensure_ascii=False)
-    
+
     # 2. Trasformiamo il dizionario dei referti in un testo leggibile
     reports_text = ""
     if not reports_dict:
@@ -541,33 +541,33 @@ async def primary_node(state: MedicalState):
     else:
         for specialista, referto in reports_dict.items():
             reports_text += f"\n--- REFERTO {specialista.upper()} ---\n"
-            reports_text += f"Diagnosi: {referto.get('diagnosi_sintetica', '')}\n"
-            reports_text += f"Dettagli: {referto.get('dettagli', '')}\n"
-            reports_text += f"Urgenza: {referto.get('livello_urgenza', '')}\n"
+            reports_text += f"Diagnosi: {referto.get('summary_diagnosis', '')}\n"
+            reports_text += f"Dettagli: {referto.get('details', '')}\n"
+            reports_text += f"Urgenza: {referto.get('urgency_level', '')}\n"
 
     # 3. Creiamo il prompt e chiamiamo l'LLM
     prompt = PRIMARY_PROMPT.format(card=card_str, reports_text=reports_text)
     content = stream_response(prompt)
-    
+
     # 4. Estraiamo il JSON come hai fatto negli altri nodi
     try:
         clean_content = content.replace("```json", "").replace("```", "").strip()
         report_data = json.loads(clean_content)
-        
-        diagnosi_finale = report_data.get("diagnosi_finale", "Diagnosi non determinata")
-        dettagli = report_data.get("dettagli", "")
-        livello_urgenza = report_data.get("livello_urgenza", "BIANCO")
-        
+
+        diagnosi_finale = report_data.get("final_diagnosis", "Diagnosi non determinata")
+        dettagli = report_data.get("details", "")
+        livello_urgenza = report_data.get("urgency_level", "BIANCO")
+
     except json.JSONDecodeError:
         diagnosi_finale = "Errore nella generazione della diagnosi."
         dettagli = "Errore tecnico."
         livello_urgenza = "BIANCO"
-        
+
     print(f"   -> Urgenza assegnata: {livello_urgenza}")
     await cl.Message(content=f"👨‍⚕️ PRIMARIO: Diagnosi finale - {diagnosi_finale} \n Dettagli: {dettagli}\nUrgenza: {livello_urgenza}").send()
     # 5. Prepariamo un messaggio per l'utente/interfaccia
     messaggio_finale = f"Il Primario ha concluso la valutazione.\nDiagnosi: {diagnosi_finale}\nCodice: {livello_urgenza}"
-    
+
     # 6. Restituiamo i dati aggiornati
     return {
         "diagnosis": diagnosi_finale, # Salviamo la stringa per il DB!

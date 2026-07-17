@@ -7,49 +7,49 @@ from langchain_core.messages import BaseMessage
 class PhotoAnalysis(BaseModel):
     """Output dell'analisi visiva per il Triage"""
     photo_url: str = ""        # URL o percorso della foto
-    descrizione: str = ""      # Dettagli clinici visivi (es. "Ferita profonda su...")
-    tipo_danno: str = ""       # Classificazione breve (es. "Lacerazione")
+    description: str = ""      # Dettagli clinici visivi (es. "Ferita profonda su...")
+    injury_type: str = ""      # Classificazione breve (es. "Lacerazione")
 
 # Classe BaseModel per il profilo dei sintomi del paziente
 class SymptomProfile(BaseModel):
     """ Profilo dei sintomi del paziente. """
-    sintomo_principale: str = ""
-    intensita: str = ""
-    durata: str = ""
-    photo: Optional[PhotoAnalysis] = None     # Opzionali: diciamo che di base partono come None 
+    main_symptom: str = ""
+    intensity: str = ""
+    duration: str = ""
+    photo: Optional[PhotoAnalysis] = None     # Opzionali: diciamo che di base partono come None
 
 # Classe BaseModel per la cartella clinica del paziente
 class PatientCard(BaseModel):
     """ Cartella clinica del paziente. """
     # Anagrafica
-    codice_fiscale: str = ""
-    nome: str = ""
-    cognome: str = ""
-    eta: str = ""
-    sesso: str = ""
+    fiscal_code: str = ""
+    first_name: str = ""
+    last_name: str = ""
+    age: str = ""
+    sex: str = ""
 
     # Allergie
-    allergie: List[str] = Field(default_factory=list)
+    allergies: List[str] = Field(default_factory=list)
     # Storia clinica
-    patologie_precedenti: List[str] = Field(default_factory=list)
+    previous_conditions: List[str] = Field(default_factory=list)
     # Dati medici
     symptom: SymptomProfile = Field(default_factory=SymptomProfile)
 
 # Classe BaseModel per il report dello specialista
 class SpecialistReport(BaseModel):
     """ Report di diagnosi e consigli di uno specialista. """
-    diagnosi_sintetica: str = ""
-    dettagli: str = ""
-    esami_consigliati: List[str] = Field(default_factory=list)
-    livello_urgenza: Literal["ESI-1", "ESI-2", "ESI-3", "ESI-4", "ESI-5"] = "ESI-5"
+    summary_diagnosis: str = ""
+    details: str = ""
+    recommended_exams: List[str] = Field(default_factory=list)
+    urgency_level: Literal["ESI-1", "ESI-2", "ESI-3", "ESI-4", "ESI-5"] = "ESI-5"
 
 # Classe BaseModel per la diagnosi finale e le raccomandazioni
 class FinalDiagnosis(BaseModel):
-    diagnosi: str = ""
-    livello_urgenza: Literal["ESI-1", "ESI-2", "ESI-3", "ESI-4", "ESI-5"] = "ESI-5"
-    specialisti_coinvolti: List[str] = Field(default_factory=list)
-    indicazioni_operative: str = ""
-    raccomandazioni: str = ""
+    diagnosis: str = ""
+    urgency_level: Literal["ESI-1", "ESI-2", "ESI-3", "ESI-4", "ESI-5"] = "ESI-5"
+    specialists_involved: List[str] = Field(default_factory=list)
+    operational_guidance: str = ""
+    recommendations: str = ""
 
 # Classe BaseModel che rappresenta lo stato minimale del grafo
 class MedicalState(BaseModel):
@@ -57,14 +57,14 @@ class MedicalState(BaseModel):
     # Liste: usiamo default_factory per creare liste separate per ogni conversazione
     general_history: Annotated[list[BaseMessage], operator.add] = Field(default_factory=list)
     triage_history: Annotated[list[BaseMessage], operator.add] = Field(default_factory=list)
-    
-    triage_complete: bool = False                                      
+
+    triage_complete: bool = False
     patient_exists: bool = False
-    iteration_count: int = 0        # Ricontrollare questo!!!                                            
-    next_step: str = ""                                                
-    
+    iteration_count: int = 0        # Ricontrollare questo!!!
+    next_step: str = ""
+
     # Oggetti complessi: diciamo a Pydantic di istanziarli vuoti in automatico
-    patient_card: PatientCard = Field(default_factory=PatientCard)                               
+    patient_card: PatientCard = Field(default_factory=PatientCard)
 
     # Dizionari: usiamo default_factory=dict
     needed_specialists: dict[str, bool] = Field(default_factory=dict)
