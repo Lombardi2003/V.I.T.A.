@@ -1,6 +1,6 @@
 <div align=center>
 
-# 🩺 V.I.T.A. — Virtual Intelligent Triage Assistant
+<h1> 🩺 V.I.T.A. — Virtual Intelligent Triage Assistant</h1>
 </div>
 <div align=justify>
 Assistente di triage medico multi-agente che simula il processo di pronto soccorso: raccoglie i dati del paziente, li smista tra specialisti AI e produce un referto clinico con codice di priorità.
