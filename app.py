@@ -1,6 +1,10 @@
 import chainlit as cl
 import uuid
 from langchain_core.messages import HumanMessage
+from scripts.setup_env import ensure_env
+
+ensure_env()  # completa .env con eventuali valori mancanti prima di importare i moduli che ne dipendono
+
 from src.state import MedicalState
 from src.graph import generate_graph
 from src.logger_ui import ui_print

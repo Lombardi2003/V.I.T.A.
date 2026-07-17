@@ -6,6 +6,7 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from src.state import MedicalState, PatientCard, PhotoAnalysis
 from src.config import REVIEWER_PROMPT, SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, PHOTO_PROMPT, ALL_SPECIALISTS
 from src.database import MedicalDatabase
+from src.settings import get_settings
 
 import chainlit as cl
 import re
@@ -24,22 +25,19 @@ def stream_response(prompt_current_card):
 # Altre librerie
 import json, base64
 
-# Configurazione API Key
-with open('api_key.json') as f:
-    API_KEY = json.load(f)
-
 # Configurazione del modello LLM
+settings = get_settings()
 USE_CLOUD_ACCELERATION = True
 if USE_CLOUD_ACCELERATION:
     llm_agents = ChatGroq(
-        temperature=0, 
+        temperature=0,
         model_name="llama-3.1-8b-instant",
-        groq_api_key=API_KEY["groq_api_key"]
+        groq_api_key=settings.groq_api_key
     )
     llm_photography = ChatGroq(
         temperature=0,
         model_name="meta-llama/llama-4-maverick-17b-128e-instruct",
-        groq_api_key=API_KEY["groq_api_key"],
+        groq_api_key=settings.groq_api_key,
         model_kwargs={"response_format": {"type": "json_object"}}
     )
 else:

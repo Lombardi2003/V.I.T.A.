@@ -4,5 +4,6 @@ langchain_groq==1.1.2
 langchain_ollama==1.0.1
 langgraph==1.1.2
 pydantic==2.12.5
+pydantic-settings==2.10.1
 SQLAlchemy==2.0.48
 sqlmodel==0.0.37
