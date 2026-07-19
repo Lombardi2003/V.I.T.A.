@@ -27,7 +27,7 @@ import json, base64
 
 # Configurazione del modello LLM
 settings = get_settings()
-USE_CLOUD_ACCELERATION = True
+USE_CLOUD_ACCELERATION = settings.use_cloud_acceleration
 if USE_CLOUD_ACCELERATION:
     llm_agents = ChatGroq(
         temperature=0,

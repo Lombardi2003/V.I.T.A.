@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
+from pydantic_core import PydanticUndefined  # noqa: E402
 from src.settings import ENV_PATH, Settings  # noqa: E402
 
 
@@ -54,10 +55,21 @@ def _prompt_fields(names: list[str], existing: dict[str, str]) -> dict[str, str]
     for name in names:
         env_key = name.upper()
         current = existing.get(env_key, "")
-        hint = f" (Enter to keep unchanged: {_mask(current)})" if current else ""
+        field = Settings.model_fields[name]
+        default = field.default if field.default is not PydanticUndefined else None
+
+        if current:
+            hint = f" (Enter to keep unchanged: {_mask(current)})"
+        elif default is not None:
+            hint = f" (Enter for default: {default})"
+        else:
+            hint = ""
+
         value = input(f"   Enter a value for {env_key}{hint}: ").strip()
         if value:
             updated[env_key] = value
+        elif not current and default is not None:
+            updated[env_key] = str(default)
     return updated
 
 

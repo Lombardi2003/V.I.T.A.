@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List
 from sqlmodel import Field, Session, SQLModel, create_engine
 from sqlalchemy import Column, JSON
+from sqlalchemy.exc import SQLAlchemyError
 from src.state import PatientCard
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -27,11 +28,19 @@ class MedicalDatabase:
         if not db_path.is_absolute():
             db_path = _PROJECT_ROOT / db_path
         self.sqlite_url = f"sqlite:///{db_path}"
-        self.engine = create_engine(self.sqlite_url, echo=False)
 
-        # Table creation
-        SQLModel.metadata.create_all(self.engine)
-        print("✅ Database connection ready, tables verified!")
+        try:
+            self.engine = create_engine(self.sqlite_url, echo=False)
+            # Table creation
+            SQLModel.metadata.create_all(self.engine)
+        except SQLAlchemyError as e:
+            raise RuntimeError(
+                f"Impossibile inizializzare il database in '{db_path}'. "
+                "Controlla che il percorso sia valido, che tu abbia i permessi di scrittura "
+                f"sulla cartella e che ci sia spazio su disco. Dettaglio tecnico: {e}"
+            ) from e
+
+        print(f"✅ Database connection ready, tables verified! ({db_path})")
 
     def save_patient(self, patient_card):
         """Saves the extracted data to the database."""

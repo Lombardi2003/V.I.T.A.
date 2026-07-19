@@ -1,5 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Optional
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -15,7 +17,18 @@ class Settings(BaseSettings):
     """
     model_config = SettingsConfigDict(env_file=ENV_PATH, extra="ignore")
 
-    groq_api_key: str
+    groq_api_key: Optional[str] = None
+    use_cloud_acceleration: bool = True
+
+    @model_validator(mode="after")
+    def _check_groq_key_when_needed(self) -> "Settings":
+        if self.use_cloud_acceleration and not self.groq_api_key:
+            raise ValueError(
+                "USE_CLOUD_ACCELERATION e' true ma GROQ_API_KEY non e' impostata. "
+                "Imposta una chiave valida con 'python scripts/setup_env.py --update', "
+                "oppure metti USE_CLOUD_ACCELERATION=False per usare Ollama in locale."
+            )
+        return self
 
 
 @lru_cache
