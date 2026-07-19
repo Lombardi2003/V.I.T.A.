@@ -5,6 +5,8 @@
 <div align=justify>
 A multi-agent medical triage assistant that simulates the emergency room process: it collects patient data, routes it among AI specialists, and produces a clinical report with a priority code.
 
+---
+
 ## 📖 Description
 
 **V.I.T.A.** is built entirely in Python with **LangGraph** and **LangChain**, and orchestrates a team of specialized AI agents that collaborate along a state graph to reproduce a realistic triage flow:
@@ -37,3 +39,7 @@ No need to create `.env` by hand: on first startup (`chainlit run app.py`) any m
 ```bash
     chainlit run app.py -w
 ```
+
+---
+
+For a deeper technical breakdown of how the system works internally and what each file does, see [ARCHITECTURE.md](ARCHITECTURE.md).

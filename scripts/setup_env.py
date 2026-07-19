@@ -1,9 +1,17 @@
 """Create, complete, or update .env.
 
-The list of required values isn't written here: it's read directly from
-src.settings.Settings, so when a new field is added to the Settings class
-in the future, this script will ask for it automatically, with no need to
-keep a second file (e.g. .env.example) in sync by hand.
+Purpose: guarantee that every value required by src.settings.Settings exists in
+.env before the app imports anything that depends on it (see the call to
+ensure_env() near the top of app.py, before `src.graph` is imported).
+
+The list of required values isn't hardcoded here: it's read directly from
+Settings.model_fields, so when a new field is added to the Settings class in
+the future, this script asks for it automatically, with no second file (e.g.
+.env.example) to keep in sync by hand. The one exception is `groq_api_key`,
+which is only asked for when `use_cloud_acceleration` is true (see
+_relevant_fields below) — mirroring the same condition already enforced by
+Settings' own validator, so Ollama-only setups aren't asked for a Groq key
+they don't need.
 
 Usage:
     python scripts/setup_env.py            # asks only for missing values
@@ -50,6 +58,25 @@ def _write_env(values: dict[str, str]) -> None:
     )
 
 
+def _cloud_acceleration_enabled(existing: dict[str, str]) -> bool:
+    """Reads USE_CLOUD_ACCELERATION from the current .env (or its Settings default)."""
+    default = Settings.model_fields["use_cloud_acceleration"].default
+    raw = existing.get("USE_CLOUD_ACCELERATION", str(default))
+    return raw.strip().lower() in {"1", "true", "yes", "y"}
+
+
+def _relevant_fields(names: list[str], existing: dict[str, str]) -> list[str]:
+    """Drops groq_api_key from the list when cloud acceleration is off.
+
+    Mirrors the conditional requirement already enforced in Settings'
+    validator, so an Ollama-only setup is never asked for a Groq key it
+    doesn't need.
+    """
+    if _cloud_acceleration_enabled(existing):
+        return names
+    return [name for name in names if name != "groq_api_key"]
+
+
 def _prompt_fields(names: list[str], existing: dict[str, str]) -> dict[str, str]:
     updated = dict(existing)
     for name in names:
@@ -77,6 +104,7 @@ def ensure_env() -> None:
     """If any value required by Settings is missing, ask for it and update .env."""
     existing = _load_existing()
     missing_fields = [name for name in Settings.model_fields if not existing.get(name.upper())]
+    missing_fields = _relevant_fields(missing_fields, existing)
 
     if not missing_fields:
         return
@@ -88,10 +116,11 @@ def ensure_env() -> None:
 
 
 def update_env() -> None:
-    """Ask for ALL values, to update existing keys (e.g. expired/revoked)."""
+    """Ask for ALL relevant values, to update existing keys (e.g. expired/revoked)."""
     existing = _load_existing()
+    fields = _relevant_fields(list(Settings.model_fields), existing)
     print("🔄 Updating .env: press Enter to keep a value unchanged, otherwise type a new one.")
-    updated = _prompt_fields(list(Settings.model_fields), existing)
+    updated = _prompt_fields(fields, existing)
     _write_env(updated)
     print(f"✅ .env updated at {ENV_PATH}")
 

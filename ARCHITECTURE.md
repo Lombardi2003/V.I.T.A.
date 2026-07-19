@@ -1,0 +1,71 @@
+<div align=center>
+
+# 🏗️ V.I.T.A. — Architecture
+</div>
+<div align=justify>
+Technical reference for how V.I.T.A. is built internally: the runtime flow, and what each file is responsible for. For installation/usage, see [README.md](README.md).
+
+📌 **Status note**: this document describes the system as it exists today, including known limitations that are still being worked on (flagged inline where relevant). It will be kept up to date as the codebase evolves.
+
+---
+
+## 🔄 How it works
+
+**Startup**: `app.py` first makes sure `.env` is complete (`scripts/setup_env.py`), then builds the LangGraph state machine (`src/graph.py`), which wires together all the reasoning nodes defined in `src/nodes.py`. The LLM clients (Groq or Ollama, depending on `USE_CLOUD_ACCELERATION`) and the SQLite connection are created once at startup, not on every message.
+
+**Per-conversation flow**: each chat session gets a `thread_id`. Every message updates a shared `MedicalState` (defined in `src/state.py`) and resumes the graph from wherever it last paused. The graph itself flows:
+
+```
+read_db → user → reviewer (loops until the record is complete)
+        → photography (optional photo analysis)
+        → supervisor → router → specialist(s) (may consult each other) → router → ...
+        → chief_physician (final diagnosis)
+        → save_db (new patient) / modify_db (returning patient)
+        → END
+```
+
+* 📂 `read_db` recognizes returning patients from their tax ID before the conversation starts.
+* 🧐 `reviewer` extracts structured clinical data from natural language until the record is complete.
+* 👮 `supervisor`/🔀 `router` decide which of the 10 specialists to involve and dispatch the record between them.
+* 👨‍⚕️ `chief_physician` synthesizes all specialist reports into a final diagnosis with a priority color.
+
+**Prompts** (`src/config.py`) instruct the LLM to return JSON matching the `src/state.py` schema exactly — the two must stay in sync whenever a field is added or renamed.
+
+**Persistence**: `medical_database.db` (`src/database.py`) stores only finalized patient records, separate from the in-progress conversation state (currently held in memory by the graph's checkpointer — see ⚠️ note under `src/graph.py` below).
+
+---
+
+## 📂 File-by-file reference
+
+### 🚪 `app.py`
+The Chainlit entry point. Ensures `.env` is complete (`ensure_env()`) before importing anything that depends on it, builds the compiled graph once at import time (`app = generate_graph()`), and defines the two Chainlit event handlers:
+- `on_chat_start`: generates a fresh `thread_id` and registers an empty `MedicalState` for it.
+- `on_message`: folds the incoming message (and, if present, an uploaded image's path) into the graph state, then resumes graph execution with `app.astream_events(...)`, streaming intermediate "thinking" messages and the chief physician's final answer back to the chat UI.
+
+### 🧬 `src/state.py`
+Defines the Pydantic data model shared by the whole graph:
+- `MedicalState`: the top-level graph state — conversation history, `patient_card`, routing flags (`next_step`, `triage_complete`, `patient_exists`), `needed_specialists`, `medical_reports`, `final_diagnosis`.
+- `PatientCard` / `SymptomProfile` / `PhotoAnalysis`: the structured clinical record being built up during triage.
+- `SpecialistReport` / `FinalDiagnosis`: the output shape each specialist / the chief physician must produce.
+
+Every field name here must match the JSON keys the LLM is asked to return in `src/config.py`'s prompts — they're kept in sync by hand, not enforced automatically.
+
+### 🕸️ `src/graph.py`
+Builds the `StateGraph` from `langgraph`: registers every node (imported from `src/nodes.py`) and the edges/conditional routing between them, then compiles it with a checkpointer and `interrupt_before=["user"]` (the mechanism that lets the graph pause between messages and resume later for the same `thread_id`).
+
+> ⚠️ **Known limitation**: the checkpointer is currently `MemorySaver`, which keeps all in-progress conversation state in the process's RAM. It does not survive a process restart — patients mid-triage would lose their progress. This was deliberately deferred pending a decision on a persistent (SQLite-backed) checkpointer, to be revisited together with a possible chat-history feature.
+
+### ⚙️ `src/nodes.py`
+The implementation of every graph node: `read_db_node`, `reviewer_node`, `photography_node`, `supervisor_node`, `specialist_node` (shared logic for all ten specialists, each with a thin wrapper function), `primary_node` (the chief physician), `save_db_node`, `modify_db_node`, `user_node`. Also where the LLM clients (`llm_agents`, `llm_photography`) are configured from `Settings` and instantiated once at import time.
+
+### 💬 `src/config.py`
+All LLM prompts: `REVIEWER_PROMPT`, `SUPERVISOR_PROMPT`, `SPECIALIST_PROMPT`, `PRIMARY_PROMPT`, `PHOTO_PROMPT`, plus `ALL_SPECIALISTS` (the list of valid specialist identifiers the supervisor is allowed to pick from). The instructional text is in Italian (the app's conversation language), but every JSON key requested from the LLM matches the English field names in `src/state.py`.
+
+### 🗄️ `src/database.py`
+The persistence layer for finalized patient records — separate from the graph's own (in-memory) conversation state. `PatientRecord` is the SQLModel table (primary key: `fiscal_code`); `MedicalDatabase` wraps the SQLite engine and exposes `save_patient`, `update_patient_conditions`, `read_patient`, `verify_patient_exists`. The database path is always resolved relative to the project root, regardless of the working directory the app is launched from.
+
+### 🔐 `src/settings.py`
+The single source of truth for configuration coming from outside the codebase (`.env`). `Settings` (a `pydantic-settings` model) declares every required/optional external value — currently `groq_api_key` (required only when `use_cloud_acceleration` is true) and `use_cloud_acceleration` (defaults to `True`) — and validates the relationship between them. `get_settings()` lazily instantiates and caches it.
+
+### 🧰 `scripts/setup_env.py`
+Interactive `.env` setup, driven entirely by introspecting `Settings.model_fields` — adding a field to `Settings` is enough for this script to start asking for it, with no separate template file to keep in sync. `ensure_env()` (called automatically at startup) only asks for genuinely missing values; `update_env()` (`--update` flag) re-asks for everything, showing a masked preview of the current value. See the module docstring in the file itself for the full behavior, including how it skips asking for `GROQ_API_KEY` when cloud acceleration is disabled.
