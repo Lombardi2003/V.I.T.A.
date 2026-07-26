@@ -149,8 +149,16 @@ async def read_db_node(state: MedicalState):
         "general_history": [AIMessage(content=msg)],
     }
 
+async def user_node(state: MedicalState):
+    """Nodo di passaggio: il messaggio e' gia' nello stato (aggiunto da app.py
+    prima che il grafo riprendesse) - qui non va ri-aggiunto, altrimenti si
+    duplica nello storico (general_history/triage_history si concatenano con
+    operator.add). NON tocchiamo next_step: resta quello impostato dal nodo precedente.
+    """
+    if state.triage_history and isinstance(state.triage_history[-1], HumanMessage):
+        print("💬 USER: " + state.triage_history[-1].content.strip().lower())
 
-
+    return {}
 
 
 
@@ -283,25 +291,6 @@ async def modify_db_node(state: MedicalState):
     print("✅ MODIFY_DB: Dati modificati con successo.")
     await cl.Message(content=f"✅ I tuoi dati sono stati aggiornati con la nuova diagnosi: {nuova_patologia}").send()
     return {"patient_card": card}
-
-
-
-async def user_node(state: MedicalState):
-    """Passa il messaggio utente già ricevuto da Chainlit al nodo successivo."""
-    print(state.patient_card)
-
-    history = state.triage_history
-
-    if history and isinstance(history[-1], HumanMessage):
-        content = history[-1].content.strip().lower()
-        print("💬 USER: " + content)
-        return {
-            "general_history": [history[-1]],
-            "triage_history":  [history[-1]],
-            # NON toccare next_step: rimane quello impostato dal nodo precedente
-        }
-
-    return {}
 
 # Nodo per l'analisi dell'immagine del danno
 async def photography_node(state: MedicalState):

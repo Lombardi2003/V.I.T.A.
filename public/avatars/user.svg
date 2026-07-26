@@ -1,12 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
   <defs>
-    <clipPath id="clip">
-      <rect x="0" y="0" width="200" height="200" rx="0"/>
-    </clipPath>
+    <linearGradient id="vitaUserAvatarGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#33c2ff"/>
+      <stop offset="100%" stop-color="#0072ff"/>
+    </linearGradient>
   </defs>
-  <rect x="0" y="0" width="200" height="200" fill="#fcfcfc"/>
-  <g clip-path="url(#clip)">
-    <circle cx="100" cy="78" r="45" fill="#1a1d24"/>
-    <ellipse cx="100" cy="210" rx="85" ry="60" fill="#1a1d24"/>
-  </g>
+
+  <rect x="0" y="0" width="80" height="80" fill="url(#vitaUserAvatarGradient) #00b3ff"/>
+
+  <circle cx="40" cy="27" r="17" fill="rgba(255,255,255,0.95)"/>
+  <path d="M40,46 C60,46 74,58 74,80 L6,80 C6,58 20,46 40,46 Z" fill="rgba(255,255,255,0.95)"/>
 </svg>
