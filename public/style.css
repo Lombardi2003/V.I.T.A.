@@ -427,6 +427,20 @@ a:visited {
 }
 
 /*
+ * STEP (es. "Ricerca CF"): la barra verticale di default e' rosa/rossa,
+ * la riportiamo al verde-teal usato nel resto dell'interfaccia
+ */
+.border-l-2.border-primary {
+    border-left-color: var(--button-color) !important;
+}
+
+/* Il toggle dello Step non deve "accendersi" con lo sfondo del button:hover generico */
+button[id^="step-"]:hover {
+    background-color: transparent !important;
+    color: inherit !important;
+}
+
+/*
  * AVATAR
  */
 [data-step-type="user_message"] .flex.flex-row.items-center.gap-1::after,

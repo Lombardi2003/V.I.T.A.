@@ -87,54 +87,67 @@ async def read_db_node(state: MedicalState):
         }
 
     # 3. Query DB (un'unica interrogazione: read_patient restituisce None se non trovato)
-    await cl.Message(content=f"📂 Ricerca CF `{raw}` in corso...", author=SYSTEM_AUTHOR).send()
-
-    try:
-        record = mdb.read_patient(raw)
-        if record:
-            msg = (
-                f"✅ Bentornato **{record.first_name} {record.last_name}**! "
-                "Ho caricato la tua scheda. Descrivimi i tuoi sintomi."
+    # La ricerca in se' e' un passaggio interno: la mostriamo come Step collassato
+    # ("sto pensando..."), non come messaggio di chat - il risultato utile per il
+    # paziente arriva subito dopo, come messaggio vero.
+    record = None
+    db_error = None
+    async with cl.Step(name="Ricerca Codice Fiscale", type="tool", default_open=False, show_input="text") as step:
+        step.input = raw
+        try:
+            record = mdb.read_patient(raw)
+            step.output = (
+                f"Paziente trovato: {record.first_name} {record.last_name}"
+                if record else
+                "Nessun paziente trovato con questo codice fiscale"
             )
-            await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
-            print(f"READ_DB | Paziente trovato: {raw}")
-            return {
-                "patient_card": {
-                    "fiscal_code":         raw,
-                    "first_name":          record.first_name,
-                    "last_name":           record.last_name,
-                    "age":                 record.age,
-                    "sex":                 getattr(record, "sex", ""),
-                    "allergies":           getattr(record, "allergies", []),
-                    "previous_conditions": record.previous_conditions,
-                },
-                "patient_exists": True,
-                "next_step":      "reviewer",  # user → reviewer
-                "general_history": [AIMessage(content=msg)],
-            }
+        except Exception as e:
+            db_error = e
+            step.output = f"Errore di connessione al database: {e}"
 
-        else:
-            msg = (
-                "📋 CF non trovato nel sistema: verrà creata una nuova scheda.\n"
-                "Descrivimi pure i tuoi sintomi."
-            )
-            await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
-            print(f"READ_DB | Nuovo paziente: {raw}")
-            return {
-                "patient_card":    {"fiscal_code": raw},
-                "patient_exists":  False,
-                "next_step":       "reviewer",  # user → reviewer
-                "general_history": [AIMessage(content=msg)],
-            }
-
-    except Exception as e:
+    if db_error:
         msg = "⚠️ Errore di connessione al database. Procedo comunque con una nuova scheda."
         await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
-        print(f"READ_DB | Errore DB: {e}")
+        print(f"READ_DB | Errore DB: {db_error}")
         return {
             "next_step":       "reviewer",
             "general_history": [AIMessage(content=msg)],
         }
+
+    if record:
+        msg = (
+            f"✅ Bentornato **{record.first_name} {record.last_name}**! "
+            "Ho caricato la tua scheda. Descrivimi i tuoi sintomi."
+        )
+        await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
+        print(f"READ_DB | Paziente trovato: {raw}")
+        return {
+            "patient_card": {
+                "fiscal_code":         raw,
+                "first_name":          record.first_name,
+                "last_name":           record.last_name,
+                "age":                 record.age,
+                "sex":                 getattr(record, "sex", ""),
+                "allergies":           getattr(record, "allergies", []),
+                "previous_conditions": record.previous_conditions,
+            },
+            "patient_exists": True,
+            "next_step":      "reviewer",  # user → reviewer
+            "general_history": [AIMessage(content=msg)],
+        }
+
+    msg = (
+        "📋 CF non trovato nel sistema: verrà creata una nuova scheda.\n"
+        "Descrivimi pure i tuoi sintomi."
+    )
+    await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
+    print(f"READ_DB | Nuovo paziente: {raw}")
+    return {
+        "patient_card":    {"fiscal_code": raw},
+        "patient_exists":  False,
+        "next_step":       "reviewer",  # user → reviewer
+        "general_history": [AIMessage(content=msg)],
+    }
 
 
 

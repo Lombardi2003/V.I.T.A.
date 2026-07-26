@@ -11,7 +11,7 @@
         "status": {
             "loading": "Caricamento...",
             "error": {
-                "default": "Si \u00e8 verificato un errore",
+                "default": "Si è verificato un errore",
                 "serverConnection": "Impossibile connettersi al server"
             }
         }
@@ -22,12 +22,12 @@
             "form": {
                 "email": {
                     "label": "Indirizzo email",
-                    "required": "l'email \u00e8 un campo obbligatorio",
+                    "required": "l'email è un campo obbligatorio",
                     "placeholder": "me@example.com"
                 },
                 "password": {
                     "label": "Password",
-                    "required": "la password \u00e8 un campo obbligatorio"
+                    "required": "la password è un campo obbligatorio"
                 },
                 "actions": {
                     "signin": "Accedi"
@@ -45,9 +45,9 @@
                 "oauthCreateAccount": "Prova ad accedere con un account diverso",
                 "emailCreateAccount": "Prova ad accedere con un account diverso",
                 "callback": "Prova ad accedere con un account diverso",
-                "oauthAccountNotLinked": "Per confermare la tua identit\u00e0, accedi con lo stesso account che hai usato in precedenza",
+                "oauthAccountNotLinked": "Per confermare la tua identità, accedi con lo stesso account che hai usato in precedenza",
                 "emailSignin": "Impossibile inviare l'email",
-                "emailVerify": "Verifica la tua email, \u00e8 stata inviata una nuova email",
+                "emailVerify": "Verifica la tua email, è stata inviata una nuova email",
                 "credentialsSignin": "Accesso non riuscito. Verifica che i dati forniti siano corretti",
                 "sessionRequired": "Accedi per visualizzare questa pagina"
             }
@@ -61,7 +61,7 @@
             "placeholder": "Scrivi un messaggio...",
             "actions": {
                 "send": "Invia messaggio",
-                "stop": "Interrompi attivit\u00e0",
+                "stop": "Interrompi attività",
                 "attachFiles": "Allega file"
             }
         },
@@ -91,7 +91,7 @@
         "messages": {
             "status": {
                 "using": "In uso",
-                "used": "Utilizzato"
+                "used": ""
             },
             "actions": {
                 "copy": {
@@ -116,7 +116,7 @@
         },
         "history": {
             "title": "Cronologia chat",
-            "empty": "Cos\u00ec vuoto...",
+            "empty": "Così vuoto...",
             "show": "Mostra cronologia"
         },
         "settings": {
@@ -167,7 +167,7 @@
                 },
                 "delete": {
                     "title": "Conferma eliminazione",
-                    "description": "Stai per eliminare la chat insieme ai suoi messaggi ed elementi. Questa azione non pu\u00f2 essere annullata",
+                    "description": "Stai per eliminare la chat insieme ai suoi messaggi ed elementi. Questa azione non può essere annullata",
                     "success": "Chat eliminata",
                     "inProgress": "Eliminazione chat"
                 },
@@ -200,7 +200,7 @@
             "button": "Nuova Chat",
             "dialog": {
                 "title": "Crea Nuova Chat",
-                "description": "Sei sicuro di voler creare una nuova chat? La chat corrente verr\u00e0 chiusa.",
+                "description": "Sei sicuro di voler creare una nuova chat? La chat corrente verrà chiusa.",
                 "tooltip": "Nuova Chat"
             }
         },
