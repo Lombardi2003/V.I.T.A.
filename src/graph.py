@@ -7,105 +7,114 @@ from src.state import MedicalState
 from src.nodes import reviewer_node, user_node, read_db_node, save_db_node, modify_db_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node
 
 # Funzione per la creazione del grafo di stato
+#
+# STATO DI LAVORO: stiamo rivedendo il grafo un nodo alla volta. Per ora e'
+# attivo solo "read_db" (+ "user" come punto di interruzione dopo di lui).
+# Il resto e' commentato e verra' riattivato mano a mano che sistemiamo
+# ciascun nodo - NON e' stato rimosso, solo disattivato temporaneamente.
 def generate_graph():
     workflow = StateGraph(MedicalState)
 
-    # Nodi
-    workflow.add_node("reviewer", reviewer_node)
+    # Nodi attivi
     workflow.add_node("read_db", read_db_node)
     workflow.add_node("user", user_node)
-    workflow.add_node("photography", photography_node)
-    workflow.add_node("supervisor", supervisor_node)
-    workflow.add_node("router", router)
-    workflow.add_node("save_db", save_db_node)
-    workflow.add_node("modify_db", modify_db_node)
 
-    # Specialisti
-    workflow.add_node("cardiologist", cardiologist_node)
-    workflow.add_node("neurologist", neurologist_node)
-    workflow.add_node("orthopedist", orthopedic_node)
-    workflow.add_node("gastroenterologist", gastroenterologist_node)
-    workflow.add_node("dermatologist", dermatologist_node)
-    workflow.add_node("pulmonologist", pneumologist_node)
-    workflow.add_node("ent", ent_node)
-    workflow.add_node("ophthalmologist", ophthalmologist_node)
-    workflow.add_node("urologist", urologist_node)
-    workflow.add_node("general_practitioner", general_practitioner_node)
-    workflow.add_node("chief_physician", primary_node)
+    # Nodi non ancora riattivati
+    # workflow.add_node("reviewer", reviewer_node)
+    # workflow.add_node("photography", photography_node)
+    # workflow.add_node("supervisor", supervisor_node)
+    # workflow.add_node("router", router)
+    # workflow.add_node("save_db", save_db_node)
+    # workflow.add_node("modify_db", modify_db_node)
 
-    # Archi
+    # Specialisti (non ancora riattivati)
+    # workflow.add_node("cardiologist", cardiologist_node)
+    # workflow.add_node("neurologist", neurologist_node)
+    # workflow.add_node("orthopedist", orthopedic_node)
+    # workflow.add_node("gastroenterologist", gastroenterologist_node)
+    # workflow.add_node("dermatologist", dermatologist_node)
+    # workflow.add_node("pulmonologist", pneumologist_node)
+    # workflow.add_node("ent", ent_node)
+    # workflow.add_node("ophthalmologist", ophthalmologist_node)
+    # workflow.add_node("urologist", urologist_node)
+    # workflow.add_node("general_practitioner", general_practitioner_node)
+    # workflow.add_node("chief_physician", primary_node)
+
+    # Archi attivi
     workflow.add_edge(START, "read_db")
     workflow.add_edge("read_db", "user")
+    workflow.add_edge("user", END)  # placeholder finche' non riattiviamo reviewer/photography/supervisor
 
-    # user → routing dinamico tramite next_step
-    workflow.add_conditional_edges(
-        "user",
-        lambda state: state.next_step if state.next_step else "reviewer",
-        {
-            "reviewer":    "reviewer",
-            "photography": "photography",
-            "supervisor":  "supervisor",
-        }
-        )
+    # Archi non ancora riattivati
+    # workflow.add_conditional_edges(
+    #     "user",
+    #     lambda state: state.next_step if state.next_step else "reviewer",
+    #     {
+    #         "reviewer":    "reviewer",
+    #         "photography": "photography",
+    #         "supervisor":  "supervisor",
+    #     }
+    #     )
+    #
+    # workflow.add_conditional_edges(
+    #     "reviewer",
+    #     triage_complete,
+    #     {
+    #         True:  "photography",
+    #         False: "user",
+    #     }
+    # )
+    #
+    # workflow.add_conditional_edges(
+    #     "photography",
+    #     lambda state: state.next_step,
+    #     {
+    #         "photography": "user",      # ← chiedi foto → vai a user (interrupt)
+    #         "supervisor":  "supervisor",
+    #     }
+    # )
+    # workflow.add_edge("supervisor", "router")
+    # workflow.add_conditional_edges(
+    #     "router",
+    #     router_decision,
+    #     {
+    #         "cardiologist": "cardiologist",
+    #         "neurologist": "neurologist",
+    #         "orthopedist": "orthopedist",
+    #         "gastroenterologist": "gastroenterologist",
+    #         "dermatologist": "dermatologist",
+    #         "pulmonologist": "pulmonologist",
+    #         "ent": "ent",
+    #         "ophthalmologist": "ophthalmologist",
+    #         "urologist": "urologist",
+    #         "general_practitioner": "general_practitioner",
+    #         "chief_physician": "chief_physician"
+    #     }
+    # )
+    #
+    # workflow.add_edge("cardiologist", "router")
+    # workflow.add_edge("neurologist", "router")
+    # workflow.add_edge("orthopedist", "router")
+    # workflow.add_edge("gastroenterologist", "router")
+    # workflow.add_edge("dermatologist", "router")
+    # workflow.add_edge("pulmonologist", "router")
+    # workflow.add_edge("ent", "router")
+    # workflow.add_edge("ophthalmologist", "router")
+    # workflow.add_edge("urologist", "router")
+    # workflow.add_edge("general_practitioner", "router")
+    #
+    # workflow.add_conditional_edges(
+    #     "chief_physician",
+    #     patient_exists,
+    #     {
+    #         True: "modify_db",
+    #         False: "save_db",
+    #     }
+    # )
+    #
+    # workflow.add_edge("save_db", END) # Nodo finale (Exit Point)
+    # workflow.add_edge("modify_db", END) # Nodo finale (Exit Point)
 
-    workflow.add_conditional_edges(
-        "reviewer",
-        triage_complete,
-        {
-            True:  "photography",
-            False: "user",
-        }
-    )
-
-    workflow.add_conditional_edges(
-        "photography",
-        lambda state: state.next_step,
-        {
-            "photography": "user",      # ← chiedi foto → vai a user (interrupt)
-            "supervisor":  "supervisor",
-        }
-    )
-    workflow.add_edge("supervisor", "router")
-    workflow.add_conditional_edges(
-        "router",
-        router_decision,
-        {
-            "cardiologist": "cardiologist",
-            "neurologist": "neurologist",
-            "orthopedist": "orthopedist",
-            "gastroenterologist": "gastroenterologist",
-            "dermatologist": "dermatologist",
-            "pulmonologist": "pulmonologist",
-            "ent": "ent",
-            "ophthalmologist": "ophthalmologist",
-            "urologist": "urologist",
-            "general_practitioner": "general_practitioner",
-            "chief_physician": "chief_physician"
-        }
-    )
-
-    workflow.add_edge("cardiologist", "router")
-    workflow.add_edge("neurologist", "router")
-    workflow.add_edge("orthopedist", "router")
-    workflow.add_edge("gastroenterologist", "router")
-    workflow.add_edge("dermatologist", "router")
-    workflow.add_edge("pulmonologist", "router")
-    workflow.add_edge("ent", "router")
-    workflow.add_edge("ophthalmologist", "router")
-    workflow.add_edge("urologist", "router")
-    workflow.add_edge("general_practitioner", "router")
-
-    workflow.add_conditional_edges(
-        "chief_physician",
-        patient_exists,
-        {
-            True: "modify_db",
-            False: "save_db",
-        }
-    )
-
-    workflow.add_edge("save_db", END) # Nodo finale (Exit Point)
-    workflow.add_edge("modify_db", END) # Nodo finale (Exit Point)
     memory = MemorySaver()
     return workflow.compile(
         checkpointer=memory,

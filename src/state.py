@@ -71,3 +71,6 @@ class MedicalState(BaseModel):
     medical_reports: dict[str, SpecialistReport] = Field(default_factory=dict)
 
     final_diagnosis: FinalDiagnosis = Field(default_factory=FinalDiagnosis)
+
+    # Consulto tra specialisti in corso: {"da": str, "a": str, "domanda": str, "risposta": Optional[str]}
+    inter_consultation: Optional[dict] = None

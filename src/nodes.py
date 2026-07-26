@@ -49,39 +49,54 @@ mdb = MedicalDatabase()
 
 
 # Nodo per la lettura del database
+SYSTEM_AUTHOR = "System"
+
+
+def is_valid_fiscal_code(raw: str) -> bool:
+    """Validazione minima del Codice Fiscale: 16 alfanumerici, con bypass di test '1234'."""
+    return bool(re.fullmatch(r'[A-Z0-9]{16}', raw)) or raw == "1234"
+
+
 async def read_db_node(state: MedicalState):
-    """Legge il CF, lo valida minimamente e interroga il DB."""
+    """Legge il CF, lo valida minimamente e interroga il DB.
+
+    Gira una sola volta per conversazione (nessun ciclo di ritorno nel grafo):
+    e' il controllo "il paziente esiste gia'?" fatto all'ingresso, non un loop
+    di validazione del CF - per questo i rami di errore sotto non richiedono
+    di reinserire il CF, ma procedono comunque con una nuova scheda.
+    """
 
     # 1. Estrazione input
     try:
         raw = state.general_history[-1].content.strip().upper()
     except (IndexError, AttributeError):
-        await cl.Message(content="⚠️ Inserisci il tuo Codice Fiscale.").send()
-        return {"next_step": "reviewer"}
+        msg = "⚠️ Inserisci il tuo Codice Fiscale."
+        await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
+        return {"next_step": "reviewer", "general_history": [AIMessage(content=msg)]}
 
     # 2. Validazione minima: 16 caratteri alfanumerici
-    if not re.fullmatch(r'[A-Z0-9]{16}', raw) and raw != "1234":
+    if not is_valid_fiscal_code(raw):
         msg = (
             "⚠️ Il valore inserito non sembra un Codice Fiscale valido.\n"
-            "Deve essere composto da 16 caratteri (lettere e numeri). Riprova."
+            "Procedo comunque creando una nuova scheda: potrai fornirmi i tuoi dati anagrafici tra poco."
         )
-        await cl.Message(content=msg).send()
+        await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
         return {
-            "next_step": "reviewer",  # user → reviewer che chiederà di reinserire
+            "next_step": "reviewer",
             "general_history": [AIMessage(content=msg)],
         }
 
-    # 3. Query DB
-    await cl.Message(content=f"📂 Ricerca CF `{raw}` in corso...").send()
+    # 3. Query DB (un'unica interrogazione: read_patient restituisce None se non trovato)
+    await cl.Message(content=f"📂 Ricerca CF `{raw}` in corso...", author=SYSTEM_AUTHOR).send()
 
     try:
-        if mdb.verify_patient_exists(raw):
-            record = mdb.read_patient(raw)
+        record = mdb.read_patient(raw)
+        if record:
             msg = (
                 f"✅ Bentornato **{record.first_name} {record.last_name}**! "
                 "Ho caricato la tua scheda. Descrivimi i tuoi sintomi."
             )
-            await cl.Message(content=msg).send()
+            await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
             print(f"READ_DB | Paziente trovato: {raw}")
             return {
                 "patient_card": {
@@ -103,7 +118,7 @@ async def read_db_node(state: MedicalState):
                 "📋 CF non trovato nel sistema: verrà creata una nuova scheda.\n"
                 "Descrivimi pure i tuoi sintomi."
             )
-            await cl.Message(content=msg).send()
+            await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
             print(f"READ_DB | Nuovo paziente: {raw}")
             return {
                 "patient_card":    {"fiscal_code": raw},
@@ -113,13 +128,25 @@ async def read_db_node(state: MedicalState):
             }
 
     except Exception as e:
-        msg = "⚠️ Errore di connessione al database. Riprova tra qualche istante."
-        await cl.Message(content=msg).send()
+        msg = "⚠️ Errore di connessione al database. Procedo comunque con una nuova scheda."
+        await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
         print(f"READ_DB | Errore DB: {e}")
         return {
             "next_step":       "reviewer",
             "general_history": [AIMessage(content=msg)],
         }
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Nodo del revisore
 async def reviewer_node(state: MedicalState):

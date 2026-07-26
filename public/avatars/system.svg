@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="vitaSystemAvatarGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#12b886"/>
+      <stop offset="100%" stop-color="#0c8ea0"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="80" height="80" fill="url(#vitaSystemAvatarGradient) #12b886"/>
+
+  <!-- Database/records icon: represents looking up an existing patient record -->
+  <g fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="40" cy="16" rx="24" ry="8.5"/>
+    <path d="M16,16 L16,61 C16,66 26,70 40,70 C54,70 64,66 64,61 L64,16"/>
+    <path d="M16,38.5 C16,43 26,47 40,47 C54,47 64,43 64,38.5"/>
+  </g>
+</svg>

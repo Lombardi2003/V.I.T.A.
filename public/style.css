@@ -471,7 +471,7 @@ a:visited {
 }
 
 [data-step-type="assistant_message"] .ai-message::before {
-    background-image: url('/public/avatars/system.png') !important; 
+    background-image: url('/public/avatars/system.svg') !important;
     border: 2.5px solid var(--left-color) !important;
     box-shadow: 0 0 8px var(--left-color) !important;
 }
