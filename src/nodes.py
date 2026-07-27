@@ -7,10 +7,11 @@ from src.state import MedicalState, PatientCard, PhotoAnalysis
 from src.config import REVIEWER_PROMPT, SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, PHOTO_PROMPT, ALL_SPECIALISTS
 from src.database import MedicalDatabase
 from src.settings import get_settings
-
+# Librerie standard
 import chainlit as cl
 import re
 import asyncio
+import json, base64
 
 
 def stream_response(prompt_current_card):
@@ -21,9 +22,6 @@ def stream_response(prompt_current_card):
         full_response += content
     print("\n")
     return full_response
-
-# Altre librerie
-import json, base64
 
 # Configurazione del modello LLM
 settings = get_settings()
@@ -47,23 +45,22 @@ else:
 # Database
 mdb = MedicalDatabase()
 
-
 # Nodo per la lettura del database
 SYSTEM_AUTHOR = "System"
-
 
 def is_valid_fiscal_code(raw: str) -> bool:
     """Validazione minima del Codice Fiscale: 16 alfanumerici, con bypass di test '1234'."""
     return bool(re.fullmatch(r'[A-Z0-9]{16}', raw)) or raw == "1234"
 
-
+# Nodo per la lettura del database
 async def read_db_node(state: MedicalState):
     """Legge il CF, lo valida minimamente e interroga il DB.
 
-    Gira una sola volta per conversazione (nessun ciclo di ritorno nel grafo):
-    e' il controllo "il paziente esiste gia'?" fatto all'ingresso, non un loop
-    di validazione del CF - per questo i rami di errore sotto non richiedono
-    di reinserire il CF, ma procedono comunque con una nuova scheda.
+    Se il CF non e' valido, il grafo torna qui (vedi l'arco condizionale da
+    "user" in graph.py) finche' non ne arriva uno valido - la validazione del
+    CF resta quindi interamente di competenza di questo nodo. Un errore di
+    connessione al DB invece non fa ciclare (riprovare lo stesso CF non
+    risolverebbe un problema del database) e procede con una nuova scheda.
     """
 
     # 1. Estrazione input
@@ -78,11 +75,11 @@ async def read_db_node(state: MedicalState):
     if not is_valid_fiscal_code(raw):
         msg = (
             "⚠️ Il valore inserito non sembra un Codice Fiscale valido.\n"
-            "Procedo comunque creando una nuova scheda: potrai fornirmi i tuoi dati anagrafici tra poco."
+            "Deve essere composto da 16 caratteri (lettere e numeri). Riprova."
         )
         await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
         return {
-            "next_step": "reviewer",
+            "next_step": "read_db",  # torna qui finche' non arriva un CF valido
             "general_history": [AIMessage(content=msg)],
         }
 
@@ -149,6 +146,7 @@ async def read_db_node(state: MedicalState):
         "general_history": [AIMessage(content=msg)],
     }
 
+# Nodo per la gestione del messaggio dell'utente
 async def user_node(state: MedicalState):
     """Nodo di passaggio: il messaggio e' gia' nello stato (aggiunto da app.py
     prima che il grafo riprendesse) - qui non va ri-aggiunto, altrimenti si

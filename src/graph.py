@@ -43,19 +43,20 @@ def generate_graph():
     # Archi attivi
     workflow.add_edge(START, "read_db")
     workflow.add_edge("read_db", "user")
-    workflow.add_edge("user", END)  # placeholder finche' non riattiviamo reviewer/photography/supervisor
+
+    # user -> routing dinamico tramite next_step. "read_db" permette il ciclo
+    # "CF non valido -> richiedilo di nuovo" restando di competenza di read_db_node.
+    # "reviewer" e' ancora un placeholder verso END finche' non riattiviamo quel nodo.
+    workflow.add_conditional_edges(
+        "user",
+        lambda state: state.next_step if state.next_step else "reviewer",
+        {
+            "read_db":  "read_db",
+            "reviewer": END,
+        }
+        )
 
     # Archi non ancora riattivati
-    # workflow.add_conditional_edges(
-    #     "user",
-    #     lambda state: state.next_step if state.next_step else "reviewer",
-    #     {
-    #         "reviewer":    "reviewer",
-    #         "photography": "photography",
-    #         "supervisor":  "supervisor",
-    #     }
-    #     )
-    #
     # workflow.add_conditional_edges(
     #     "reviewer",
     #     triage_complete,
