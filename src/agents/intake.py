@@ -7,7 +7,7 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 import chainlit as cl
 
 from src.state import MedicalState, PatientCard, PhotoAnalysis
-from src.config import INTAKE_PROMPT, REVIEWER_PROMPT, PHOTO_PROMPT
+from src.prompts import INTAKE_PROMPT, REVIEWER_PROMPT, PHOTO_PROMPT
 from .common import stream_response, SYSTEM_AUTHOR, llm_photography
 
 

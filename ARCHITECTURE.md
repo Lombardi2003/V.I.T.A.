@@ -34,7 +34,7 @@ read_db (loops until a valid tax ID is given) → user
 
 > 🚧 **Work in progress**: the graph is being reviewed and re-activated one node at a time. As of this writing, `src/graph.py` only has `read_db`, `user` and `intake` wired in; `reviewer` onward is still commented out (not removed) pending the same review. This section describes the graph's intended full shape once that work is complete.
 
-**Prompts** (`src/config.py`) instruct the LLM to return JSON matching the `src/state.py` schema exactly — the two must stay in sync whenever a field is added or renamed.
+**Prompts** (`src/prompts.py`) instruct the LLM to return JSON matching the `src/state.py` schema exactly — the two must stay in sync whenever a field is added or renamed.
 
 **Persistence**: `medical_database.db` (`src/database.py`) stores only finalized patient records, separate from the in-progress conversation state (currently held in memory by the graph's checkpointer — see ⚠️ note under `src/graph.py` below).
 
@@ -53,7 +53,7 @@ Defines the Pydantic data model shared by the whole graph:
 - `PatientCard` / `SymptomProfile` / `PhotoAnalysis`: the structured clinical record being built up during triage.
 - `SpecialistReport` / `FinalDiagnosis`: the output shape each specialist / the chief physician must produce.
 
-Every field name here must match the JSON keys the LLM is asked to return in `src/config.py`'s prompts — they're kept in sync by hand, not enforced automatically.
+Every field name here must match the JSON keys the LLM is asked to return in `src/prompts.py`'s prompts — they're kept in sync by hand, not enforced automatically.
 
 ### 🕸️ `src/graph.py`
 Builds the `StateGraph` from `langgraph`: registers every node (imported from `src/agents/`) and the edges/conditional routing between them, then compiles it with a checkpointer and `interrupt_before=["user"]` (the mechanism that lets the graph pause between messages and resume later for the same `thread_id`).
@@ -70,7 +70,7 @@ The implementation of every graph node, split by responsibility instead of one l
 
 `src/agents/__init__.py` re-exports all of the above, so the rest of the project (in particular `graph.py`) imports everything with a single `from src.agents import ...`.
 
-### 💬 `src/config.py`
+### 💬 `src/prompts.py`
 All LLM prompts: `REVIEWER_PROMPT`, `SUPERVISOR_PROMPT`, `SPECIALIST_PROMPT`, `PRIMARY_PROMPT`, `PHOTO_PROMPT`, plus `ALL_SPECIALISTS` (the list of valid specialist identifiers the supervisor is allowed to pick from). The instructional text is in Italian (the app's conversation language), but every JSON key requested from the LLM matches the English field names in `src/state.py`.
 
 ### 🗄️ `src/database.py`
