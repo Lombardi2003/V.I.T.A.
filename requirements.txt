@@ -1,8 +1,6 @@
 chainlit==2.10.0
-groq==0.37.1
 langchain_core==1.2.19
-langchain_groq==1.1.2
-langchain_ollama==1.0.1
+langchain_openai==1.4.1
 langgraph==1.1.2
 pydantic==2.12.5
 pydantic-settings==2.10.1

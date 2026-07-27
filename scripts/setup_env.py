@@ -66,15 +66,28 @@ def _cloud_acceleration_enabled(existing: dict[str, str]) -> bool:
 
 
 def _relevant_fields(names: list[str], existing: dict[str, str]) -> list[str]:
-    """Drops groq_api_key from the list when cloud acceleration is off.
+    """Drops groq_api_key when cloud acceleration is off, and drops any other
+    field whose Settings default is None.
 
-    Mirrors the conditional requirement already enforced in Settings'
-    validator, so an Ollama-only setup is never asked for a Groq key it
-    doesn't need.
+    groq_api_key mirrors the conditional requirement already enforced in
+    Settings' validator (kept even though its own default is None, since it's
+    conditionally required, not a pure override), so an Ollama-only setup is
+    never asked for a Groq key it doesn't need. For every other field, a None
+    default (e.g. model_name, vision_model_name) means "optional override,
+    resolved elsewhere if absent" (see src/llm_factory.py) - never worth
+    forcing the user to type a value just because .env doesn't mention it yet.
     """
-    if _cloud_acceleration_enabled(existing):
-        return names
-    return [name for name in names if name != "groq_api_key"]
+    cloud_on = _cloud_acceleration_enabled(existing)
+    relevant = []
+    for name in names:
+        if name == "groq_api_key":
+            if cloud_on:
+                relevant.append(name)
+            continue
+        if Settings.model_fields[name].default is None:
+            continue
+        relevant.append(name)
+    return relevant
 
 
 def _prompt_fields(names: list[str], existing: dict[str, str]) -> dict[str, str]:
