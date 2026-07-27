@@ -11,10 +11,11 @@ A multi-agent medical triage assistant that simulates the emergency room process
 
 **V.I.T.A.** is built entirely in Python with **LangGraph** and **LangChain**, and orchestrates a team of specialized AI agents that collaborate along a state graph to reproduce a realistic triage flow:
 
-1. A **Reviewer** agent collects and extracts clinical data from the patient's natural language, checking that the record is complete before proceeding.
-2. A **Photography** agent can analyze a photo of the injury/affected area, estimating its severity and clinical description.
-3. A **Supervisor** decides which of the 10 available specialists (cardiologist, neurologist, dermatologist, orthopedist, gastroenterologist, pulmonologist, ENT, ophthalmologist, urologist, general practitioner) need to be involved, and a **Router** routes the patient record among them — also allowing consultations between specialists when a symptom falls outside their field.
-4. A **Chief Physician** synthesizes all reports into a final diagnosis with a color-coded priority (RED / ORANGE / BLUE / GREEN / WHITE).
+1. An **Intake** agent collects the patient's anagraphic data (name, age, sex, allergies, previous conditions) from natural language, checking that the record is complete before proceeding.
+2. A **Reviewer** agent collects and extracts clinical data from the patient's natural language, checking that the record is complete before proceeding.
+3. A **Photography** agent can analyze a photo of the injury/affected area, estimating its severity and clinical description.
+4. A **Supervisor** decides which of the 10 available specialists (cardiologist, neurologist, dermatologist, orthopedist, gastroenterologist, pulmonologist, ENT, ophthalmologist, urologist, general practitioner) need to be involved, and a **Router** routes the patient record among them — also allowing consultations between specialists when a symptom falls outside their field.
+5. A **Chief Physician** synthesizes all reports into a final diagnosis with a color-coded priority (RED / ORANGE / BLUE / GREEN / WHITE).
 
 Patients are recognized via their Tax ID (Codice Fiscale) on a persistent SQLite database, which accumulates the history of diagnosed conditions over time. The conversational interface is served via **Chainlit**, and the LLM engine is configurable between **Groq** (cloud) and **Ollama** (local).
 

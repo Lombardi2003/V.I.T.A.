@@ -4,7 +4,7 @@ from langgraph.checkpoint.memory import MemorySaver
 
 # Import dei moduli locali
 from src.state import MedicalState
-from src.nodes import reviewer_node, user_node, read_db_node, save_db_node, modify_db_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node
+from src.agents import reviewer_node, user_node, read_db_node, intake_node, save_db_node, modify_db_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node
 
 # Funzione per la creazione del grafo di stato
 #
@@ -18,6 +18,7 @@ def generate_graph():
     # Nodi attivi
     workflow.add_node("read_db", read_db_node)
     workflow.add_node("user", user_node)
+    workflow.add_node("intake", intake_node)
 
     # Nodi non ancora riattivati
     # workflow.add_node("reviewer", reviewer_node)
@@ -43,15 +44,18 @@ def generate_graph():
     # Archi attivi
     workflow.add_edge(START, "read_db")
     workflow.add_edge("read_db", "user")
+    workflow.add_edge("intake", "user")
 
-    # user -> routing dinamico tramite next_step. "read_db" permette il ciclo
-    # "CF non valido -> richiedilo di nuovo" restando di competenza di read_db_node.
+    # user -> routing dinamico tramite next_step.
+    # "read_db" permette il ciclo "CF non valido -> richiedilo di nuovo".
+    # "intake" permette il ciclo "dati anagrafici incompleti -> richiedili di nuovo".
     # "reviewer" e' ancora un placeholder verso END finche' non riattiviamo quel nodo.
     workflow.add_conditional_edges(
         "user",
         lambda state: state.next_step if state.next_step else "reviewer",
         {
             "read_db":  "read_db",
+            "intake":   "intake",
             "reviewer": END,
         }
         )

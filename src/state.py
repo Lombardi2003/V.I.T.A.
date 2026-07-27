@@ -74,3 +74,8 @@ class MedicalState(BaseModel):
 
     # Consulto tra specialisti in corso: {"da": str, "a": str, "domanda": str, "risposta": Optional[str]}
     inter_consultation: Optional[dict] = None
+
+    # Contabilita' di conversazione per intake_node: true quando l'argomento e' stato
+    # affrontato (anche per negarlo), non dato clinico -> non sta su PatientCard.
+    allergies_addressed: bool = False
+    previous_conditions_addressed: bool = False

@@ -11,12 +11,14 @@ Technical reference for how V.I.T.A. is built internally: the runtime flow, and 
 
 ## 🔄 How it works
 
-**Startup**: `app.py` first makes sure `.env` is complete (`scripts/setup_env.py`), then builds the LangGraph state machine (`src/graph.py`), which wires together all the reasoning nodes defined in `src/nodes.py`. The LLM clients (Groq or Ollama, depending on `USE_CLOUD_ACCELERATION`) and the SQLite connection are created once at startup, not on every message.
+**Startup**: `app.py` first makes sure `.env` is complete (`scripts/setup_env.py`), then builds the LangGraph state machine (`src/graph.py`), which wires together all the reasoning nodes defined in the `src/agents/` package. The LLM clients (Groq or Ollama, depending on `USE_CLOUD_ACCELERATION`) and the SQLite connection are created once at startup, not on every message.
 
 **Per-conversation flow**: each chat session gets a `thread_id`. Every message updates a shared `MedicalState` (defined in `src/state.py`) and resumes the graph from wherever it last paused. The graph itself flows:
 
 ```
-read_db → user → reviewer (loops until the record is complete)
+read_db (loops until a valid tax ID is given) → user
+        → intake (loops until the anagraphic record is complete)
+        → reviewer (loops until the clinical record is complete)
         → photography (optional photo analysis)
         → supervisor → router → specialist(s) (may consult each other) → router → ...
         → chief_physician (final diagnosis)
@@ -24,10 +26,13 @@ read_db → user → reviewer (loops until the record is complete)
         → END
 ```
 
-* 📂 `read_db` recognizes returning patients from their tax ID before the conversation starts.
+* 📂 `read_db` recognizes returning patients from their tax ID before the conversation starts, and keeps re-asking for it if what it received isn't a valid tax ID.
+* 🪪 `intake` extracts anagraphic data (name, age, sex, allergies, previous conditions) from natural language, looping back to `user` until every field is filled — allergies/previous conditions are only considered "addressed" once the patient has explicitly mentioned them (or explicitly denied having any), never assumed.
 * 🧐 `reviewer` extracts structured clinical data from natural language until the record is complete.
 * 👮 `supervisor`/🔀 `router` decide which of the 10 specialists to involve and dispatch the record between them.
 * 👨‍⚕️ `chief_physician` synthesizes all specialist reports into a final diagnosis with a priority color.
+
+> 🚧 **Work in progress**: the graph is being reviewed and re-activated one node at a time. As of this writing, `src/graph.py` only has `read_db`, `user` and `intake` wired in; `reviewer` onward is still commented out (not removed) pending the same review. This section describes the graph's intended full shape once that work is complete.
 
 **Prompts** (`src/config.py`) instruct the LLM to return JSON matching the `src/state.py` schema exactly — the two must stay in sync whenever a field is added or renamed.
 
@@ -51,12 +56,19 @@ Defines the Pydantic data model shared by the whole graph:
 Every field name here must match the JSON keys the LLM is asked to return in `src/config.py`'s prompts — they're kept in sync by hand, not enforced automatically.
 
 ### 🕸️ `src/graph.py`
-Builds the `StateGraph` from `langgraph`: registers every node (imported from `src/nodes.py`) and the edges/conditional routing between them, then compiles it with a checkpointer and `interrupt_before=["user"]` (the mechanism that lets the graph pause between messages and resume later for the same `thread_id`).
+Builds the `StateGraph` from `langgraph`: registers every node (imported from `src/agents/`) and the edges/conditional routing between them, then compiles it with a checkpointer and `interrupt_before=["user"]` (the mechanism that lets the graph pause between messages and resume later for the same `thread_id`).
 
 > ⚠️ **Known limitation**: the checkpointer is currently `MemorySaver`, which keeps all in-progress conversation state in the process's RAM. It does not survive a process restart — patients mid-triage would lose their progress. This was deliberately deferred pending a decision on a persistent (SQLite-backed) checkpointer, to be revisited together with a possible chat-history feature.
 
-### ⚙️ `src/nodes.py`
-The implementation of every graph node: `read_db_node`, `reviewer_node`, `photography_node`, `supervisor_node`, `specialist_node` (shared logic for all ten specialists, each with a thin wrapper function), `primary_node` (the chief physician), `save_db_node`, `modify_db_node`, `user_node`. Also where the LLM clients (`llm_agents`, `llm_photography`) are configured from `Settings` and instantiated once at import time.
+### ⚙️ `src/agents/`
+The implementation of every graph node, split by responsibility instead of one large file:
+
+- **`common.py`** — shared setup: the LLM clients (`llm_agents`, `llm_photography`) configured from `Settings` and instantiated once at import time, the `MedicalDatabase` instance (`mdb`), and small shared utilities (e.g. `stream_response`).
+- **`persistence.py`** — everything that reads or writes the patients database: `read_db_node` (looks up a patient by tax ID, looping back to ask again on an invalid one), `save_db_node` (new patient), `modify_db_node` (returning patient), plus the standalone `is_valid_fiscal_code` check.
+- **`intake.py`** — data acquisition from the patient: `user_node` (the interrupt point that receives each chat message), `intake_node` (anagraphic data collection), `reviewer_node` (clinical data collection), `photography_node` (photo analysis).
+- **`clinical.py`** — clinical evaluation: `supervisor_node`, `specialist_node` (shared logic for all ten specialists, each with a thin wrapper function), `primary_node` (the chief physician).
+
+`src/agents/__init__.py` re-exports all of the above, so the rest of the project (in particular `graph.py`) imports everything with a single `from src.agents import ...`.
 
 ### 💬 `src/config.py`
 All LLM prompts: `REVIEWER_PROMPT`, `SUPERVISOR_PROMPT`, `SPECIALIST_PROMPT`, `PRIMARY_PROMPT`, `PHOTO_PROMPT`, plus `ALL_SPECIALISTS` (the list of valid specialist identifiers the supervisor is allowed to pick from). The instructional text is in Italian (the app's conversation language), but every JSON key requested from the LLM matches the English field names in `src/state.py`.

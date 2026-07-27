@@ -34,6 +34,54 @@ REGOLE:
 - Usa SOLO i nomi esatti tra virgolette nella lista sopra.
 """
 
+# L'INTAKE (raccolta dati anagrafici, separata dai sintomi che restano al Revisore)
+# Il suo compito e' SOLO l'anagrafica: nome, cognome, eta', sesso, allergie, patologie
+# pregresse. Allergie/patologie non bloccano se restano vuote, ma vanno affrontate
+# esplicitamente almeno una volta (anche per negarle) - per questo il prompt riceve
+# anche lo stato attuale dei due flag "addressed" e li deve restituire aggiornati.
+INTAKE_PROMPT = """Sei un assistente che raccoglie i dati anagrafici del paziente per l'operatore di triage. Rispondi SOLO con JSON valido, zero testo aggiuntivo.
+
+SCHEDA PAZIENTE ATTUALE:
+{patient_card}
+
+ARGOMENTI GIA' AFFRONTATI IN PRECEDENZA (true = non richiederlo di nuovo se non aggiunge informazioni):
+- Allergie: {allergies_addressed}
+- Patologie pregresse: {previous_conditions_addressed}
+
+ULTIMO MESSAGGIO:
+"{user_input}"
+
+ISTRUZIONI:
+1. Estrai SOLO i dati che l'utente ha fornito esplicitamente in questo messaggio.
+2. NON sovrascrivere campi già compilati con valori vuoti o null.
+3. REGOLA FERREA per 'allergies_addressed': se era già true, resta true. Se era false, resta false A MENO CHE il messaggio non contenga una parola/frase che riguarda ESPLICITAMENTE le allergie (es. "allergico a...", "nessuna allergia", "non ho allergie"). L'assenza di qualunque riferimento alle allergie nel messaggio NON conta come averle affrontate: se l'utente parla solo di nome/età/altro e non nomina le allergie, il flag resta esattamente com'era (di solito false).
+4. REGOLA FERREA per 'previous_conditions_addressed': stessa identica logica del punto 3, ma per patologie/interventi/storia clinica pregressa (es. "ho il diabete", "nessuna patologia pregressa", "non ho mai avuto problemi di salute").
+5. In 'message_to_user' metti una conferma neutra di cosa hai capito, senza fare domande.
+
+ESEMPIO 1 — messaggio che NON tocca ne' allergie ne' patologie pregresse (i due flag devono restare quelli di partenza, di solito false, NON diventare true):
+Messaggio: "Mi chiamo Luca Bianchi, ho 30 anni"
+Output atteso: {{"updated_card": {{"first_name": "Luca", "last_name": "Bianchi", "age": "30", "sex": "", "allergies": [], "previous_conditions": []}}, "allergies_addressed": false, "previous_conditions_addressed": false, "message_to_user": "Ho capito che ti chiami Luca Bianchi e hai 30 anni"}}
+
+ESEMPIO 2 — messaggio che nega esplicitamente entrambe (i due flag DEVONO diventare true, anche se le liste restano vuote):
+Messaggio: "Sono un uomo, non ho allergie e non ho patologie pregresse"
+Output atteso: {{"updated_card": {{"first_name": "", "last_name": "", "age": "", "sex": "uomo", "allergies": [], "previous_conditions": []}}, "allergies_addressed": true, "previous_conditions_addressed": true, "message_to_user": "Ho capito che sei un uomo, senza allergie ne' patologie pregresse"}}
+
+RISPONDI ESCLUSIVAMENTE CON QUESTO JSON:
+{{
+    "updated_card": {{
+        "first_name": "",
+        "last_name": "",
+        "age": "",
+        "sex": "",
+        "allergies": [],
+        "previous_conditions": []
+    }},
+    "allergies_addressed": false,
+    "previous_conditions_addressed": false,
+    "message_to_user": "Ho capito che..."
+}}
+"""
+
 # IL REVISORE
 # Il suo compito è quello di valutare se le informazioni date sono sufficienti per una diagnosi o se richiedere ulteriori informazioni all'utente
 REVIEWER_PROMPT = """Sei un estrattore di dati medici. Rispondi SOLO con JSON valido, zero testo aggiuntivo.
