@@ -34,7 +34,7 @@ read_db (loops until a valid tax ID is given) → user
 
 > 🚧 **Work in progress**: the graph is being reviewed and re-activated one node at a time. As of this writing, `src/graph.py` only has `read_db`, `user` and `intake` wired in; `reviewer` onward is still commented out (not removed) pending the same review. This section describes the graph's intended full shape once that work is complete.
 
-**Prompts** (`src/prompts.py`) instruct the LLM to return JSON matching the `src/state.py` schema exactly — the two must stay in sync whenever a field is added or renamed.
+**Prompts** (`src/agents/prompts.py`) instruct the LLM to return JSON matching the `src/state.py` schema exactly — the two must stay in sync whenever a field is added or renamed.
 
 **Persistence**: `medical_database.db` (`src/database.py`) stores only finalized patient records, separate from the in-progress conversation state (currently held in memory by the graph's checkpointer — see ⚠️ note under `src/graph.py` below).
 
@@ -53,7 +53,7 @@ Defines the Pydantic data model shared by the whole graph:
 - `PatientCard` / `SymptomProfile` / `PhotoAnalysis`: the structured clinical record being built up during triage.
 - `SpecialistReport` / `FinalDiagnosis`: the output shape each specialist / the chief physician must produce.
 
-Every field name here must match the JSON keys the LLM is asked to return in `src/prompts.py`'s prompts — they're kept in sync by hand, not enforced automatically.
+Every field name here must match the JSON keys the LLM is asked to return in `src/agents/prompts.py`'s prompts — they're kept in sync by hand, not enforced automatically.
 
 ### 🕸️ `src/graph.py`
 Builds the `StateGraph` from `langgraph`: registers every node (imported from `src/agents/`) and the edges/conditional routing between them, then compiles it with a checkpointer and `interrupt_before=["user"]` (the mechanism that lets the graph pause between messages and resume later for the same `thread_id`).
@@ -63,24 +63,27 @@ Builds the `StateGraph` from `langgraph`: registers every node (imported from `s
 ### ⚙️ `src/agents/`
 The implementation of every graph node, split by responsibility instead of one large file:
 
-- **`common.py`** — shared setup: the LLM clients (`llm_agents`, `llm_photography`), built via `src/llm_factory.py` and instantiated once at import time, the `MedicalDatabase` instance (`mdb`), and small shared utilities (e.g. `stream_response`).
+- **`common.py`** — shared setup: the LLM clients (`llm_agents`, `llm_photography`), built via `src/llm/` and instantiated once at import time, the `MedicalDatabase` instance (`mdb`), and small shared utilities (e.g. `stream_response`).
 - **`persistence.py`** — everything that reads or writes the patients database: `read_db_node` (looks up a patient by tax ID, looping back to ask again on an invalid one), `save_db_node` (new patient), `modify_db_node` (returning patient), plus the standalone `is_valid_fiscal_code` check.
 - **`intake.py`** — data acquisition from the patient: `user_node` (the interrupt point that receives each chat message), `intake_node` (anagraphic data collection), `reviewer_node` (clinical data collection), `photography_node` (photo analysis).
 - **`clinical.py`** — clinical evaluation: `supervisor_node`, `specialist_node` (shared logic for all ten specialists, each with a thin wrapper function), `primary_node` (the chief physician).
+- **`prompts.py`** — all LLM prompts: `REVIEWER_PROMPT`, `SUPERVISOR_PROMPT`, `SPECIALIST_PROMPT`, `PRIMARY_PROMPT`, `PHOTO_PROMPT`, plus `ALL_SPECIALISTS` (the list of valid specialist identifiers the supervisor is allowed to pick from). The instructional text is in Italian (the app's conversation language), but every JSON key requested from the LLM matches the English field names in `src/state.py`.
 
 `src/agents/__init__.py` re-exports all of the above, so the rest of the project (in particular `graph.py`) imports everything with a single `from src.agents import ...`.
 
-### 💬 `src/prompts.py`
-All LLM prompts: `REVIEWER_PROMPT`, `SUPERVISOR_PROMPT`, `SPECIALIST_PROMPT`, `PRIMARY_PROMPT`, `PHOTO_PROMPT`, plus `ALL_SPECIALISTS` (the list of valid specialist identifiers the supervisor is allowed to pick from). The instructional text is in Italian (the app's conversation language), but every JSON key requested from the LLM matches the English field names in `src/state.py`.
+### 🤖 `src/llm/`
+Everything about choosing/building LLM clients, split like `src/agents/`:
 
-### 🤖 `src/llm_factory.py`
-Builds the LLM clients used by `src/agents/common.py`. Groq and Ollama both expose an OpenAI-compatible REST endpoint, so a single `get_llm(vision=False, temperature=None, model_name=None)` function returns a `ChatOpenAI` instance pointed at whichever one is active (`Settings.use_cloud_acceleration`), instead of maintaining two separate client implementations (`ChatGroq`/`ChatOllama`). `vision=True` selects the vision-capable model instead of the text one; explicit `model_name`/`temperature` override `Settings`, which in turn falls back to a per-provider default when unset.
+- **`factory.py`** — Groq and Ollama both expose an OpenAI-compatible REST endpoint, so a single `get_llm(vision=False, temperature=None, model_name=None)` function returns a `ChatOpenAI` instance pointed at whichever one is active (`Settings.use_cloud_acceleration`), instead of maintaining two separate client implementations (`ChatGroq`/`ChatOllama`). `vision=True` selects the vision-capable model instead of the text one; explicit `model_name`/`temperature` override `Settings`, which in turn falls back to a per-provider default (from `models.py`) when unset.
+- **`models.py`** — a small catalog of known model names, grouped by provider (`Models.Groq.TEXT_8B`, `Models.Groq.TEXT_70B`, `Models.Ollama.TEXT_LLAMA3`, etc.) — a single source of truth instead of the same string literal typed by hand in multiple places (`factory.py`'s defaults, future test scripts). Doesn't replace the `.env`'s `MODEL_NAME` (still a plain string, since environment variables can't reference Python constants), just gives a reliable place to look up/copy the exact value.
+
+`src/settings.py` deliberately stays outside this package: it reads configuration for the whole project, not just the LLM. `src/llm/__init__.py` re-exports `get_llm`/`Models`, so callers just do `from src.llm import get_llm, Models`.
 
 ### 🗄️ `src/database.py`
 The persistence layer for finalized patient records — separate from the graph's own (in-memory) conversation state. `PatientRecord` is the SQLModel table (primary key: `fiscal_code`); `MedicalDatabase` wraps the SQLite engine and exposes `save_patient`, `update_patient_conditions`, `read_patient`, `verify_patient_exists`. The database path is always resolved relative to the project root, regardless of the working directory the app is launched from.
 
 ### 🔐 `src/settings.py`
-The single source of truth for configuration coming from outside the codebase (`.env`). `Settings` (a `pydantic-settings` model) declares every required/optional external value — `groq_api_key` (required only when `use_cloud_acceleration` is true), `use_cloud_acceleration` (defaults to `True`), and optional overrides consumed by `src/llm_factory.py` (`model_name`, `vision_model_name`, `temperature`) — and validates the relationship between them. `get_settings()` lazily instantiates and caches it.
+The single source of truth for configuration coming from outside the codebase (`.env`). `Settings` (a `pydantic-settings` model) declares every required/optional external value — `groq_api_key` (required only when `use_cloud_acceleration` is true), `use_cloud_acceleration` (defaults to `True`), and optional overrides consumed by `src/llm/factory.py` (`model_name`, `vision_model_name`, `temperature`) — and validates the relationship between them. `get_settings()` lazily instantiates and caches it.
 
 ### 🧰 `scripts/setup_env.py`
 Interactive `.env` setup, driven entirely by introspecting `Settings.model_fields` — adding a field to `Settings` is enough for this script to start asking for it, with no separate template file to keep in sync. `ensure_env()` (called automatically at startup) only asks for genuinely missing values; `update_env()` (`--update` flag) re-asks for everything, showing a masked preview of the current value. See the module docstring in the file itself for the full behavior, including how it skips asking for `GROQ_API_KEY` when cloud acceleration is disabled.

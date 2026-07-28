@@ -11,18 +11,19 @@ from typing import Optional
 from langchain_openai import ChatOpenAI
 
 from src.settings import get_settings
+from .models import Models
 
 _BASE_URLS = {
     "groq": "https://api.groq.com/openai/v1",
     "ollama": "http://127.0.0.1:11434/v1",
 }
 _DEFAULT_TEXT_MODELS = {
-    "groq": "llama-3.1-8b-instant",
-    "ollama": "llama3",
+    "groq": Models.Groq.TEXT_8B,
+    "ollama": Models.Ollama.TEXT_LLAMA3,
 }
 _DEFAULT_VISION_MODELS = {
-    "groq": "meta-llama/llama-4-maverick-17b-128e-instruct",
-    "ollama": "moondream",
+    "groq": Models.Groq.VISION_MAVERICK,
+    "ollama": Models.Ollama.VISION_MOONDREAM,
 }
 
 

@@ -6,7 +6,7 @@ from langchain_core.messages import AIMessage
 import chainlit as cl
 
 from src.state import MedicalState
-from src.prompts import SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, ALL_SPECIALISTS
+from .prompts import SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, ALL_SPECIALISTS
 from .common import stream_response
 
 

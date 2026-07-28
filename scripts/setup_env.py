@@ -74,7 +74,7 @@ def _relevant_fields(names: list[str], existing: dict[str, str]) -> list[str]:
     conditionally required, not a pure override), so an Ollama-only setup is
     never asked for a Groq key it doesn't need. For every other field, a None
     default (e.g. model_name, vision_model_name) means "optional override,
-    resolved elsewhere if absent" (see src/llm_factory.py) - never worth
+    resolved elsewhere if absent" (see src/llm/factory.py) - never worth
     forcing the user to type a value just because .env doesn't mention it yet.
     """
     cloud_on = _cloud_acceleration_enabled(existing)

@@ -3,7 +3,7 @@
 # nei messaggi di sistema).
 from src.database import MedicalDatabase
 from src.settings import get_settings
-from src.llm_factory import get_llm
+from src.llm import get_llm
 
 SYSTEM_AUTHOR = "System"
 
@@ -18,7 +18,7 @@ def stream_response(prompt_current_card):
     return full_response
 
 
-# Configurazione del modello LLM (Groq o Ollama, vedi src/llm_factory.py)
+# Configurazione del modello LLM (Groq o Ollama, vedi src/llm/factory.py)
 settings = get_settings()
 USE_CLOUD_ACCELERATION = settings.use_cloud_acceleration
 llm_agents = get_llm()

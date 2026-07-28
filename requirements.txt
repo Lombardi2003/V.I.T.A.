@@ -1,7 +1,7 @@
 chainlit==2.10.0
-langchain_core==1.2.19
+langchain_core==1.5.1
 langchain_openai==1.4.1
-langgraph==1.1.2
+langgraph==1.2.9
 pydantic==2.12.5
 pydantic-settings==2.10.1
 SQLAlchemy==2.0.48

@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     groq_api_key: Optional[str] = None
     use_cloud_acceleration: bool = True
 
-    # Override opzionali: se assenti, src/llm_factory.py usa un default sensato
+    # Override opzionali: se assenti, src/llm/factory.py usa un default sensato
     # per il provider attivo (Groq se use_cloud_acceleration=True, altrimenti Ollama).
     model_name: Optional[str] = None
     vision_model_name: Optional[str] = None
