@@ -163,15 +163,22 @@ async def intake_node(state: MedicalState):
     intake_complete = len(missing) == 0
 
     if intake_complete:
-        reply = llm_reply or "✨ Perfetto, ho tutti i dati anagrafici necessari."
+        # Come per reviewer_node: mostriamo sempre sia la conferma di quanto
+        # capito sia un segnale esplicito che si passa alla fase successiva,
+        # dicendo all'utente cosa scrivere ora invece di lasciarlo indovinare.
+        conferma = llm_reply or "Informazioni acquisite."
+        reply = (
+            f"{conferma}\n\nRaccolta dei dati anagrafici completata. Si prosegue ora con la "
+            "descrizione del sintomo: natura del disturbo, intensità e durata."
+        )
     else:
         elenco = "\n".join(f"  • {campo}" for campo in missing)
-        reply = f"Per completare la scheda anagrafica ho ancora bisogno di:\n{elenco}\nPuoi fornirmi queste informazioni?"
+        reply = f"Per completare la scheda anagrafica sono necessarie le seguenti informazioni:\n{elenco}"
 
     # 5. Log + output
     print(f"🪪 INTAKE → completo={intake_complete} | mancanti={missing}")
     print(f"   Card: {merged_card.model_dump_json()}")
-    await cl.Message(content=f"🪪 {reply}", author=Authors.INTAKE).send()
+    await cl.Message(content=reply, author=Authors.INTAKE).send()
 
     return {
         "patient_card":    merged_card.model_dump(),
@@ -249,6 +256,15 @@ async def reviewer_node(state: MedicalState):
         extracted_symptom: dict = data.get("updated_card", {}).get("symptom", {})
         llm_reply: str = data.get("message_to_user", "")
 
+        # L'LLM concorda correttamente l'aggettivo con il sostantivo della frase
+        # (es. "un dolore moderato", maschile, per accordo con "dolore") ma
+        # VALID_INTENSITY_VALUES accetta solo la forma femminile "moderata" -
+        # normalizziamo qui invece di scartare un'estrazione che era corretta
+        # (osservato in test reale: "moderato" veniva rifiutato e richiesto
+        # di nuovo, anche se il paziente l'aveva gia' detto chiaramente).
+        if extracted_symptom.get("intensity", "").strip().lower() == "moderato":
+            extracted_symptom["intensity"] = "moderata"
+
         if extracted_symptom.get("intensity") and not _mentions(user_msg, INTENSITY_KEYWORDS):
             print(f"⚠️ REVIEWER: 'intensity' scartata, nessun riscontro nel messaggio utente: {extracted_symptom['intensity']!r}")
             extracted_symptom["intensity"] = ""
@@ -278,16 +294,16 @@ async def reviewer_node(state: MedicalState):
         # esplicito di completamento - "llm_reply or ..." da solo non bastava,
         # perche' llm_reply e' quasi sempre presente e il messaggio esplicito
         # di completamento non si vedeva mai.
-        conferma = llm_reply or "Ho capito."
-        reply = f"{conferma}\n\n✨ Ho raccolto tutti i dati clinici necessari."
+        conferma = llm_reply or "Informazioni acquisite."
+        reply = f"{conferma}\n\nRaccolta dei dati clinici completata."
     else:
         elenco = "\n".join(f"  • {campo}" for campo in missing)
-        reply = f"Per completare la scheda ho ancora bisogno di:\n{elenco}\nPuoi fornirmi queste informazioni?"
+        reply = f"Per completare la scheda clinica sono necessarie le seguenti informazioni:\n{elenco}"
 
     # 5. Log + output
     print(f"🧐 REVIEWER → completo={triage_complete} | mancanti={missing}")
     print(f"   Card: {merged_card.model_dump_json()}")
-    await cl.Message(content=f"🧐 {reply}", author=Authors.REVIEWER).send()
+    await cl.Message(content=reply, author=Authors.REVIEWER).send()
 
     return {
         "patient_card":    merged_card.model_dump(),

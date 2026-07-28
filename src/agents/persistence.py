@@ -30,15 +30,15 @@ async def read_db_node(state: MedicalState):
     try:
         raw = state.general_history[-1].content.strip().upper()
     except (IndexError, AttributeError):
-        msg = "⚠️ Inserisci il tuo Codice Fiscale."
+        msg = "Inserire il proprio Codice Fiscale per procedere."
         await cl.Message(content=msg, author=Authors.SYSTEM).send()
         return {"next_step": "reviewer", "general_history": [AIMessage(content=msg)]}
 
     # 2. Validazione minima: 16 caratteri alfanumerici
     if not is_valid_fiscal_code(raw):
         msg = (
-            "⚠️ Il valore inserito non sembra un Codice Fiscale valido.\n"
-            "Deve essere composto da 16 caratteri (lettere e numeri). Riprova."
+            "Il valore inserito non costituisce un Codice Fiscale valido.\n"
+            "Deve essere composto da 16 caratteri alfanumerici. Si prega di reinserirlo."
         )
         await cl.Message(content=msg, author=Authors.SYSTEM).send()
         return {
@@ -66,7 +66,7 @@ async def read_db_node(state: MedicalState):
             step.output = f"Errore di connessione al database: {e}"
 
     if db_error:
-        msg = "⚠️ Errore di connessione al database. Procedo comunque con una nuova scheda."
+        msg = "Si è verificato un errore di connessione al database. La procedura prosegue con la creazione di una nuova scheda."
         await cl.Message(content=msg, author=Authors.SYSTEM).send()
         print(f"READ_DB | Errore DB: {db_error}")
         return {
@@ -75,9 +75,11 @@ async def read_db_node(state: MedicalState):
         }
 
     if record:
-        msg = f"✅ Bentornato **{record.first_name} {record.last_name}**! Ho caricato la tua scheda."
+        msg = f"Scheda clinica recuperata per **{record.first_name} {record.last_name}**."
         await cl.Message(content=msg, author=Authors.SYSTEM).send()
         print(f"READ_DB | Paziente trovato: {raw}")
+        loaded_allergies = getattr(record, "allergies", [])
+        loaded_conditions = record.previous_conditions
         return {
             "patient_card": {
                 "fiscal_code":         raw,
@@ -85,15 +87,26 @@ async def read_db_node(state: MedicalState):
                 "last_name":           record.last_name,
                 "age":                 record.age,
                 "sex":                 getattr(record, "sex", ""),
-                "allergies":           getattr(record, "allergies", []),
-                "previous_conditions": record.previous_conditions,
+                "allergies":           loaded_allergies,
+                "previous_conditions": loaded_conditions,
             },
             "patient_exists": True,
+            # Un paziente di ritorno con allergie/patologie gia' registrate non
+            # deve doverle riconfermare da zero - intake_node puo' comunque
+            # aggiornarle se ne vengono menzionate di nuove. Se la lista e'
+            # vuota restano non affrontate (non possiamo distinguere "nessuna
+            # allergia confermata" da "non ancora chiesto"), quindi si richiede.
+            "allergies_addressed":            bool(loaded_allergies),
+            "previous_conditions_addressed":  bool(loaded_conditions),
             "next_step":      "intake",  # user → intake (raccolta/riconferma anagrafica)
             "general_history": [AIMessage(content=msg)],
         }
 
-    msg = "📋 CF non trovato nel sistema: verrà creata una nuova scheda."
+    msg = (
+        "Codice Fiscale non presente nel sistema: verrà creata una nuova scheda clinica.\n\n"
+        "Si prega di fornire i seguenti dati anagrafici: nome, cognome, età, sesso, "
+        "allergie e patologie pregresse, se presenti."
+    )
     await cl.Message(content=msg, author=Authors.SYSTEM).send()
     print(f"READ_DB | Nuovo paziente: {raw}")
     return {
