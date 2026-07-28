@@ -32,6 +32,14 @@
     --dark-scrollbar-color-thumb: #6a788b;
 
     /*
+     * TAVOLOZZA COLORI PER AUTORE (avatar bot)
+     * Un colore per ciascun nome in src/agents/authors.py - aggiungi qui la
+     * riga per un nuovo profilo, poi referenziala nella sezione AVATAR sotto.
+     */
+    --avatar-color-system: var(--left-color);
+    --avatar-color-anagrafica: #ff8d42;
+
+    /*
      * VARIABILI PER LA CHAT
      */
     --chat-gap: 10px;                     /* Spazio ESATTO tra icona e fumetto */
@@ -443,22 +451,10 @@ button[id^="step-"]:hover {
 /*
  * AVATAR
  */
-[data-step-type="user_message"] .flex.flex-row.items-center.gap-1::after,
-[data-step-type="assistant_message"] .ai-message::before {
-    content: '' !important;
-    display: block !important;
-    width: var(--chat-avatar-size) !important;
-    height: var(--chat-avatar-size) !important;
-    border-radius: var(--chat-avatar-radius) !important;
-    flex-shrink: 0 !important;
-    background-size: cover !important;
-    background-color: #fcfcfc !important;
-    margin-top: 3px !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-}
 
-/* AVATAR UTENTE */
+/* AVATAR UTENTE - Chainlit non genera un'icona nativa per i messaggi
+ * dell'utente (un solo utente per sessione, nessun profilo da scegliere),
+ * quindi qui resta necessario uno pseudo-elemento con immagine fissa. */
 [data-step-type="user_message"] .flex.flex-row.items-center.gap-1 {
     display: flex !important;
     align-items: flex-start !important;
@@ -467,27 +463,53 @@ button[id^="step-"]:hover {
 }
 
 [data-step-type="user_message"] .flex.flex-row.items-center.gap-1::after {
+    content: '' !important;
+    display: block !important;
     order: 2 !important; /* Sposta l'avatar a destra del testo */
+    width: var(--chat-avatar-size) !important;
+    height: var(--chat-avatar-size) !important;
+    border-radius: var(--chat-avatar-radius) !important;
+    flex-shrink: 0 !important;
+    background-size: cover !important;
+    background-color: #fcfcfc !important;
+    margin-top: 3px !important;
     background-image: url('/public/avatars/user.svg') !important;
     border: 2.5px solid var(--right-color) !important;
     box-shadow: 0 0 8px var(--right-color) !important;
 }
 
-/* AVATAR BOT */
-[data-step-type="assistant_message"] .ai-message > span.inline-block {
-    display: none !important;                   /* Nasconde l'icona originale */
-}
-
+/* AVATAR BOT - l'immagine e' gia' scelta da Chainlit stesso (icona nativa),
+ * in base all'author= passato da Python (vedi src/agents/authors.py) - qui
+ * applichiamo solo dimensione/bordo/ombra, nessun url() fisso. */
 [data-step-type="assistant_message"] .ai-message {
     display: flex !important;
     align-items: flex-start !important;
     gap: var(--chat-gap) !important;            /* Il gestore reale dello spazio */
 }
 
-[data-step-type="assistant_message"] .ai-message::before {
-    background-image: url('/public/avatars/system.svg') !important;
-    border: 2.5px solid var(--left-color) !important;
-    box-shadow: 0 0 8px var(--left-color) !important;
+[data-step-type="assistant_message"] .ai-message > span.inline-block span {
+    --avatar-accent: var(--avatar-color-system); /* default: chi non ha una riga sotto usa questo colore */
+    height: var(--chat-avatar-size) !important;
+    width: var(--chat-avatar-size) !important;
+    border-radius: var(--chat-avatar-radius) !important;
+    overflow: hidden !important;                 /* taglia l'immagine agli angoli arrotondati */
+    flex-shrink: 0 !important;
+    margin-top: 3px !important;
+    border: 2.5px solid var(--avatar-accent) !important;
+    box-shadow: 0 0 8px var(--avatar-accent) !important; /* qui, non sull'img: l'overflow:hidden sopra taglierebbe l'ombra */
+}
+
+[data-step-type="assistant_message"] .ai-message > span.inline-block img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+/* Assegnazione autore -> colore (i valori veri sono nella tavolozza in :root
+ * sopra). Aggiungi una riga qui per ogni nuovo profilo con un colore dedicato
+ * - se un profilo non compare qui, eredita il default (--avatar-color-system). */
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Anagrafica"]) {
+    --avatar-accent: var(--avatar-color-anagrafica);
 }
 
 [data-step-type="user_message"] .bg-accent.rounded-3xl,

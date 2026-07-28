@@ -8,7 +8,8 @@ import chainlit as cl
 
 from src.state import MedicalState, PatientCard, PhotoAnalysis
 from .prompts import INTAKE_PROMPT, REVIEWER_PROMPT, PHOTO_PROMPT
-from .common import stream_response, SYSTEM_AUTHOR, llm_photography
+from .common import stream_response, llm_photography
+from .authors import Authors
 
 
 # Nodo per la gestione del messaggio dell'utente
@@ -162,7 +163,7 @@ async def intake_node(state: MedicalState):
     # 5. Log + output
     print(f"🪪 INTAKE → completo={intake_complete} | mancanti={missing}")
     print(f"   Card: {merged_card.model_dump_json()}")
-    await cl.Message(content=f"🪪 {reply}", author=SYSTEM_AUTHOR).send()
+    await cl.Message(content=f"🪪 {reply}", author=Authors.INTAKE).send()
 
     return {
         "patient_card":    merged_card.model_dump(),

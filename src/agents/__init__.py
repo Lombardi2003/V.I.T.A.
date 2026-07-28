@@ -17,8 +17,8 @@ from .common import (
     llm_agents,
     llm_photography,
     mdb,
-    SYSTEM_AUTHOR,
 )
+from .authors import Authors
 from .persistence import (
     is_valid_fiscal_code,
     read_db_node,

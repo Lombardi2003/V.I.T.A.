@@ -6,7 +6,8 @@ from langchain_core.messages import AIMessage
 import chainlit as cl
 
 from src.state import MedicalState
-from .common import mdb, SYSTEM_AUTHOR
+from .common import mdb
+from .authors import Authors
 
 
 def is_valid_fiscal_code(raw: str) -> bool:
@@ -30,7 +31,7 @@ async def read_db_node(state: MedicalState):
         raw = state.general_history[-1].content.strip().upper()
     except (IndexError, AttributeError):
         msg = "⚠️ Inserisci il tuo Codice Fiscale."
-        await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
+        await cl.Message(content=msg, author=Authors.SYSTEM).send()
         return {"next_step": "reviewer", "general_history": [AIMessage(content=msg)]}
 
     # 2. Validazione minima: 16 caratteri alfanumerici
@@ -39,7 +40,7 @@ async def read_db_node(state: MedicalState):
             "⚠️ Il valore inserito non sembra un Codice Fiscale valido.\n"
             "Deve essere composto da 16 caratteri (lettere e numeri). Riprova."
         )
-        await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
+        await cl.Message(content=msg, author=Authors.SYSTEM).send()
         return {
             "next_step": "read_db",  # torna qui finche' non arriva un CF valido
             "general_history": [AIMessage(content=msg)],
@@ -66,7 +67,7 @@ async def read_db_node(state: MedicalState):
 
     if db_error:
         msg = "⚠️ Errore di connessione al database. Procedo comunque con una nuova scheda."
-        await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
+        await cl.Message(content=msg, author=Authors.SYSTEM).send()
         print(f"READ_DB | Errore DB: {db_error}")
         return {
             "next_step":       "intake",  # user → intake (raccolta anagrafica)
@@ -75,7 +76,7 @@ async def read_db_node(state: MedicalState):
 
     if record:
         msg = f"✅ Bentornato **{record.first_name} {record.last_name}**! Ho caricato la tua scheda."
-        await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
+        await cl.Message(content=msg, author=Authors.SYSTEM).send()
         print(f"READ_DB | Paziente trovato: {raw}")
         return {
             "patient_card": {
@@ -93,7 +94,7 @@ async def read_db_node(state: MedicalState):
         }
 
     msg = "📋 CF non trovato nel sistema: verrà creata una nuova scheda."
-    await cl.Message(content=msg, author=SYSTEM_AUTHOR).send()
+    await cl.Message(content=msg, author=Authors.SYSTEM).send()
     print(f"READ_DB | Nuovo paziente: {raw}")
     return {
         "patient_card":    {"fiscal_code": raw},

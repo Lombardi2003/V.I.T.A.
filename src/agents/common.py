@@ -1,11 +1,9 @@
 # Configurazione condivisa tra tutti i moduli di agents/: client LLM, connessione
-# al database, e piccole utility comuni (stream_response, l'autore "System" usato
-# nei messaggi di sistema).
+# al database, e piccole utility comuni (stream_response). I nomi degli autori
+# per i messaggi (es. "System") vivono in authors.py, non qui.
 from src.database import MedicalDatabase
 from src.settings import get_settings
 from src.llm import get_llm
-
-SYSTEM_AUTHOR = "System"
 
 
 def stream_response(prompt_current_card):

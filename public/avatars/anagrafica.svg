@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="vitaAnagraficaAvatarGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffa94d"/>
+      <stop offset="100%" stop-color="#f76707"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="80" height="80" fill="url(#vitaAnagraficaAvatarGradient) #ff922b"/>
+
+  <!-- ID card icon: rappresenta la raccolta dei dati anagrafici -->
+  <g fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="12" y="22" width="56" height="36" rx="5"/>
+    <circle cx="27" cy="37" r="6.5" fill="rgba(255,255,255,0.95)" stroke="none"/>
+    <path d="M17,52 C17,46 21,44 27,44 C33,44 37,46 37,52" fill="rgba(255,255,255,0.95)" stroke="none"/>
+    <line x1="45" y1="33" x2="60" y2="33"/>
+    <line x1="45" y1="42" x2="60" y2="42"/>
+  </g>
+</svg>
