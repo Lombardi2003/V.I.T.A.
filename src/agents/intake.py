@@ -12,6 +12,14 @@ from .common import stream_response, llm_photography
 from .authors import Authors
 
 
+def _mentions(text: str, keywords: list[str]) -> bool:
+    """Controllo grezzo indipendente dall'LLM: il testo contiene almeno una di
+    queste parole chiave - usato in più nodi come rete di sicurezza quando non
+    ci si puo' fidare al 100% di quello che l'LLM dichiara di aver estratto."""
+    lowered = text.lower()
+    return any(kw in lowered for kw in keywords)
+
+
 # Nodo per la gestione del messaggio dell'utente
 async def user_node(state: MedicalState):
     """Nodo di passaggio: il messaggio e' gia' nello stato (aggiunto da app.py
@@ -80,16 +88,13 @@ async def intake_node(state: MedicalState):
                 cleaned.append(str(item))
         return cleaned
 
-    # Rete di sicurezza indipendente dall'LLM: se il messaggio contiene una di
-    # queste parole chiave, l'argomento e' stato quantomeno toccato - non sostituisce
-    # l'estrazione del contenuto (quella resta all'LLM), serve solo a confermare il
-    # flag "addressed" anche quando il modello lo sottovaluta in una frase composta
-    # (osservato in test reale: "e' maschio e non ha allergie" -> l'LLM ha colto
-    # "maschio" ma non "non ha allergie" nello stesso messaggio).
-    def _mentions(text: str, keywords: list[str]) -> bool:
-        lowered = text.lower()
-        return any(kw in lowered for kw in keywords)
-
+    # Rete di sicurezza indipendente dall'LLM (_mentions, a livello di modulo):
+    # se il messaggio contiene una di queste parole chiave, l'argomento e' stato
+    # quantomeno toccato - non sostituisce l'estrazione del contenuto (quella
+    # resta all'LLM), serve solo a confermare il flag "addressed" anche quando
+    # il modello lo sottovaluta in una frase composta (osservato in test reale:
+    # "e' maschio e non ha allergie" -> l'LLM ha colto "maschio" ma non "non ha
+    # allergie" nello stesso messaggio).
     ALLERGY_KEYWORDS = ["allerg"]  # allergia/allergie/allergico/allergica
     CONDITION_KEYWORDS = ["patolog", "pregress", "malatt"]  # patologia/e, pregressa/e, malattia/e
 
@@ -99,14 +104,17 @@ async def intake_node(state: MedicalState):
     allergies_mentioned = _mentions(user_msg, ALLERGY_KEYWORDS)
     previous_conditions_mentioned = _mentions(user_msg, CONDITION_KEYWORDS)
 
-    # 2. Chiamata LLM
+    # 2. Chiamata LLM (Step collassato "sto pensando...", stesso pattern di read_db_node)
     prompt = INTAKE_PROMPT.format(
         patient_card=current_card.model_dump_json(),
         allergies_addressed=state.allergies_addressed,
         previous_conditions_addressed=state.previous_conditions_addressed,
         user_input=user_msg,
     )
-    content = stream_response(prompt)
+    async with cl.Step(name="Analisi dati anagrafici", type="tool", default_open=False, show_input="text") as step:
+        step.input = user_msg
+        content = stream_response(prompt)
+        step.output = content
 
     # 3. Parsing + merge
     try:
@@ -177,9 +185,26 @@ async def intake_node(state: MedicalState):
 
 # Nodo del revisore
 async def reviewer_node(state: MedicalState):
-    """Il modello estrae i dati → Python valida → Python decide se continuare."""
+    """Il modello estrae i dati del sintomo → Python valida → Python decide se continuare.
+
+    A differenza di intake_node, qui l'LLM non deve toccare i campi anagrafici
+    (gia' raccolti e bloccati da intake_node): l'estrazione prende quindi SOLO
+    la chiave "symptom" dalla risposta del modello - anche se il prompt gli
+    chiede di non includere altro, non ci fidiamo solo dell'istruzione testuale,
+    lo garantiamo anche lato codice ignorando qualunque altra chiave restituita.
+    """
 
     VALID_INTENSITY_VALUES = {"lieve", "moderata", "forte", "insopportabile"}
+
+    # Rete di sicurezza indipendente dal prompt: osservato in test reale che con
+    # un messaggio breve tipo "Ho mal di testa" (senza intensita'/durata) l'LLM
+    # a volte inventa comunque questi due campi copiandoli dagli esempi dentro
+    # il prompt (es. "forte"/"3 ore") - istruire il prompt a non farlo non e'
+    # bastato (fallito in 4/4 test). Se il messaggio dell'utente non contiene
+    # nessuna parola plausibilmente legata a intensita'/durata, scartiamo il
+    # valore estratto invece di fidarcene.
+    INTENSITY_KEYWORDS = ["liev", "legger", "modest", "moderat", "fort", "intens", "insopportabil", "grave", "acut"]
+    DURATION_KEYWORDS = ["giorn", "settiman", "minut", "mese", "mesi", " ore", " ora", "stanotte", "ieri", "oggi", "adesso", "da quando"]
 
     def _missing_fields(card: PatientCard) -> list[str]:
         missing = []
@@ -207,31 +232,54 @@ async def reviewer_node(state: MedicalState):
     current_card: PatientCard = state.patient_card
     user_msg = state.triage_history[-1].content if state.triage_history else ""
 
-    # 2. Chiamata LLM
+    # 2. Chiamata LLM (Step collassato "sto pensando...", stesso pattern di read_db/intake)
     prompt = REVIEWER_PROMPT.format(
         patient_card=current_card.model_dump_json(indent=2),
         user_input=user_msg
     )
-    content = stream_response(prompt)
-    # 3. Parsing + merge
+    async with cl.Step(name="Analisi sintomi", type="tool", default_open=False, show_input="text") as step:
+        step.input = user_msg
+        content = stream_response(prompt)
+        step.output = content
+
+    # 3. Parsing + merge (solo il sintomo: l'anagrafica resta di competenza di intake_node)
     try:
         clean = content.replace("```json", "").replace("```", "").strip()
         data = json.loads(clean)
-        extracted: dict = data.get("updated_card", {})
+        extracted_symptom: dict = data.get("updated_card", {}).get("symptom", {})
         llm_reply: str = data.get("message_to_user", "")
+
+        if extracted_symptom.get("intensity") and not _mentions(user_msg, INTENSITY_KEYWORDS):
+            print(f"⚠️ REVIEWER: 'intensity' scartata, nessun riscontro nel messaggio utente: {extracted_symptom['intensity']!r}")
+            extracted_symptom["intensity"] = ""
+        if extracted_symptom.get("duration") and not _mentions(user_msg, DURATION_KEYWORDS):
+            print(f"⚠️ REVIEWER: 'duration' scartata, nessun riscontro nel messaggio utente: {extracted_symptom['duration']!r}")
+            extracted_symptom["duration"] = ""
     except json.JSONDecodeError:
-        extracted = {}
+        extracted_symptom = {}
         llm_reply = ""
 
-    merged_dict = _merge(current_card.model_dump(), extracted)
-    merged_card = PatientCard(**merged_dict)  # ricostruisce il Pydantic model
+    merged_dict = current_card.model_dump()
+    merged_dict["symptom"] = _merge(merged_dict.get("symptom", {}), extracted_symptom)
+    try:
+        merged_card = PatientCard(**merged_dict)
+    except Exception as e:
+        # Stessa rete di sicurezza di intake_node: se l'LLM restituisce qualcosa
+        # che non rispetta lo schema, non crashiamo - teniamo la scheda precedente.
+        print(f"⚠️ REVIEWER: dati non validi dall'LLM, scarto questo aggiornamento: {e}")
+        merged_card = current_card
 
     # 4. Validazione Python
     missing = _missing_fields(merged_card)
     triage_complete = len(missing) == 0
 
     if triage_complete:
-        reply = llm_reply or "✨ Perfetto, ho tutti i dati necessari. Procedo con il triage."
+        # Mostriamo sempre sia la conferma di quanto capito sia un segnale
+        # esplicito di completamento - "llm_reply or ..." da solo non bastava,
+        # perche' llm_reply e' quasi sempre presente e il messaggio esplicito
+        # di completamento non si vedeva mai.
+        conferma = llm_reply or "Ho capito."
+        reply = f"{conferma}\n\n✨ Ho raccolto tutti i dati clinici necessari."
     else:
         elenco = "\n".join(f"  • {campo}" for campo in missing)
         reply = f"Per completare la scheda ho ancora bisogno di:\n{elenco}\nPuoi fornirmi queste informazioni?"
@@ -239,7 +287,7 @@ async def reviewer_node(state: MedicalState):
     # 5. Log + output
     print(f"🧐 REVIEWER → completo={triage_complete} | mancanti={missing}")
     print(f"   Card: {merged_card.model_dump_json()}")
-    await cl.Message(content=f"🧐 {reply}").send()
+    await cl.Message(content=f"🧐 {reply}", author=Authors.REVIEWER).send()
 
     return {
         "patient_card":    merged_card.model_dump(),

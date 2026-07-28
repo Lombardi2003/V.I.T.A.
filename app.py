@@ -8,13 +8,11 @@ ensure_env()  # completa .env con eventuali valori mancanti prima di importare i
 
 from src.state import MedicalState
 from src.graph import generate_graph
-from src.logger_ui import ui_print
 from src.llm import Models
 from src.agents import llm_agents, llm_photography
 
 # Inizializziamo il grafo
 app = generate_graph()
-NODI_PENSIERO = {"reviewer", "photography", "supervisor", "router", "cardiologist", "neurologist", "orthopedist", "gastroenterologist", "dermatologist", "pulmonologist", "ent", "ophthalmologist", "urologist", "general_practitioner", "chief_physician"}
 
 
 @cl.on_chat_start
@@ -119,9 +117,6 @@ async def main(message: cl.Message):
                 import traceback
                 traceback.print_exc()
                 await cl.Message(content=f"❌ Errore durante l'elaborazione: {error}").send()
-
-            if kind == "on_chain_start" and node_name in NODI_PENSIERO:
-                await ui_print(f"⚙️ {node_name} in elaborazione...")
 
             if kind == "on_chat_model_stream" and node_name == "chief_physician":
                 chunk = event["data"].get("chunk")

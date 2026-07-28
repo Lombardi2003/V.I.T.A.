@@ -38,6 +38,7 @@
      */
     --avatar-color-system: var(--left-color);
     --avatar-color-anagrafica: #ff8d42;
+    --avatar-color-revisore: #a78bfa;
 
     /*
      * VARIABILI PER LA CHAT
@@ -480,7 +481,10 @@ button[id^="step-"]:hover {
 
 /* AVATAR BOT - l'immagine e' gia' scelta da Chainlit stesso (icona nativa),
  * in base all'author= passato da Python (vedi src/agents/authors.py) - qui
- * applichiamo solo dimensione/bordo/ombra, nessun url() fisso. */
+ * applichiamo dimensione/bordo/ombra grandi SOLO ai messaggi veri e propri
+ * (data-step-type="assistant_message"). Gli Step (type="tool") usano la
+ * stessa immagine (stesso file, vedi sotto) ma restano alla loro dimensione
+ * nativa piccola - qui non tocchiamo la loro dimensione/bordo. */
 [data-step-type="assistant_message"] .ai-message {
     display: flex !important;
     align-items: flex-start !important;
@@ -510,6 +514,36 @@ button[id^="step-"]:hover {
  * - se un profilo non compare qui, eredita il default (--avatar-color-system). */
 [data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Anagrafica"]) {
     --avatar-accent: var(--avatar-color-anagrafica);
+}
+
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Revisore"]) {
+    --avatar-accent: var(--avatar-color-revisore);
+}
+
+/* Icona per gli Step ("Ricerca Codice Fiscale", "Analisi..."): a differenza
+ * dei messaggi, /avatars/{nome dello step} e' generato automaticamente da
+ * Chainlit lato server e IGNORA i file in public/avatars/ (verificato
+ * scaricando il contenuto reale, non solo controllando l'URL) - l'unica
+ * strada e' nascondere quell'icona sbagliata e mostrare la nostra vera sopra,
+ * stesso approccio gia' usato per l'avatar utente. Dimensione nativa (20px)
+ * non toccata, solo l'immagine cambia. */
+[data-step-type="tool"] img[alt="Avatar for Ricerca Codice Fiscale"],
+[data-step-type="tool"] img[alt="Avatar for Analisi dati anagrafici"],
+[data-step-type="tool"] img[alt="Avatar for Analisi sintomi"] {
+    visibility: hidden !important;
+}
+
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Ricerca Codice Fiscale"]) {
+    background-image: url('/public/avatars/system.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Analisi dati anagrafici"]) {
+    background-image: url('/public/avatars/anagrafica.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Analisi sintomi"]) {
+    background-image: url('/public/avatars/revisore.svg') !important;
+    background-size: cover !important;
 }
 
 [data-step-type="user_message"] .bg-accent.rounded-3xl,

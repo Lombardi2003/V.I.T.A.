@@ -93,23 +93,26 @@ ULTIMO MESSAGGIO UTENTE:
 "{user_input}"
 
 ISTRUZIONI:
-1. Estrai SOLO i dati che l'utente ha fornito esplicitamente in questo messaggio.
+1. Estrai SOLO i dati sul sintomo che l'utente ha fornito esplicitamente in questo messaggio.
 2. NON sovrascrivere campi già compilati con valori vuoti o null.
-3. 'intensity' deve essere una di: "lieve", "moderata", "forte", "insopportabile". Normalizza espressioni simili al valore più vicino.
-4. 'duration' deve essere specifica: es. "2 giorni", "3 ore".
-5. 'main_symptom' deve essere clinicamente specifico: es. "dolore toracico acuto", NON "mi fa male".
-6. In 'message_to_user' metti una conferma neutra di cosa hai capito, senza fare domande.
+3. NON includere dati anagrafici (nome, cognome, età, sesso, allergie, patologie pregresse) - sono già stati raccolti in precedenza e non sono di tua competenza.
+4. 'intensity' deve essere una di: "lieve", "moderata", "forte", "insopportabile". Normalizza espressioni simili al valore più vicino.
+5. 'duration' deve essere specifica: es. "2 giorni", "3 ore". Se l'utente NON ha specificato da quanto tempo ha il sintomo, lascia il campo vuoto ("") - NON scrivere "non specificato" o simili, verrà richiesto esplicitamente in un turno successivo.
+6. 'main_symptom' deve essere clinicamente specifico (es. una descrizione come "dolore toracico acuto", NON generica come "mi fa male") - estrailo se il paziente lo nomina in QUESTO messaggio, anche se lo nomina insieme a intensità/durata nella stessa frase. Lascialo vuoto ("") SOLO se questo messaggio non nomina affatto il sintomo.
+7. REGOLA ANTI-INVENZIONE, la più importante: valorizza 'main_symptom'/'intensity'/'duration' SOLO con informazioni presenti nel messaggio dell'utente qui sopra. Se un dato non è scritto in quel messaggio, il campo corrispondente resta vuoto (""), punto - non indovinare, non dedurre, non riusare un valore da un turno precedente o da un esempio. Un messaggio breve come "Ho mal di testa" ha SOLO il sintomo: intensità e durata restano vuote finché il paziente non le scrive esplicitamente.
+8. In 'message_to_user' metti una conferma neutra di cosa hai capito, senza fare domande.
+
+I DUE ESEMPI SOTTO SONO SOLO UNO SCHEMA DI FORMATO: le parole "mal di testa", "forte", "3 ore", "dolore forte", "2 giorni" sono INVENTATE per mostrare la struttura - se il messaggio REALE dell'utente non contiene dati equivalenti a QUELLE PAROLE ESATTE, non riutilizzarle mai nella risposta.
+
+ESEMPIO A (schema) — il messaggio nomina sintomo+intensità+durata insieme:
+messaggio: "Ho un forte mal di testa da 3 ore" -> "main_symptom": "mal di testa", "intensity": "forte", "duration": "3 ore"
+
+ESEMPIO B (schema) — il messaggio ha solo intensità/durata, il sintomo era già noto da prima:
+messaggio: "è un dolore forte, ce l'ho da 2 giorni" -> "main_symptom": "", "intensity": "forte", "duration": "2 giorni"
 
 RISPONDI ESCLUSIVAMENTE CON QUESTO JSON:
 {{
     "updated_card": {{
-        "fiscal_code": "",
-        "first_name": "",
-        "last_name": "",
-        "age": "",
-        "sex": "",
-        "allergies": [],
-        "previous_conditions": [],
         "symptom": {{
             "main_symptom": "",
             "intensity": "",

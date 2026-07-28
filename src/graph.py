@@ -8,8 +8,8 @@ from src.agents import reviewer_node, user_node, read_db_node, intake_node, save
 
 # Funzione per la creazione del grafo di stato
 #
-# STATO DI LAVORO: stiamo rivedendo il grafo un nodo alla volta. Per ora e'
-# attivo solo "read_db" (+ "user" come punto di interruzione dopo di lui).
+# STATO DI LAVORO: stiamo rivedendo il grafo un nodo alla volta. Per ora sono
+# attivi "read_db", "intake" e "reviewer" (+ "user" come punto di interruzione).
 # Il resto e' commentato e verra' riattivato mano a mano che sistemiamo
 # ciascun nodo - NON e' stato rimosso, solo disattivato temporaneamente.
 def generate_graph():
@@ -19,9 +19,9 @@ def generate_graph():
     workflow.add_node("read_db", read_db_node)
     workflow.add_node("user", user_node)
     workflow.add_node("intake", intake_node)
+    workflow.add_node("reviewer", reviewer_node)
 
     # Nodi non ancora riattivati
-    # workflow.add_node("reviewer", reviewer_node)
     # workflow.add_node("photography", photography_node)
     # workflow.add_node("supervisor", supervisor_node)
     # workflow.add_node("router", router)
@@ -45,18 +45,21 @@ def generate_graph():
     workflow.add_edge(START, "read_db")
     workflow.add_edge("read_db", "user")
     workflow.add_edge("intake", "user")
+    workflow.add_edge("reviewer", "user")
 
     # user -> routing dinamico tramite next_step.
     # "read_db" permette il ciclo "CF non valido -> richiedilo di nuovo".
     # "intake" permette il ciclo "dati anagrafici incompleti -> richiedili di nuovo".
-    # "reviewer" e' ancora un placeholder verso END finche' non riattiviamo quel nodo.
+    # "reviewer" permette il ciclo "dati clinici incompleti -> richiedili di nuovo".
+    # "photography" e' ancora un placeholder verso END finche' non riattiviamo quel nodo.
     workflow.add_conditional_edges(
         "user",
         lambda state: state.next_step if state.next_step else "reviewer",
         {
-            "read_db":  "read_db",
-            "intake":   "intake",
-            "reviewer": END,
+            "read_db":     "read_db",
+            "intake":      "intake",
+            "reviewer":    "reviewer",
+            "photography": END,
         }
         )
 
