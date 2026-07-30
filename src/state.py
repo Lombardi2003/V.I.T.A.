@@ -60,7 +60,6 @@ class MedicalState(BaseModel):
 
     triage_complete: bool = False
     patient_exists: bool = False
-    iteration_count: int = 0        # Ricontrollare questo!!!
     next_step: str = ""
 
     # Oggetti complessi: diciamo a Pydantic di istanziarli vuoti in automatico

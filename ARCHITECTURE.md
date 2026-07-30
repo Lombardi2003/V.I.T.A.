@@ -32,7 +32,7 @@ read_db (loops until a valid tax ID is given) → user
 * 👮 `supervisor`/🔀 `router` decide which of the 10 specialists to involve and dispatch the record between them.
 * 👨‍⚕️ `chief_physician` synthesizes all specialist reports into a final diagnosis with a priority color.
 
-> 🚧 **Work in progress**: the graph is being reviewed and re-activated one node at a time. As of this writing, `src/graph.py` only has `read_db`, `user` and `intake` wired in; `reviewer` onward is still commented out (not removed) pending the same review. This section describes the graph's intended full shape once that work is complete.
+> 🚧 **Work in progress**: the graph is being reviewed and re-activated one node at a time. As of this writing, `src/graph.py` only has `read_db`, `user`, `intake`, `reviewer` and `photography` wired in; `supervisor` onward is still commented out (not removed) pending the same review. This section describes the graph's intended full shape once that work is complete.
 
 **Prompts** (`src/agents/prompts.py`) instruct the LLM to return JSON matching the `src/state.py` schema exactly — the two must stay in sync whenever a field is added or renamed.
 

@@ -15,3 +15,4 @@ class Authors:
     SYSTEM = "System"
     INTAKE = "Anagrafica"
     REVIEWER = "Revisore"
+    PHOTOGRAPHY = "Fotografia"

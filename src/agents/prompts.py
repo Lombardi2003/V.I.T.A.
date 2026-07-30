@@ -185,29 +185,26 @@ Rispondi ESCLUSIVAMENTE con un JSON valido strutturato in questo modo:
 """
 
 # Il MODULO DI ANALISI FOTO
+# Compito puramente osservativo: descrivere cosa si vede nell'immagine, non
+# valutarne l'urgenza clinica - quel giudizio richiede il quadro completo del
+# paziente (sintomi riferiti, storia, ecc.) e resta di competenza dei nodi che
+# lo hanno (supervisore/specialisti/primario), non del solo modello di visione
+# che vede unicamente la foto isolata.
 PHOTO_PROMPT = """
 Sei un AI Medical Imaging Analyst esperto in Triage di Pronto Soccorso.
-Analizza l'immagine fornita e restituisci un oggetto JSON con ESATTAMENTE questi 3 campi. Non aggiungere altro testo.
+Analizza l'immagine fornita e restituisci un oggetto JSON con ESATTAMENTE questi 2 campi. Non aggiungere altro testo.
 
 1. "lesion_type": Classifica la lesione in poche parole (es. "lacerazione", "ustione di secondo grado", "frattura esposta").
 
-2. "estimated_severity": Valuta l'urgenza visiva scegliendo SOLO tra: "ESI-1", "ESI-2", "ESI-3", "ESI-4", "ESI-5".
-   - ESI-5: nessuna lesione visibile o lesioni irrilevanti.
-   - ESI-4: lesioni superficiali, piccoli tagli, abrasioni.
-   - ESI-3: ferite che richiedono attenzione medica ma non immediata.
-   - ESI-2: ferite profonde, ustioni estese, sospette fratture, dolore severo.
-   - ESI-1: emorragie attive, ossa esposte, necrosi, cianosi, rischio vita immediato.
-
-3. "description": Scrivi una descrizione clinica oggettiva.
+2. "description": Scrivi una descrizione clinica oggettiva.
    - Specifica: parte del corpo, dimensioni stimate, stato dei margini, colore della pelle, presenza di sangue o corpi estranei.
    - Stile: professionale e medico.
 
-Se l'immagine non è chiara o non mostra lesioni corporee, scrivi "NON VALUTABILE" in tutti i campi.
+Se l'immagine non è chiara o non mostra lesioni corporee, scrivi "NON VALUTABILE" in entrambi i campi.
 
 SCHEMA JSON DI OUTPUT:
 {
     "lesion_type": "...",
-    "estimated_severity": "ESI-X",
     "description": "..."
 }
 """

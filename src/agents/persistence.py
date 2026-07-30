@@ -32,7 +32,7 @@ async def read_db_node(state: MedicalState):
     except (IndexError, AttributeError):
         msg = "Inserire il proprio Codice Fiscale per procedere."
         await cl.Message(content=msg, author=Authors.SYSTEM).send()
-        return {"next_step": "reviewer", "general_history": [AIMessage(content=msg)]}
+        return {"next_step": "read_db", "general_history": [AIMessage(content=msg)]}
 
     # 2. Validazione minima: 16 caratteri alfanumerici
     if not is_valid_fiscal_code(raw):
@@ -105,7 +105,7 @@ async def read_db_node(state: MedicalState):
     msg = (
         "Codice Fiscale non presente nel sistema: verrà creata una nuova scheda clinica.\n\n"
         "Si prega di fornire i seguenti dati anagrafici: nome, cognome, età, sesso, "
-        "allergie e patologie pregresse, se presenti."
+        "allergie e patologie pregresse."
     )
     await cl.Message(content=msg, author=Authors.SYSTEM).send()
     print(f"READ_DB | Nuovo paziente: {raw}")

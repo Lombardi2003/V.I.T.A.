@@ -6,7 +6,7 @@ from scripts.setup_env import ensure_env
 
 ensure_env()  # completa .env con eventuali valori mancanti prima di importare i moduli che ne dipendono
 
-from src.state import MedicalState
+from src.state import MedicalState, PatientCard, PhotoAnalysis
 from src.graph import generate_graph
 from src.llm import Models
 from src.agents import llm_agents, llm_photography
@@ -39,7 +39,7 @@ async def start():
         f"Ollama / {Models.Ollama.TEXT_LLAMA3}",
     ]
     vision_choices = [
-        f"Groq / {Models.Groq.VISION_MAVERICK}",
+        f"Groq / {Models.Groq.VISION_QWEN}",
         f"Ollama / {Models.Ollama.VISION_MOONDREAM}",
     ]
 
@@ -93,15 +93,14 @@ async def main(message: cl.Message):
     }
     
     if image_path:
-        update["patient_card"] = {
-            "symptom": {
-                "photo": {
-                    "photo_url": image_path,
-                    "description": "",
-                    "injury_type": ""
-                }
-            }
-        }
+        # patient_card non ha un reducer di merge (vedi src/state.py): scrivere
+        # solo {"symptom": {"photo": ...}} sostituirebbe l'INTERA cartella
+        # clinica, cancellando anagrafica e sintomo gia' raccolti - leggiamo
+        # quindi la cartella attuale, aggiorniamo solo il campo foto, e
+        # riscriviamo tutto (stesso pattern gia' usato da intake_node/reviewer_node).
+        current_card = PatientCard(**app.get_state(config).values.get("patient_card", {}))
+        current_card.symptom.photo = PhotoAnalysis(photo_url=image_path, description="", injury_type="")
+        update["patient_card"] = current_card.model_dump()
 
     app.update_state(config, update)
 

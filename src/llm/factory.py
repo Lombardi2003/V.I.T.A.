@@ -22,7 +22,7 @@ _DEFAULT_TEXT_MODELS = {
     "ollama": Models.Ollama.TEXT_LLAMA3,
 }
 _DEFAULT_VISION_MODELS = {
-    "groq": Models.Groq.VISION_MAVERICK,
+    "groq": Models.Groq.VISION_QWEN,
     "ollama": Models.Ollama.VISION_MOONDREAM,
 }
 
@@ -53,7 +53,12 @@ def get_llm(
         base_url=_BASE_URLS[provider],
         api_key=settings.groq_api_key if provider == "groq" else "ollama",
     )
-    if vision and provider == "groq":
-        kwargs["model_kwargs"] = {"response_format": {"type": "json_object"}}
+    # NB: niente response_format={"type": "json_object"} forzato per la visione -
+    # qwen/qwen3.6-27b (il modello vision Groq attuale) e' un modello "thinking":
+    # antepone un blocco <think>...</think> di ragionamento prima del JSON, e il
+    # validatore server-side di response_format=json_object si aspetta l'INTERA
+    # risposta come JSON puro, quindi fallisce con 400 json_validate_failed
+    # (verificato con chiamata reale). Il parsing lato Python (photography_node)
+    # gestisce gia' testo extra prima/dopo il JSON.
 
     return ChatOpenAI(**kwargs)

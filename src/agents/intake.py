@@ -2,6 +2,7 @@
 # raccolta anagrafica, raccolta sintomi, analisi foto.
 import json
 import base64
+import re
 
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 import chainlit as cl
@@ -314,8 +315,21 @@ async def reviewer_node(state: MedicalState):
     }
 
 
+# Riconosce un rifiuto della foto anche con formulazioni diverse dal solo "no"
+# esatto (osservato altrove nel progetto: un confronto esatto sull'intero
+# messaggio e' troppo fragile, es. "no grazie non ho foto" non veniva
+# riconosciuto) - ancorato all'inizio del messaggio per evitare falsi positivi
+# su parole comuni che contengono "no" (es. "sono", "buono").
+NO_PHOTO_PATTERN = re.compile(r"^(no|nessuna|niente|non\s+ho|skip)\b")
+
+
 # Nodo per l'analisi dell'immagine del danno
 async def photography_node(state: MedicalState):
+    """Compito puramente osservativo: descrive cosa mostra la foto (tipo di
+    lesione, descrizione clinica), senza esprimere un giudizio di gravita' -
+    quella valutazione richiede il quadro clinico completo ed e' compito dei
+    nodi successivi (supervisore/specialisti/primario), non di chi vede solo
+    un'immagine isolata."""
 
     def encode_image(image_path: str) -> str | None:
         try:
@@ -327,26 +341,20 @@ async def photography_node(state: MedicalState):
     last_user = state.triage_history[-1] if state.triage_history else None
     ultimo_testo = last_user.content.strip().lower() if last_user and isinstance(last_user, HumanMessage) else ""
 
-    # 1. Utente ha scritto 'no' → salta foto
-    if ultimo_testo in {"no", "nessuna", "non ho", "skip"}:
-        msg = "📸 Nessuna foto fornita, procedo con la sola descrizione dei sintomi."
-        await cl.Message(content=msg).send()
-        return {
-            "general_history": [AIMessage(content=msg)],
-            "next_step": "supervisor",
-        }
-
-    # 2. Foto presente nello stato → analizza
+    # 1. Foto presente nello stato → analizza (controllo PRIMA del rifiuto testuale:
+    # una foto davvero allegata e' un segnale inequivocabile, non deve essere
+    # scartata solo perche' la didascalia che la accompagna inizia per caso con
+    # una parola tipo "no" - es. "No, non è preoccupante ma eccola comunque",
+    # osservato in test reale).
     photo: PhotoAnalysis | None = state.patient_card.symptom.photo
     if photo and photo.photo_url:
         image_path = photo.photo_url
         print(f"📸 PHOTOGRAPHY: analisi immagine → {image_path}")
-        await cl.Message(content="📸 Immagine ricevuta, analisi in corso...").send()
 
         base64_image = encode_image(image_path)
         if not base64_image:
-            msg = f"❌ Impossibile aprire l'immagine. Procedo senza foto."
-            await cl.Message(content=msg).send()
+            msg = "Impossibile aprire l'immagine. Procedo senza foto."
+            await cl.Message(content=msg, author=Authors.PHOTOGRAPHY).send()
             return {"general_history": [AIMessage(content=msg)], "next_step": "supervisor"}
 
         messages = [
@@ -357,48 +365,80 @@ async def photography_node(state: MedicalState):
             ]),
         ]
 
+        async with cl.Step(name="Analisi foto", type="tool", default_open=False, show_input="text") as step:
+            step.input = image_path
+            try:
+                response = llm_photography.invoke(messages)
+                step.output = response.content
+            except Exception as e:
+                step.output = f"Errore durante la chiamata al modello di visione: {e}"
+                print(f"📸 PHOTOGRAPHY: errore chiamata modello → {e}")
+                msg = "Errore durante l'elaborazione della foto. Procedo comunque."
+                await cl.Message(content=msg, author=Authors.PHOTOGRAPHY).send()
+                return {"general_history": [AIMessage(content=msg)], "next_step": "supervisor"}
+
         try:
-            response = llm_photography.invoke(messages)
-            clean = response.content.replace("```json", "").replace("```", "").strip()
+            # qwen/qwen3.6-27b (modello vision Groq) e' un modello "thinking":
+            # antepone un blocco <think>...</think> di ragionamento prima del
+            # JSON vero e proprio (osservato in test reale) - lo scartiamo e
+            # poi estraiamo il primo oggetto {...}, invece di assumere che
+            # l'intera risposta sia gia' JSON puro.
+            clean = re.sub(r"<think>.*?</think>", "", response.content, flags=re.DOTALL)
+            clean = clean.replace("```json", "").replace("```", "").strip()
+            match = re.search(r"\{.*\}", clean, flags=re.DOTALL)
+            if match:
+                clean = match.group(0)
             clinical_data = json.loads(clean)
 
-            tipo    = clinical_data.get("lesion_type", "N/A")
-            gravita = clinical_data.get("estimated_severity", "N/A")
-            descr   = clinical_data.get("description", "N/A")
+            tipo  = clinical_data.get("lesion_type", "")
+            descr = clinical_data.get("description", "")
 
-            print(f"📸 PHOTOGRAPHY: {tipo} | gravità {gravita}")
-            await cl.Message(content=f"📸 Analisi completata: **{tipo}** — gravità stimata **{gravita}**.").send()
+            # Rete di sicurezza: validiamo tramite il modello Pydantic prima di
+            # salvare, come gia' fatto per intake/reviewer - se il modello di
+            # visione restituisce qualcosa fuori schema, non ci fidiamo alla cieca.
+            photo_analysis = PhotoAnalysis(photo_url=image_path, description=descr, injury_type=tipo)
 
             updated_card = state.patient_card.model_dump()
-            updated_card["symptom"]["photo"] = {
-                "photo_url":    image_path,
-                "description":  descr,
-                "injury_type":  tipo,
-            }
+            updated_card["symptom"]["photo"] = photo_analysis.model_dump()
+            print(f"📸 PHOTOGRAPHY → {tipo}")
+            print(f"   Card: {json.dumps(updated_card, ensure_ascii=False)}")
+            await cl.Message(content=f"Analisi completata: **{tipo}**.", author=Authors.PHOTOGRAPHY).send()
+
             return {
                 "patient_card":    updated_card,
-                "general_history": [AIMessage(content=f"Foto analizzata: {tipo} — gravità {gravita}. {descr}")],
+                "general_history": [AIMessage(content=f"Foto analizzata: {tipo}. {descr}")],
                 "next_step":       "supervisor",
             }
 
         except json.JSONDecodeError:
-            msg = "❌ Errore tecnico nell'analisi della foto. Procedo con la sola descrizione."
-            await cl.Message(content=msg).send()
+            msg = "Errore tecnico nell'analisi della foto. Procedo con la sola descrizione."
+            await cl.Message(content=msg, author=Authors.PHOTOGRAPHY).send()
             return {"general_history": [AIMessage(content=msg)], "next_step": "supervisor"}
 
         except Exception as e:
-            msg = "❌ Errore durante l'elaborazione della foto. Procedo comunque."
+            # Copre sia un eventuale errore di validazione di PhotoAnalysis sia
+            # qualunque altro imprevisto nel parsing della risposta.
+            msg = "Errore durante l'elaborazione della foto. Procedo comunque."
             print(f"📸 PHOTOGRAPHY: errore generico → {e}")
-            await cl.Message(content=msg).send()
+            await cl.Message(content=msg, author=Authors.PHOTOGRAPHY).send()
             return {"general_history": [AIMessage(content=msg)], "next_step": "supervisor"}
 
-    # 3. Nessuna foto e nessun 'no' → chiedi all'utente
+    # 2. Nessuna foto allegata: l'utente ha rifiutato esplicitamente → salta
+    if NO_PHOTO_PATTERN.match(ultimo_testo):
+        msg = "Nessuna foto fornita, procedo con la sola descrizione dei sintomi."
+        await cl.Message(content=msg, author=Authors.PHOTOGRAPHY).send()
+        return {
+            "general_history": [AIMessage(content=msg)],
+            "next_step": "supervisor",
+        }
+
+    # 3. Nessuna foto e nessun rifiuto → chiedi all'utente
     msg = (
-        "📸 Se hai una foto della zona interessata (ferita, gonfiore, eruzioni, ecc.) "
+        "Se hai una foto della zona interessata (ferita, gonfiore, eruzioni, ecc.) "
         "inviala ora per una valutazione più accurata.\n"
         "Altrimenti scrivi **'no'** per continuare senza foto."
     )
-    await cl.Message(content=msg).send()
+    await cl.Message(content=msg, author=Authors.PHOTOGRAPHY).send()
     return {
         "general_history": [AIMessage(content=msg)],
         "triage_history":  [AIMessage(content=msg)],

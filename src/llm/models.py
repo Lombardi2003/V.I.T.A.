@@ -10,7 +10,10 @@ class Models:
     class Groq:
         TEXT_8B = "llama-3.1-8b-instant"
         TEXT_70B = "llama-3.3-70b-versatile"
-        VISION_MAVERICK = "meta-llama/llama-4-maverick-17b-128e-instruct"
+        # meta-llama/llama-4-maverick-17b-128e-instruct: non piu' accessibile su
+        # questo account (404 model_not_found, verificato con chiamata reale) -
+        # qwen/qwen3.6-27b e' l'unico modello vision confermato raggiungibile.
+        VISION_QWEN = "qwen/qwen3.6-27b"
 
     class Ollama:
         TEXT_LLAMA3 = "llama3"
