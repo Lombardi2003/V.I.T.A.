@@ -16,3 +16,4 @@ class Authors:
     INTAKE = "Anagrafica"
     REVIEWER = "Revisore"
     PHOTOGRAPHY = "Fotografia"
+    SUPERVISOR = "Supervisore"

@@ -39,6 +39,8 @@
     --avatar-color-system: var(--left-color);
     --avatar-color-anagrafica: #ff8d42;
     --avatar-color-revisore: #a78bfa;
+    --avatar-color-fotografia: #fbbf24;
+    --avatar-color-supervisore: #60a5fa;
 
     /*
      * VARIABILI PER LA CHAT
@@ -520,6 +522,14 @@ button[id^="step-"]:hover {
     --avatar-accent: var(--avatar-color-revisore);
 }
 
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Fotografia"]) {
+    --avatar-accent: var(--avatar-color-fotografia);
+}
+
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Supervisore"]) {
+    --avatar-accent: var(--avatar-color-supervisore);
+}
+
 /* Icona per gli Step ("Ricerca Codice Fiscale", "Analisi..."): a differenza
  * dei messaggi, /avatars/{nome dello step} e' generato automaticamente da
  * Chainlit lato server e IGNORA i file in public/avatars/ (verificato
@@ -529,7 +539,9 @@ button[id^="step-"]:hover {
  * non toccata, solo l'immagine cambia. */
 [data-step-type="tool"] img[alt="Avatar for Ricerca Codice Fiscale"],
 [data-step-type="tool"] img[alt="Avatar for Analisi dati anagrafici"],
-[data-step-type="tool"] img[alt="Avatar for Analisi sintomi"] {
+[data-step-type="tool"] img[alt="Avatar for Analisi sintomi"],
+[data-step-type="tool"] img[alt="Avatar for Analisi foto"],
+[data-step-type="tool"] img[alt="Avatar for Smistamento clinico"] {
     visibility: hidden !important;
 }
 
@@ -543,6 +555,14 @@ button[id^="step-"]:hover {
 }
 [data-step-type="tool"] span.relative:has(img[alt="Avatar for Analisi sintomi"]) {
     background-image: url('/public/avatars/revisore.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Analisi foto"]) {
+    background-image: url('/public/avatars/fotografia.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Smistamento clinico"]) {
+    background-image: url('/public/avatars/supervisore.svg') !important;
     background-size: cover !important;
 }
 
@@ -595,28 +615,36 @@ button[id^="step-"]:hover {
     margin-left: auto !important;
 }
 
-/* 2. Immagine: bordi arrotondati solo in alto, stesso colore bolla */
+/* 2. Immagine: bordi arrotondati su tutti i lati, sempre - bolla a se'
+ * stante. Avevamo provato a "fondere" foto+didascalia in un'unica forma
+ * (bordi squadrati sul lato di contatto), ma con didascalie corte (es. "ok")
+ * la bolla di testo risulta stretta e attaccata solo all'angolo destro,
+ * lasciando la parte sotto la foto vuota - un effetto "a elle" asimmetrico
+ * anche peggiore del problema originale (osservato in test reale). Due
+ * bolle indipendenti, entrambe arrotondate, sono piu' robuste qualunque
+ * sia la lunghezza della didascalia. */
 .dark .flex.flex-col.gap-4.items-end .rounded-sm.bg-accent {
     background-color: var(--dark-chat-color-user) !important;
     border-radius: var(--chat-bubble-radius-user) !important;
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
 }
 .light .flex.flex-col.gap-4.items-end .rounded-sm.bg-accent {
     background-color: var(--light-chat-color-user) !important;
     border-radius: var(--chat-bubble-radius-user) !important;
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
 }
 
-/* 3. Bolla testo: bordi arrotondati solo in basso */
-.dark .flex.flex-col.gap-4.items-end + .flex.flex-row .bg-accent.rounded-3xl {
-    border-top-right-radius: 0 !important;
-    border-top-left-radius: 0 !important;
+/* 3. Piccolo distacco visivo tra la foto e la bolla di testo che segue
+ * (quando c'e' una didascalia) - altrimenti, essendo entrambe arrotondate,
+ * si toccherebbero senza soluzione di continuita'. */
+.flex.flex-col.gap-4.items-end + .flex.flex-row:has(.message-content:not(:empty)) {
+    margin-top: 6px !important;
 }
-.light .flex.flex-col.gap-4.items-end + .flex.flex-row .bg-accent.rounded-3xl {
-    border-top-right-radius: 0 !important;
-    border-top-left-radius: 0 !important;
+
+/* Chainlit genera comunque la bolla di testo anche quando il messaggio e'
+ * SOLO immagine (nessuna didascalia) - resta vuota ma visibile (piccolo
+ * rettangolo colorato senza contenuto). La nascondiamo (solo la bolla, NON la
+ * riga intera - quella porta anche l'avatar utente via ::after, vedi sopra). */
+.flex.flex-col.gap-4.items-end + .flex.flex-row .bg-accent.rounded-3xl:has(.message-content:empty) {
+    display: none !important;
 }
 
 /* 4. Gap 0 tra immagine e testo */

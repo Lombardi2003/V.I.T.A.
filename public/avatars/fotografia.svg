@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="vitaFotografiaAvatarGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="80" height="80" fill="url(#vitaFotografiaAvatarGradient) #f59e0b"/>
+
+  <!-- Fotocamera: rappresenta l'acquisizione dell'immagine clinica -->
+  <g fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="13" y="27" width="54" height="32" rx="6"/>
+    <path d="M30,27 L33,21 L47,21 L50,27"/>
+    <circle cx="40" cy="43" r="10"/>
+  </g>
+</svg>

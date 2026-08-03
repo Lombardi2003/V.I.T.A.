@@ -8,42 +8,70 @@ import chainlit as cl
 from src.state import MedicalState
 from .prompts import SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, ALL_SPECIALISTS
 from .common import stream_response
+from .authors import Authors
+
+
+# Nomi leggibili degli specialisti per i messaggi rivolti al paziente - le
+# chiavi restano in inglese perche' sono anche i nomi dei nodi nel grafo
+# (vedi ALL_SPECIALISTS in prompts.py e i nodi specialisti in questo file).
+SPECIALIST_DISPLAY_NAMES = {
+    "cardiologist": "Cardiologia",
+    "neurologist": "Neurologia",
+    "dermatologist": "Dermatologia",
+    "orthopedist": "Ortopedia",
+    "gastroenterologist": "Gastroenterologia",
+    "pulmonologist": "Pneumologia",
+    "ent": "Otorinolaringoiatria",
+    "ophthalmologist": "Oftalmologia",
+    "urologist": "Urologia",
+    "general_practitioner": "Medicina Generale",
+}
 
 
 # Nodo del supervisore
 async def supervisor_node(state: MedicalState):
-    """ Analizza la conversazione e decide chi deve intervenire."""
-    print("🚦 SUPERVISOR: ", end="", flush=True)
+    """Legge la cartella clinica (e la foto, se presente) e decide quali
+    specialisti coinvolgere - compito puramente di smistamento, non emette
+    diagnosi ne' giudizi clinici propri."""
     card = state.patient_card
-    photo = state.get.photo_analysis
-    card_str = json.dumps(card, ensure_ascii=False)
-    photo_str = json.dumps(photo, ensure_ascii=False) if photo else "Nessuna foto."
+    photo = card.symptom.photo
+    card_str = card.model_dump_json()
+    photo_str = photo.model_dump_json() if photo else "Nessuna foto."
 
     prompt = SUPERVISOR_PROMPT.format(patient_card=card_str, photo_analysis=photo_str)
-    content = stream_response(prompt)
     selected_specialists = ["general_practitioner"]
+
+    async with cl.Step(name="Smistamento clinico", type="tool", default_open=False, show_input="text") as step:
+        step.input = card_str
+        content = stream_response(prompt)
+        step.output = content
 
     try:
         clean_content = content.replace("```json", "").replace("```", "").strip()
         data = json.loads(clean_content)
 
         specs = data.get("specialists", [])
-
         clean_specs = [s.lower() for s in specs if s.lower() in ALL_SPECIALISTS]
 
         if clean_specs:
             selected_specialists = clean_specs
 
-        print(f"-> Scelti: {selected_specialists}")
-        await cl.Message(content=f"🚦 SUPERVISOR: ho deciso di coinvolgere: {', '.join(selected_specialists).upper()}").send()
+        print(f"🚦 SUPERVISOR → {selected_specialists}")
 
     except json.JSONDecodeError:
-        print("-> Errore lettura JSON. Fallback su Medico Generale.")
+        print("🚦 SUPERVISOR: errore lettura JSON, fallback su medico generale")
+
+    nomi = ", ".join(SPECIALIST_DISPLAY_NAMES.get(s, s) for s in selected_specialists)
+    plurale = len(selected_specialists) > 1
+    verbo = "Verranno coinvolti in consulto" if plurale else "Verrà coinvolto in consulto"
+    msg = f"{verbo}: **{nomi}**."
+    await cl.Message(content=msg, author=Authors.SUPERVISOR).send()
 
     checklist = {specialist: False for specialist in selected_specialists}
-    print("Checklist specialisti necessari:", checklist)
+    print(f"   Checklist: {checklist}")
     return {
-        "needed_specialists": checklist
+        "needed_specialists": checklist,
+        "general_history": [AIMessage(content=msg)],
     }
 
 

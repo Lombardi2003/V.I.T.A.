@@ -402,7 +402,12 @@ async def photography_node(state: MedicalState):
             updated_card["symptom"]["photo"] = photo_analysis.model_dump()
             print(f"📸 PHOTOGRAPHY → {tipo}")
             print(f"   Card: {json.dumps(updated_card, ensure_ascii=False)}")
-            await cl.Message(content=f"Analisi completata: **{tipo}**.", author=Authors.PHOTOGRAPHY).send()
+            # Mostriamo anche la descrizione clinica, non solo l'etichetta di
+            # classificazione - altrimenti il paziente non vede cosa il modello
+            # ha davvero osservato nell'immagine (margini, colore, sanguinamento,
+            # ecc.), solo un'etichetta di poche parole.
+            riepilogo = f"Analisi completata: **{tipo}**." + (f"\n\n{descr}" if descr else "")
+            await cl.Message(content=riepilogo, author=Authors.PHOTOGRAPHY).send()
 
             return {
                 "patient_card":    updated_card,
