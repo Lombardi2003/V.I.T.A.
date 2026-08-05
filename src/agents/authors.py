@@ -17,3 +17,18 @@ class Authors:
     REVIEWER = "Revisore"
     PHOTOGRAPHY = "Fotografia"
     SUPERVISOR = "Supervisore"
+    PRIMARY_PHYSICIAN = "Primario"
+
+    # Specialisti (le chiavi in inglese sono i ruoli usati nel grafo/ALL_SPECIALISTS,
+    # questi sono i nomi mostrati in chat - vedi SPECIALIST_DISPLAY_NAMES in clinical.py
+    # per la mappa ruolo->nome, tenuta in sync a mano con questi valori).
+    CARDIOLOGIST = "Cardiologia"
+    NEUROLOGIST = "Neurologia"
+    DERMATOLOGIST = "Dermatologia"
+    ORTHOPEDIST = "Ortopedia"
+    GASTROENTEROLOGIST = "Gastroenterologia"
+    PULMONOLOGIST = "Pneumologia"
+    ENT = "Otorinolaringoiatria"
+    OPHTHALMOLOGIST = "Oftalmologia"
+    UROLOGIST = "Urologia"
+    GENERAL_PRACTITIONER = "Medicina Generale"

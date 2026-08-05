@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="vitaOtorinoAvatarGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="80" height="80" fill="url(#vitaOtorinoAvatarGradient) #f43f5e"/>
+
+  <!-- Orecchio stilizzato: otorinolaringoiatria -->
+  <g fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M46,18 C34,18 25,27 25,39 C25,47 29,51 29,58 C29,62 26,64 22,63"/>
+    <path d="M46,18 C55,18 61,25 61,33 C61,42 53,44 53,52 C53,58 48,61 42,59"/>
+    <path d="M40,29 C46,29 50,33 50,39 C50,44 47,47 43,48"/>
+  </g>
+</svg>

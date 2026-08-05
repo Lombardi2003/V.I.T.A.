@@ -10,12 +10,21 @@ class PhotoAnalysis(BaseModel):
     description: str = ""      # Dettagli clinici visivi (es. "Ferita profonda su...")
     injury_type: str = ""      # Classificazione breve (es. "Lacerazione")
 
+# Classe BaseModel per un singolo sintomo riferito dal paziente - un paziente
+# puo' presentarne piu' di uno in sistemi diversi (es. mal di testa + vista
+# offuscata), ognuno con la propria intensita'/durata (osservato in test reale:
+# durate diverse per sintomi diversi nello stesso messaggio) - vedi
+# SymptomProfile sotto e reviewer_node in intake.py per come si accumulano.
+class Symptom(BaseModel):
+    """ Un singolo sintomo riferito dal paziente. """
+    description: str = ""
+    intensity: str = ""
+    duration: str = ""
+
 # Classe BaseModel per il profilo dei sintomi del paziente
 class SymptomProfile(BaseModel):
     """ Profilo dei sintomi del paziente. """
-    main_symptom: str = ""
-    intensity: str = ""
-    duration: str = ""
+    symptoms: List[Symptom] = Field(default_factory=list)
     photo: Optional[PhotoAnalysis] = None     # Opzionali: diciamo che di base partono come None
 
 # Classe BaseModel per la cartella clinica del paziente
@@ -36,17 +45,37 @@ class PatientCard(BaseModel):
     symptom: SymptomProfile = Field(default_factory=SymptomProfile)
 
 # Classe BaseModel per il report dello specialista
+#
+# urgency_level usa i codici colore del triage italiano (non la scala ESI):
+# e' la stessa scala gia' richiesta da PRIMARY_PROMPT per la diagnosi finale -
+# tenerle allineate qui evita un mismatch che farebbe fallire la validazione
+# Pydantic al primo referto (osservato leggendo il codice, mai girato prima).
 class SpecialistReport(BaseModel):
     """ Report di diagnosi e consigli di uno specialista. """
     summary_diagnosis: str = ""
     details: str = ""
     recommended_exams: List[str] = Field(default_factory=list)
-    urgency_level: Literal["ESI-1", "ESI-2", "ESI-3", "ESI-4", "ESI-5"] = "ESI-5"
+    urgency_level: Literal["ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO"] = "BIANCO"
+
+# Classe BaseModel per un intervento al "tavolo" tra specialisti (domanda,
+# obiezione o commento) - non e' una diagnosi finale, quella resta su
+# SpecialistReport/medical_reports.
+class RoundTableEntry(BaseModel):
+    """ Un singolo intervento nella discussione tra specialisti. """
+    author: str                    # ruolo di chi parla, es. "cardiologist"
+    to: Optional[str] = None       # ruolo destinatario, None = rivolto a tutti
+    content: str = ""
 
 # Classe BaseModel per la diagnosi finale e le raccomandazioni
+#
+# urgency_level usa la stessa scala di colori italiana di SpecialistReport
+# (non piu' la scala ESI) - erano disallineate: il primario avrebbe potuto
+# ricevere dall'LLM un colore valido per SpecialistReport/PRIMARY_PROMPT ma
+# rifiutato qui dalla validazione Pydantic (mai girato prima, trovato leggendo
+# il codice mentre si ricollegava il primario al grafo).
 class FinalDiagnosis(BaseModel):
     diagnosis: str = ""
-    urgency_level: Literal["ESI-1", "ESI-2", "ESI-3", "ESI-4", "ESI-5"] = "ESI-5"
+    urgency_level: Literal["ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO"] = "BIANCO"
     specialists_involved: List[str] = Field(default_factory=list)
     operational_guidance: str = ""
     recommendations: str = ""
@@ -71,8 +100,18 @@ class MedicalState(BaseModel):
 
     final_diagnosis: FinalDiagnosis = Field(default_factory=FinalDiagnosis)
 
-    # Consulto tra specialisti in corso: {"da": str, "a": str, "domanda": str, "risposta": Optional[str]}
-    inter_consultation: Optional[dict] = None
+    # Discussione tra gli specialisti selezionati dal supervisore ("tavola
+    # rotonda"): ogni intervento si accumula (operator.add, come le cronologie
+    # sopra) - chi entra in scena vede tutta la trascrizione, non solo l'ultimo
+    # scambio. round_count e' un contatore semplice (l'ultimo valore vince,
+    # nessun bisogno di accumulo) che il router usa per limitare i giri.
+    round_table: Annotated[list[RoundTableEntry], operator.add] = Field(default_factory=list)
+    round_count: int = 0
+    # Indice di turno nell'ordine fisso di needed_specialists (deciso dal
+    # supervisore) - round_table da solo non basta per sapere "di chi e' il
+    # turno dopo", perche' registra solo chi interviene a voce, non chi
+    # deposita direttamente la diagnosi senza parlare. Gestito solo dal router.
+    current_turn_index: int = 0
 
     # Contabilita' di conversazione per intake_node: true quando l'argomento e' stato
     # affrontato (anche per negarlo), non dato clinico -> non sta su PatientCard.

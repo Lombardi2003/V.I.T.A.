@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="vitaOftalmologiaAvatarGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="80" height="80" fill="url(#vitaOftalmologiaAvatarGradient) #0ea5e9"/>
+
+  <!-- Occhio: oftalmologia -->
+  <g fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14,40 C22,26 30,20 40,20 C50,20 58,26 66,40 C58,54 50,60 40,60 C30,60 22,54 14,40 Z"/>
+    <circle cx="40" cy="40" r="9"/>
+  </g>
+</svg>

@@ -1,6 +1,7 @@
 # Librerie di base per la costruzione del grafo
 from langgraph.graph import StateGraph, START,END
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 # Import dei moduli locali
 from src.state import MedicalState
@@ -9,12 +10,13 @@ from src.agents import reviewer_node, user_node, read_db_node, intake_node, save
 # Funzione per la creazione del grafo di stato
 #
 # STATO DI LAVORO: stiamo rivedendo il grafo un nodo alla volta. Per ora sono
-# attivi "read_db", "intake", "reviewer", "photography" e "supervisor" (+ "user"
-# come punto di interruzione). "supervisor" termina ancora direttamente su END
-# (non porta a "router") - e' un punto di osservazione intermedio finche' non
-# riattiviamo anche il router. Il resto e' commentato e verra' riattivato mano
-# a mano che sistemiamo ciascun nodo - NON e' stato rimosso, solo disattivato
-# temporaneamente.
+# attivi "read_db", "intake", "reviewer", "photography", "supervisor", "router",
+# i 10 specialisti e "chief_physician" (+ "user" come punto di interruzione).
+# Quando il primario ha sintetizzato la diagnosi finale, il grafo termina su
+# END - il salvataggio su DB (save_db/modify_db) NON e' ancora ricollegato
+# (deciso cosi' per poter provare il flusso completo senza toccare il
+# database) - e' un punto di osservazione temporaneo. Il resto e' commentato
+# e verra' riattivato in seguito - NON e' stato rimosso, solo disattivato.
 def generate_graph():
     workflow = StateGraph(MedicalState)
 
@@ -25,24 +27,22 @@ def generate_graph():
     workflow.add_node("reviewer", reviewer_node)
     workflow.add_node("photography", photography_node)
     workflow.add_node("supervisor", supervisor_node)
+    workflow.add_node("router", router)
+    workflow.add_node("cardiologist", cardiologist_node)
+    workflow.add_node("neurologist", neurologist_node)
+    workflow.add_node("orthopedist", orthopedic_node)
+    workflow.add_node("gastroenterologist", gastroenterologist_node)
+    workflow.add_node("dermatologist", dermatologist_node)
+    workflow.add_node("pulmonologist", pneumologist_node)
+    workflow.add_node("ent", ent_node)
+    workflow.add_node("ophthalmologist", ophthalmologist_node)
+    workflow.add_node("urologist", urologist_node)
+    workflow.add_node("general_practitioner", general_practitioner_node)
+    workflow.add_node("chief_physician", primary_node)
 
     # Nodi non ancora riattivati
-    # workflow.add_node("router", router)
     # workflow.add_node("save_db", save_db_node)
     # workflow.add_node("modify_db", modify_db_node)
-
-    # Specialisti (non ancora riattivati)
-    # workflow.add_node("cardiologist", cardiologist_node)
-    # workflow.add_node("neurologist", neurologist_node)
-    # workflow.add_node("orthopedist", orthopedic_node)
-    # workflow.add_node("gastroenterologist", gastroenterologist_node)
-    # workflow.add_node("dermatologist", dermatologist_node)
-    # workflow.add_node("pulmonologist", pneumologist_node)
-    # workflow.add_node("ent", ent_node)
-    # workflow.add_node("ophthalmologist", ophthalmologist_node)
-    # workflow.add_node("urologist", urologist_node)
-    # workflow.add_node("general_practitioner", general_practitioner_node)
-    # workflow.add_node("chief_physician", primary_node)
 
     # Archi attivi
     workflow.add_edge(START, "read_db")
@@ -68,9 +68,44 @@ def generate_graph():
         }
         )
 
-    # "supervisor" termina ancora su END: punto di osservazione temporaneo
-    # finche' non riattiviamo "router" e gli specialisti.
-    workflow.add_edge("supervisor", END)
+    workflow.add_edge("supervisor", "router")
+
+    # Il router fa girare il tavolo tra gli specialisti scelti dal supervisore
+    # (mai tutti e 10 - solo quelli in state.needed_specialists). Quando tutti
+    # hanno depositato la diagnosi, passa al primario.
+    workflow.add_conditional_edges(
+        "router",
+        lambda state: state.next_step,
+        {
+            "cardiologist": "cardiologist",
+            "neurologist": "neurologist",
+            "orthopedist": "orthopedist",
+            "gastroenterologist": "gastroenterologist",
+            "dermatologist": "dermatologist",
+            "pulmonologist": "pulmonologist",
+            "ent": "ent",
+            "ophthalmologist": "ophthalmologist",
+            "urologist": "urologist",
+            "general_practitioner": "general_practitioner",
+            "chief_physician": "chief_physician",
+        }
+    )
+
+    workflow.add_edge("cardiologist", "router")
+    workflow.add_edge("neurologist", "router")
+    workflow.add_edge("orthopedist", "router")
+    workflow.add_edge("gastroenterologist", "router")
+    workflow.add_edge("dermatologist", "router")
+    workflow.add_edge("pulmonologist", "router")
+    workflow.add_edge("ent", "router")
+    workflow.add_edge("ophthalmologist", "router")
+    workflow.add_edge("urologist", "router")
+    workflow.add_edge("general_practitioner", "router")
+
+    # Il primario chiude il grafo su END - il salvataggio su DB (save_db/modify_db,
+    # sotto in "archi non ancora riattivati") non e' ancora collegato di proposito,
+    # per poter testare l'intero flusso di diagnosi senza toccare il database.
+    workflow.add_edge("chief_physician", END)
 
     # Archi non ancora riattivati
     # workflow.add_conditional_edges(
@@ -90,35 +125,6 @@ def generate_graph():
     #         "supervisor":  "supervisor",
     #     }
     # )
-    # workflow.add_edge("supervisor", "router")
-    # workflow.add_conditional_edges(
-    #     "router",
-    #     router_decision,
-    #     {
-    #         "cardiologist": "cardiologist",
-    #         "neurologist": "neurologist",
-    #         "orthopedist": "orthopedist",
-    #         "gastroenterologist": "gastroenterologist",
-    #         "dermatologist": "dermatologist",
-    #         "pulmonologist": "pulmonologist",
-    #         "ent": "ent",
-    #         "ophthalmologist": "ophthalmologist",
-    #         "urologist": "urologist",
-    #         "general_practitioner": "general_practitioner",
-    #         "chief_physician": "chief_physician"
-    #     }
-    # )
-    #
-    # workflow.add_edge("cardiologist", "router")
-    # workflow.add_edge("neurologist", "router")
-    # workflow.add_edge("orthopedist", "router")
-    # workflow.add_edge("gastroenterologist", "router")
-    # workflow.add_edge("dermatologist", "router")
-    # workflow.add_edge("pulmonologist", "router")
-    # workflow.add_edge("ent", "router")
-    # workflow.add_edge("ophthalmologist", "router")
-    # workflow.add_edge("urologist", "router")
-    # workflow.add_edge("general_practitioner", "router")
     #
     # workflow.add_conditional_edges(
     #     "chief_physician",
@@ -132,44 +138,60 @@ def generate_graph():
     # workflow.add_edge("save_db", END) # Nodo finale (Exit Point)
     # workflow.add_edge("modify_db", END) # Nodo finale (Exit Point)
 
-    memory = MemorySaver()
+    # SpecialistReport e RoundTableEntry vivono annidati dentro un dict/list
+    # (medical_reports, round_table) - il serializzatore di default di
+    # MemorySaver li tratta come tipi "non registrati" e stampa un warning ad
+    # ogni checkpoint (osservato in test reale), avvisando che in una futura
+    # versione di LangGraph la deserializzazione verrebbe bloccata del tutto.
+    # Li registriamo esplicitamente per silenziare l'avviso senza attivare la
+    # modalita' strict (che romperebbe la deserializzazione di questi tipi).
+    serde = JsonPlusSerializer(
+        allowed_msgpack_modules=[
+            ("src.state", "SpecialistReport"),
+            ("src.state", "RoundTableEntry"),
+        ]
+    )
+    memory = MemorySaver(serde=serde)
     return workflow.compile(
         checkpointer=memory,
         interrupt_before=["user"]
     )
 # Funzioni di routing
 def router(state: MedicalState):
-    specialist = state.get("needed_specialists", {})
-    consultation = state.get("inter_consultation")
+    """Fa girare il tavolo tra gli specialisti scelti dal supervisore, in un
+    ordine fisso (quello con cui il supervisore li ha selezionati), saltando
+    chi ha gia' depositato la diagnosi. Non guarda round_table per capire di
+    chi e' il turno (registra solo chi interviene a voce, non chi deposita
+    la diagnosi in silenzio) - usa invece current_turn_index, un puntatore
+    esplicito gestito solo qui. Quando tutti hanno depositato, passa al
+    primario."""
+    order = list(state.needed_specialists.keys())
+    n = len(order)
 
-    print("\n\n" + "="*40)
-    print("🔀 ROUTER: Controllo la direzione...")
-    print("Stato specialisti:", specialist)
-    if consultation:
-        print("⚠️ CONSULTO IN CORSO:", consultation)
-    print("="*40 + "\n\n")
+    if n == 0:
+        # Difensivo: non dovrebbe succedere, il supervisore sceglie sempre
+        # almeno uno specialista (fallback su medico generale).
+        print("🔀 ROUTER: nessuno specialista selezionato, passo al primario")
+        return {"next_step": "chief_physician"}
 
-    # 1. PRECEDENZA ASSOLUTA: C'è un consulto in sospeso?
-    if consultation:
-        # Se c'è una domanda senza risposta, mandiamo dal destinatario ('a')
-        if not consultation.get("risposta"):
-            print(f"   -> 🚨 Deviazione: Mando la cartella al {consultation['a'].upper()} per rispondere alla domanda!")
-            return {"next_step": consultation["a"]}
+    pending = {role for role, done in state.needed_specialists.items() if not done}
 
-        # Se c'è la risposta, rimandiamo la cartella a chi l'aveva chiesta ('da')
-        else:
-            print(f"   -> 🚨 Risposta pronta: Rimando la cartella al {consultation['da'].upper()} per fargli finire il referto!")
-            return {"next_step": consultation["da"]}
+    if not pending:
+        print("🔀 ROUTER: tutti gli specialisti hanno depositato la diagnosi -> primario")
+        return {"next_step": "chief_physician"}
 
-    # 2. LOGICA NORMALE: Nessun consulto tra medici, smistamento classico
-    for role, status in specialist.items():
-        if not status:
-            print(f"   -> Smisto la visita normale al: {role}")
-            return {"next_step": role}
+    idx = state.current_turn_index % n
+    for _ in range(n):
+        if order[idx] in pending:
+            break
+        idx = (idx + 1) % n
 
-    # 3. Se tutti hanno visitato, andiamo dal primario
-    print("   -> Tutti i medici hanno concluso. Passo al PRIMARIO.")
-    return {"next_step": "chief_physician"}
+    next_role = order[idx]
+    round_count = state.round_count + (1 if idx == n - 1 else 0)
+    next_idx = (idx + 1) % n
+
+    print(f"🔀 ROUTER: turno di {next_role} (giro {round_count})")
+    return {"next_step": next_role, "current_turn_index": next_idx, "round_count": round_count}
 
 def photo_next(state: MedicalState):
     return state.next_step  # "photography" oppure "supervisor"
@@ -182,12 +204,6 @@ def patient_exists(state: MedicalState):
     print("Verifica esistenza paziente, stato attuale:", state.get("patient_exists"))
     print("\n\n\n\n")
     return state.get("patient_exists")
-
-def router_decision(state: MedicalState):
-    # Recuperiamo la decisione presa dal nodo router
-    destinazione = state.get("next_step")
-    print(f"🛤️ ROUTER: Smistamento verso -> {destinazione}")
-    return destinazione
 
 # Funzione di routing da user
 def user_next(state: MedicalState):

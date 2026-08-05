@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="vitaDermatologiaAvatarGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f472b6"/>
+      <stop offset="100%" stop-color="#db2777"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="80" height="80" fill="url(#vitaDermatologiaAvatarGradient) #ec4899"/>
+
+  <!-- Goccia con lente: osservazione della pelle, dermatologia -->
+  <g fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M40,16 C40,16 22,38 22,50 C22,60 30,66 40,66 C50,66 58,60 58,50 C58,38 40,16 40,16 Z"/>
+    <circle cx="40" cy="48" r="8"/>
+  </g>
+</svg>

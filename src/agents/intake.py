@@ -214,27 +214,39 @@ async def reviewer_node(state: MedicalState):
     INTENSITY_KEYWORDS = ["liev", "legger", "modest", "moderat", "fort", "intens", "insopportabil", "grave", "acut"]
     DURATION_KEYWORDS = ["giorn", "settiman", "minut", "mese", "mesi", " ore", " ora", "stanotte", "ieri", "oggi", "adesso", "da quando"]
 
+    def _is_complete(s: dict) -> bool:
+        return s["intensity"].strip().lower() in VALID_INTENSITY_VALUES and bool(s["duration"].strip())
+
+    # Rete di sicurezza per il caso con PIU' sintomi in scheda: il modello puo'
+    # restituire un match esatto sulla "description" di un sintomo diverso da
+    # quello a cui il messaggio si riferisce davvero (osservato in test reale:
+    # "la vista sfocata e' lieve", che nomina esplicitamente il sintomo giusto,
+    # ha comunque aggiornato "mal di testa" lasciando "vista sfocata" vuoto -
+    # il sistema e' rimasto bloccato a richiedere la stessa informazione).
+    # Se il sintomo bersaglio non e' l'UNICO incompleto in scheda, pretendiamo
+    # un riscontro testuale prima di fidarci; se e' l'unico incompleto, un
+    # riferimento implicito ("e' un dolore forte, ce l'ho da 2 giorni" senza
+    # rinominare il sintomo) resta valido, come gia' prima di questo fix.
+    def _symptom_mentioned(description: str, text_lower: str) -> bool:
+        words = [w for w in re.findall(r"\w+", description.lower()) if len(w) >= 4]
+        if not words:
+            return True  # descrizione troppo corta per un controllo affidabile
+        return any(w in text_lower for w in words)
+
     def _missing_fields(card: PatientCard) -> list[str]:
         missing = []
         if not card.first_name.strip():
             missing.append("nome")
         if not card.age.strip():
             missing.append("età")
-        if not card.symptom.main_symptom.strip():
-            missing.append("sintomo principale")
-        if card.symptom.intensity.strip().lower() not in VALID_INTENSITY_VALUES:
-            missing.append(f"intensità (valori: {', '.join(VALID_INTENSITY_VALUES)})")
-        if not card.symptom.duration.strip():
-            missing.append("durata del sintomo")
+        if not card.symptom.symptoms:
+            missing.append("almeno un sintomo")
+        for s in card.symptom.symptoms:
+            if s.intensity.strip().lower() not in VALID_INTENSITY_VALUES:
+                missing.append(f"intensità di '{s.description}' (valori: {', '.join(VALID_INTENSITY_VALUES)})")
+            if not s.duration.strip():
+                missing.append(f"durata di '{s.description}'")
         return missing
-
-    def _merge(base: dict, update: dict) -> dict:
-        for k, v in update.items():
-            if isinstance(v, dict) and isinstance(base.get(k), dict):
-                base[k] = _merge(base[k], v)
-            elif v not in (None, "", []):
-                base[k] = v
-        return base
 
     # 1. Stato attuale
     current_card: PatientCard = state.patient_card
@@ -250,34 +262,66 @@ async def reviewer_node(state: MedicalState):
         content = stream_response(prompt)
         step.output = content
 
-    # 3. Parsing + merge (solo il sintomo: l'anagrafica resta di competenza di intake_node)
+    # 3. Parsing (solo il sintomo: l'anagrafica resta di competenza di intake_node)
     try:
         clean = content.replace("```json", "").replace("```", "").strip()
         data = json.loads(clean)
-        extracted_symptom: dict = data.get("updated_card", {}).get("symptom", {})
+        extracted_list = data.get("updated_card", {}).get("symptom", {}).get("symptoms", [])
+        if not isinstance(extracted_list, list):
+            extracted_list = []
         llm_reply: str = data.get("message_to_user", "")
-
-        # L'LLM concorda correttamente l'aggettivo con il sostantivo della frase
-        # (es. "un dolore moderato", maschile, per accordo con "dolore") ma
-        # VALID_INTENSITY_VALUES accetta solo la forma femminile "moderata" -
-        # normalizziamo qui invece di scartare un'estrazione che era corretta
-        # (osservato in test reale: "moderato" veniva rifiutato e richiesto
-        # di nuovo, anche se il paziente l'aveva gia' detto chiaramente).
-        if extracted_symptom.get("intensity", "").strip().lower() == "moderato":
-            extracted_symptom["intensity"] = "moderata"
-
-        if extracted_symptom.get("intensity") and not _mentions(user_msg, INTENSITY_KEYWORDS):
-            print(f"⚠️ REVIEWER: 'intensity' scartata, nessun riscontro nel messaggio utente: {extracted_symptom['intensity']!r}")
-            extracted_symptom["intensity"] = ""
-        if extracted_symptom.get("duration") and not _mentions(user_msg, DURATION_KEYWORDS):
-            print(f"⚠️ REVIEWER: 'duration' scartata, nessun riscontro nel messaggio utente: {extracted_symptom['duration']!r}")
-            extracted_symptom["duration"] = ""
     except json.JSONDecodeError:
-        extracted_symptom = {}
+        extracted_list = []
         llm_reply = ""
 
+    # 4. Merge sintomo-per-sintomo: un elemento estratto aggiorna un sintomo
+    # esistente se la sua "description" coincide (case-insensitive) con uno già
+    # in scheda - il prompt istruisce l'LLM a riusare la stringa esistente
+    # verbatim per questo scopo (vedi REVIEWER_PROMPT) - altrimenti diventa un
+    # sintomo nuovo. Lavoriamo su dict, non sui modelli Pydantic, per semplicita'.
+    symptoms = [s.model_dump() for s in current_card.symptom.symptoms]
+    incomplete_before = [s["description"].strip().lower() for s in symptoms if not _is_complete(s)]
+    user_msg_lower = user_msg.lower()
+
+    for item in extracted_list:
+        if not isinstance(item, dict):
+            continue
+        desc = str(item.get("description", "")).strip()
+        if not desc:
+            continue  # senza descrizione non c'e' modo di associarlo a un sintomo
+
+        intensity = str(item.get("intensity", "")).strip()
+        duration = str(item.get("duration", "")).strip()
+
+        # Stessa normalizzazione/rete di sicurezza di prima, applicata per sintomo.
+        if intensity.lower() == "moderato":
+            intensity = "moderata"
+        if intensity and not _mentions(user_msg, INTENSITY_KEYWORDS):
+            print(f"⚠️ REVIEWER: 'intensity' scartata per '{desc}', nessun riscontro nel messaggio: {intensity!r}")
+            intensity = ""
+        if duration and not _mentions(user_msg, DURATION_KEYWORDS):
+            print(f"⚠️ REVIEWER: 'duration' scartata per '{desc}', nessun riscontro nel messaggio: {duration!r}")
+            duration = ""
+
+        existing = next((s for s in symptoms if s["description"].strip().lower() == desc.lower()), None)
+        if existing:
+            # Riferimento implicito valido SOLO se questo e' l'unico sintomo
+            # ancora incompleto in scheda (nessun'altra ambiguita' possibile) -
+            # altrimenti pretendiamo che il messaggio nomini davvero questo
+            # sintomo, per non rischiare di aggiornare quello sbagliato.
+            is_only_incomplete = incomplete_before == [desc.lower()]
+            if not is_only_incomplete and not _symptom_mentioned(desc, user_msg_lower):
+                print(f"⚠️ REVIEWER: aggiornamento per '{desc}' scartato, il messaggio non lo nomina e ci sono altri sintomi in scheda")
+                continue
+            if intensity:
+                existing["intensity"] = intensity
+            if duration:
+                existing["duration"] = duration
+        else:
+            symptoms.append({"description": desc, "intensity": intensity, "duration": duration})
+
     merged_dict = current_card.model_dump()
-    merged_dict["symptom"] = _merge(merged_dict.get("symptom", {}), extracted_symptom)
+    merged_dict["symptom"]["symptoms"] = symptoms
     try:
         merged_card = PatientCard(**merged_dict)
     except Exception as e:
@@ -286,7 +330,7 @@ async def reviewer_node(state: MedicalState):
         print(f"⚠️ REVIEWER: dati non validi dall'LLM, scarto questo aggiornamento: {e}")
         merged_card = current_card
 
-    # 4. Validazione Python
+    # 5. Validazione Python
     missing = _missing_fields(merged_card)
     triage_complete = len(missing) == 0
 
@@ -301,7 +345,7 @@ async def reviewer_node(state: MedicalState):
         elenco = "\n".join(f"  • {campo}" for campo in missing)
         reply = f"Per completare la scheda clinica sono necessarie le seguenti informazioni:\n{elenco}"
 
-    # 5. Log + output
+    # 6. Log + output
     print(f"🧐 REVIEWER → completo={triage_complete} | mancanti={missing}")
     print(f"   Card: {merged_card.model_dump_json()}")
     await cl.Message(content=reply, author=Authors.REVIEWER).send()

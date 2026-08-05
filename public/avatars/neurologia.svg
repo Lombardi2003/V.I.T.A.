@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="vitaNeurologiaAvatarGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#4338ca"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="80" height="80" fill="url(#vitaNeurologiaAvatarGradient) #6366f1"/>
+
+  <!-- Cervello stilizzato: neurologia -->
+  <g fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M40,18 C31,18 25,24 25,31 C25,34 26,37 28,39 C26,41 25,44 25,47 C25,55 32,61 40,61 C48,61 55,55 55,47 C55,44 54,41 52,39 C54,37 55,34 55,31 C55,24 49,18 40,18 Z"/>
+    <path d="M40,20 L40,59"/>
+    <path d="M31,27 C34,29 34,33 31,35"/>
+    <path d="M49,27 C46,29 46,33 49,35"/>
+    <path d="M31,44 C34,46 34,50 31,52"/>
+    <path d="M49,44 C46,46 46,50 49,52"/>
+  </g>
+</svg>

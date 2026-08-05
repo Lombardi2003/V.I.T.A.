@@ -41,6 +41,16 @@
     --avatar-color-revisore: #a78bfa;
     --avatar-color-fotografia: #fbbf24;
     --avatar-color-supervisore: #60a5fa;
+    --avatar-color-cardiologia: #f87171;
+    --avatar-color-neurologia: #818cf8;
+    --avatar-color-dermatologia: #f472b6;
+    --avatar-color-ortopedia: #d6a06e;
+    --avatar-color-gastroenterologia: #a3e635;
+    --avatar-color-pneumologia: #22d3ee;
+    --avatar-color-otorino: #fb7185;
+    --avatar-color-oftalmologia: #38bdf8;
+    --avatar-color-urologia: #34d399;
+    --avatar-color-medicina-generale: #a78bfa;
 
     /*
      * VARIABILI PER LA CHAT
@@ -530,6 +540,37 @@ button[id^="step-"]:hover {
     --avatar-accent: var(--avatar-color-supervisore);
 }
 
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Cardiologia"]) {
+    --avatar-accent: var(--avatar-color-cardiologia);
+}
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Neurologia"]) {
+    --avatar-accent: var(--avatar-color-neurologia);
+}
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Dermatologia"]) {
+    --avatar-accent: var(--avatar-color-dermatologia);
+}
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Ortopedia"]) {
+    --avatar-accent: var(--avatar-color-ortopedia);
+}
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Gastroenterologia"]) {
+    --avatar-accent: var(--avatar-color-gastroenterologia);
+}
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Pneumologia"]) {
+    --avatar-accent: var(--avatar-color-pneumologia);
+}
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Otorinolaringoiatria"]) {
+    --avatar-accent: var(--avatar-color-otorino);
+}
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Oftalmologia"]) {
+    --avatar-accent: var(--avatar-color-oftalmologia);
+}
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Urologia"]) {
+    --avatar-accent: var(--avatar-color-urologia);
+}
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Medicina%20Generale"]) {
+    --avatar-accent: var(--avatar-color-medicina-generale);
+}
+
 /* Icona per gli Step ("Ricerca Codice Fiscale", "Analisi..."): a differenza
  * dei messaggi, /avatars/{nome dello step} e' generato automaticamente da
  * Chainlit lato server e IGNORA i file in public/avatars/ (verificato
@@ -541,7 +582,17 @@ button[id^="step-"]:hover {
 [data-step-type="tool"] img[alt="Avatar for Analisi dati anagrafici"],
 [data-step-type="tool"] img[alt="Avatar for Analisi sintomi"],
 [data-step-type="tool"] img[alt="Avatar for Analisi foto"],
-[data-step-type="tool"] img[alt="Avatar for Smistamento clinico"] {
+[data-step-type="tool"] img[alt="Avatar for Smistamento clinico"],
+[data-step-type="tool"] img[alt="Avatar for Cardiologia"],
+[data-step-type="tool"] img[alt="Avatar for Neurologia"],
+[data-step-type="tool"] img[alt="Avatar for Dermatologia"],
+[data-step-type="tool"] img[alt="Avatar for Ortopedia"],
+[data-step-type="tool"] img[alt="Avatar for Gastroenterologia"],
+[data-step-type="tool"] img[alt="Avatar for Pneumologia"],
+[data-step-type="tool"] img[alt="Avatar for Otorinolaringoiatria"],
+[data-step-type="tool"] img[alt="Avatar for Oftalmologia"],
+[data-step-type="tool"] img[alt="Avatar for Urologia"],
+[data-step-type="tool"] img[alt="Avatar for Medicina Generale"] {
     visibility: hidden !important;
 }
 
@@ -563,6 +614,46 @@ button[id^="step-"]:hover {
 }
 [data-step-type="tool"] span.relative:has(img[alt="Avatar for Smistamento clinico"]) {
     background-image: url('/public/avatars/supervisore.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Cardiologia"]) {
+    background-image: url('/public/avatars/cardiologia.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Neurologia"]) {
+    background-image: url('/public/avatars/neurologia.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Dermatologia"]) {
+    background-image: url('/public/avatars/dermatologia.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Ortopedia"]) {
+    background-image: url('/public/avatars/ortopedia.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Gastroenterologia"]) {
+    background-image: url('/public/avatars/gastroenterologia.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Pneumologia"]) {
+    background-image: url('/public/avatars/pneumologia.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Otorinolaringoiatria"]) {
+    background-image: url('/public/avatars/otorinolaringoiatria.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Oftalmologia"]) {
+    background-image: url('/public/avatars/oftalmologia.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Urologia"]) {
+    background-image: url('/public/avatars/urologia.svg') !important;
+    background-size: cover !important;
+}
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Medicina Generale"]) {
+    background-image: url('/public/avatars/medicina_generale.svg') !important;
     background-size: cover !important;
 }
 

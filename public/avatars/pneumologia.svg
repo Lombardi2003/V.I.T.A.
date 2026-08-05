@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="vitaPneumologiaAvatarGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#0e7490"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="80" height="80" fill="url(#vitaPneumologiaAvatarGradient) #06b6d4"/>
+
+  <!-- Polmoni con trachea: pneumologia -->
+  <g fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M40,16 L40,32"/>
+    <path d="M40,32 Q30,34 27,42"/>
+    <path d="M40,32 Q50,34 53,42"/>
+    <path d="M27,42 C18,42 15,50 15,57 C15,63 19,66 24,64 C28,62 29,57 29,50 C29,46 28,43 27,42 Z"/>
+    <path d="M53,42 C62,42 65,50 65,57 C65,63 61,66 56,64 C52,62 51,57 51,50 C51,46 52,43 53,42 Z"/>
+  </g>
+</svg>

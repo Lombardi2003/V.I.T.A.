@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="vitaMedicinaGeneraleAvatarGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="80" height="80" fill="url(#vitaMedicinaGeneraleAvatarGradient)"/>
+
+  <!-- Stetoscopio: medicina generale -->
+  <g fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 12 C23 26, 24 34, 34 38 C38 40, 40 42, 40 48"/>
+    <path d="M57 12 C57 26, 56 34, 46 38 C42 40, 40 42, 40 48"/>
+    <path d="M40 48 L40 56"/>
+    <circle cx="40" cy="64" r="9"/>
+  </g>
+  <circle cx="40" cy="64" r="2.5" fill="rgba(255,255,255,0.95)"/>
+</svg>

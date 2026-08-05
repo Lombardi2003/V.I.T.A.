@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="vitaGastroenterologiaAvatarGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a3e635"/>
+      <stop offset="100%" stop-color="#4d7c0f"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="80" height="80" fill="url(#vitaGastroenterologiaAvatarGradient) #84cc16"/>
+
+  <!-- Stomaco stilizzato: gastroenterologia -->
+  <g fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32,17 C32,17 30,24 30,30 C30,38 22,40 22,50 C22,59 30,64 39,64 C50,64 58,56 58,45 C58,36 52,30 45,29 C40,28 38,24 38,17"/>
+  </g>
+</svg>

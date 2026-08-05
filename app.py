@@ -107,7 +107,6 @@ async def main(message: cl.Message):
     try:
         async for event in app.astream_events(None, config=config, version="v2"):
             kind = event["event"]
-            node_name = event.get("metadata", {}).get("langgraph_node", "")
 
             if kind == "on_chain_error":
                 node_name = event.get("metadata", {}).get("langgraph_node", "")
@@ -116,11 +115,6 @@ async def main(message: cl.Message):
                 import traceback
                 traceback.print_exc()
                 await cl.Message(content=f"❌ Errore durante l'elaborazione: {error}").send()
-
-            if kind == "on_chat_model_stream" and node_name == "chief_physician":
-                chunk = event["data"].get("chunk")
-                if chunk and hasattr(chunk, "content") and chunk.content:
-                    await cl.Message(content=chunk.content).stream_token(chunk.content)  # type: ignore
 
     except Exception as e:
         await cl.Message(
