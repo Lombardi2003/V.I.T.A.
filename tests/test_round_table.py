@@ -91,13 +91,16 @@ async def main():
     for entry in final_state.get("round_table", []):
         autore = entry.author if hasattr(entry, "author") else entry.get("author")
         destinatario = entry.to if hasattr(entry, "to") else entry.get("to")
+        posizione = entry.posizione if hasattr(entry, "posizione") else entry.get("posizione")
         contenuto = entry.content if hasattr(entry, "content") else entry.get("content")
-        print(f"  [{autore} -> {destinatario or 'tutti'}] {contenuto}")
+        tag = f" [{posizione}]" if posizione else ""
+        print(f"  [{autore} -> {destinatario or 'tutti'}]{tag} {contenuto}")
 
     reports = final_state.get("medical_reports", {})
     print(f"\nmedical_reports depositati: {list(reports.keys())}")
 
-    print(f"\nround_count finale: {final_state.get('round_count')}")
+    print(f"\nspecialisti reclutati durante la discussione: {final_state.get('recruited_specialists_count')}")
+    print(f"total_turns finale: {final_state.get('total_turns')}")
     print(f"\nfinal_diagnosis: {final_state.get('final_diagnosis')}")
 
 

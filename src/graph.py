@@ -5,7 +5,7 @@ from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 # Import dei moduli locali
 from src.state import MedicalState
-from src.agents import reviewer_node, user_node, read_db_node, intake_node, save_db_node, modify_db_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node
+from src.agents import reviewer_node, user_node, read_db_node, intake_node, save_db_node, modify_db_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node, MAX_TOTAL_TURNS, MAX_RECRUITED_SPECIALISTS
 
 # Funzione per la creazione del grafo di stato
 #
@@ -158,40 +158,73 @@ def generate_graph():
     )
 # Funzioni di routing
 def router(state: MedicalState):
-    """Fa girare il tavolo tra gli specialisti scelti dal supervisore, in un
-    ordine fisso (quello con cui il supervisore li ha selezionati), saltando
-    chi ha gia' depositato la diagnosi. Non guarda round_table per capire di
-    chi e' il turno (registra solo chi interviene a voce, non chi deposita
-    la diagnosi in silenzio) - usa invece current_turn_index, un puntatore
-    esplicito gestito solo qui. Quando tutti hanno depositato, passa al
-    primario."""
-    order = list(state.needed_specialists.keys())
-    n = len(order)
+    """Decide chi parla al prossimo turno al tavolo degli specialisti.
 
-    if n == 0:
-        # Difensivo: non dovrebbe succedere, il supervisore sceglie sempre
-        # almeno uno specialista (fallback su medico generale).
-        print("🔀 ROUTER: nessuno specialista selezionato, passo al primario")
-        return {"next_step": "chief_physician"}
+    Regola principale: se l'ultimo intervento in round_table aveva un
+    destinatario specifico ("to"), parla lui al turno successivo - anche se
+    non era ancora al tavolo (lo "recluta", tetto MAX_RECRUITED_SPECIALISTS
+    oltre alla selezione del supervisore: vedi clinical.py). Questo simula una
+    vera conversazione (chi viene interpellato risponde subito) invece di un
+    giro rigido A-B-A-B che ignora chi si e' appena rivolto a chi.
 
-    pending = {role for role, done in state.needed_specialists.items() if not done}
+    Ripiego: se l'ultimo intervento era rivolto "a tutti" (o non c'e' ancora
+    nessun intervento, o il destinatario ha gia' depositato/il tetto di
+    reclutamento e' gia' pieno), si torna al giro tra chi resta, nell'ordine
+    in cui sono entrati al tavolo (current_turn_index, un puntatore esplicito
+    gestito solo qui - round_table da solo non basta perche' registra solo chi
+    interviene a voce, non chi deposita la diagnosi in silenzio).
 
-    if not pending:
+    total_turns e' un contatore assoluto (non piu' "giri di una lista fissa",
+    perche' la lista ora puo' crescere) che specialist_node usa per forzare il
+    finalize oltre MAX_TOTAL_TURNS - garantisce che si arrivi sempre al
+    primario. Quando tutti hanno depositato, passa al primario.
+    """
+    needed = dict(state.needed_specialists)
+    pending = {role for role, done in needed.items() if not done}
+
+    if not needed or not pending:
         print("🔀 ROUTER: tutti gli specialisti hanno depositato la diagnosi -> primario")
         return {"next_step": "chief_physician"}
 
-    idx = state.current_turn_index % n
-    for _ in range(n):
-        if order[idx] in pending:
-            break
-        idx = (idx + 1) % n
+    recruited_count = state.recruited_specialists_count
+    next_role = None
 
-    next_role = order[idx]
-    round_count = state.round_count + (1 if idx == n - 1 else 0)
-    next_idx = (idx + 1) % n
+    # 1. Priorita': chi e' stato interpellato direttamente nell'ultimo intervento.
+    if state.round_table:
+        last_to = state.round_table[-1].to
+        if last_to:
+            if last_to in pending:
+                next_role = last_to
+            elif last_to not in needed and recruited_count < MAX_RECRUITED_SPECIALISTS:
+                needed[last_to] = False
+                recruited_count += 1
+                next_role = last_to
+                print(f"🔀 ROUTER: {last_to} coinvolto nella discussione su richiesta di un collega")
+            # altrimenti (gia' finalizzato, o tetto di reclutamento pieno):
+            # si ricade nel ripiego al punto 2, "last_to" non e' piu' valido.
 
-    print(f"🔀 ROUTER: turno di {next_role} (giro {round_count})")
-    return {"next_step": next_role, "current_turn_index": next_idx, "round_count": round_count}
+    # 2. Ripiego: giro tra chi resta, nell'ordine di ingresso al tavolo.
+    order = list(needed.keys())
+    n = len(order)
+    if not next_role:
+        idx = state.current_turn_index % n
+        for _ in range(n):
+            if order[idx] in pending:
+                next_role = order[idx]
+                break
+            idx = (idx + 1) % n
+
+    next_idx = (order.index(next_role) + 1) % n
+    total_turns = state.total_turns + 1
+
+    print(f"🔀 ROUTER: turno di {next_role} (battuta {total_turns}/{MAX_TOTAL_TURNS})")
+    return {
+        "next_step": next_role,
+        "current_turn_index": next_idx,
+        "total_turns": total_turns,
+        "needed_specialists": needed,
+        "recruited_specialists_count": recruited_count,
+    }
 
 def photo_next(state: MedicalState):
     return state.next_step  # "photography" oppure "supervisor"

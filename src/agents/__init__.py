@@ -32,6 +32,8 @@ from .intake import (
     photography_node,
 )
 from .clinical import (
+    MAX_TOTAL_TURNS,
+    MAX_RECRUITED_SPECIALISTS,
     supervisor_node,
     specialist_node,
     cardiologist_node,

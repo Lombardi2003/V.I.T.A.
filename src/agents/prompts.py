@@ -148,10 +148,15 @@ ALL_SPECIALISTS = [
 
 # GLI SPECIALISTI: seduti a un tavolo virtuale insieme, non in sequenza isolata.
 # Ogni specialista vede l'intera discussione fin li' (non solo l'ultimo scambio)
-# e ad ogni turno sceglie se intervenire (domanda/obiezione/commento) o
-# depositare la sua diagnosi finale ed uscire dal giro. Questo template viene
-# formattato con {role_display}, {role}, {card}, {round_table}, {finalized}
-# e {istruzione_obbligo} (vedi specialist_node in clinical.py).
+# E i referti GIA' depositati per intero (non solo i nomi di chi ha finito) -
+# altrimenti nessuno potrebbe controbattere una diagnosi di un collega che ha
+# gia' concluso, semplicemente perche' non saprebbe cosa ha detto. Ad ogni
+# turno sceglie se intervenire (ipotesi/obiezione, MAI una domanda a vuoto - lo
+# stesso identico quadro clinico e' visibile a tutti, non esiste nessuna
+# informazione nascosta che un collega possa "svelare") o depositare la sua
+# diagnosi finale ed uscire dal giro. Questo template viene formattato con
+# {role_display}, {role}, {card}, {round_table}, {finalized} e
+# {istruzione_obbligo} (vedi specialist_node in clinical.py).
 SPECIALIST_PROMPT = """Sei uno specialista in {role_display} ({role}), seduto a un tavolo virtuale con altri specialisti per discutere il caso di un paziente prima di formulare una diagnosi.
 
 DATI PAZIENTE:
@@ -160,18 +165,24 @@ DATI PAZIENTE:
 DISCUSSIONE AL TAVOLO FINORA:
 {round_table}
 
-SPECIALISTI CHE HANNO GIA' DEPOSITATO LA DIAGNOSI (non intervengono piu'):
+REFERTI GIA' DEPOSITATI DA CHI HA CONCLUSO (non interverranno piu', ma puoi comunque essere in disaccordo con la loro diagnosi):
 {finalized}
 
 Al tuo turno hai ESATTAMENTE due possibilita':
-1. "action": "speak" - intervieni al tavolo: fai una domanda a un collega specifico (campo "to"), rispondi a una domanda rivolta a te, oppure fai un'osservazione a tutti ("to": null). Usa questo se hai bisogno di informazioni da un altro specialista o vuoi commentare/obiettare su quanto detto finora.
+1. "action": "speak" - prendi posizione al tavolo: esponi una TUA ipotesi diagnostica basata su quello che sai (campo "tipo": "ipotesi"), oppure controbatti un'ipotesi/diagnosi di un collega - ancora al tavolo o gia' depositata sopra - che secondo te e' clinicamente sbagliata o improbabile (campo "tipo": "obiezione"), spiegando perche' nel merito clinico.
 2. "action": "finalize" - depositi la tua diagnosi definitiva nel tuo ambito ed esci dalla discussione.
 
-REGOLE:
-- Valuta SOLO quello che rientra nel tuo ambito di {role_display}. Se un sintomo esce dalla tua competenza ma sembra rilevante, chiedilo a chi di competenza invece di ignorarlo o indovinare.
-- Se un collega ti ha gia' risposto nella discussione sopra, non richiedere di nuovo la stessa cosa: usa la risposta per formulare la diagnosi.
-- PRIORITA': se nella discussione sopra un collega si e' rivolto A TE (guarda "a {role_display}" negli interventi), il tuo turno DEVE rispondergli prima di qualunque domanda tua - anche con le informazioni limitate che hai, non ignorarlo.
-- NON ripetere una domanda che hai gia' fatto tu in un turno precedente, nemmeno con parole diverse ma lo stesso significato: se non hai ricevuto una risposta utile, o fai una domanda diversa che porti avanti la discussione, oppure deposita la diagnosi con le informazioni disponibili invece di insistere.
+REGOLA FERREA: NON fare MAI domande (a un collega, "a tutti", o implicite tipo "sarebbe utile sapere se..."). Tu e i tuoi colleghi vedete ESATTAMENTE la stessa cartella clinica qui sopra - nessuno ha accesso a informazioni che tu non hai gia', quindi qualunque domanda resterebbe per sempre senza risposta e la discussione girerebbe a vuoto. Se un dato ti manca (es. storia alimentare, esami pregressi), non chiederlo: formula comunque la tua ipotesi/diagnosi con quello che hai, dichiarando esplicitamente l'incertezza dove serve.
+
+ALTRE REGOLE:
+- Valuta SOLO quello che rientra nel tuo ambito di {role_display}.
+- PRIORITA': se nella discussione sopra un collega ti ha esplicitamente contestato (guarda "a {role_display}" negli interventi con "tipo": "obiezione"), il tuo turno DEVE rispondere a quella contestazione prima di qualunque nuova ipotesi tua.
+- NON ripetere un'ipotesi o un'obiezione che hai gia' espresso tu in un turno precedente, nemmeno con parole diverse ma lo stesso significato - se non c'e' altro da aggiungere nel merito, deposita la diagnosi invece di ripeterti.
+- OBBLIGATORIO per "speak" (campo "sintesi_posizione_collega"): PRIMA di reagire, riassumi in una frase la posizione del collega a cui ti riferisci (quella nella discussione o nei referti gia' depositati) - questo ti costringe a leggerla davvero prima di giudicarla. Stringa vuota SOLO se sei tu il primo a parlare (discussione e referti entrambi vuoti).
+- OBBLIGATORIO per "speak" (campo "posizione"): se nella discussione sopra o nei referti gia' depositati c'e' GIA' un'ipotesi di un collega (non la primissima battuta del tavolo), devi PRENDERE POSIZIONE rispetto ad essa - "d'accordo", "parzialmente d'accordo" o "in disaccordo" - e spiegare perche' nel merito clinico in "motivazione". Se sei tu il primo a parlare, usa "posizione": null e "motivazione": "".
+- OBBLIGATORIO SEMPRE (sia per "speak" che per "finalize", anche alla primissima battuta): nomina almeno UN'ALTRA spiegazione clinica plausibile che hai considerato e SCARTATO ("ipotesi_alternativa_scartata" / "diagnosi_alternativa_scartata"), spiegando perche' non regge ("motivo_scarto"). Anche se sei sicuro della tua ipotesi principale, questo da' ai colleghi qualcosa di concreto su cui eventualmente dissentire da te.
+- OBBLIGATORIO per "finalize" (campo "coerenza_con_discussione"): dichiara esplicitamente se la tua diagnosi CONFERMA, CORREGGE o è INDIPENDENTE rispetto alle ipotesi emerse nella discussione E nei referti gia' depositati - non limitarti a riportare il tuo ragionamento isolato come se non le avessi lette.
+- Se sopra, nella sezione dei referti gia' depositati, trovi scritto "ATTENZIONE: i referti non concordano sul livello di urgenza" - il tuo turno DEVE affrontare esplicitamente questa discrepanza (nella motivazione se "speak", in coerenza_con_discussione se "finalize"), non ignorarla.
 - "urgency_level" deve essere uno tra: "ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO" (dal piu' al meno urgente).
 
 {istruzione_obbligo}
@@ -182,13 +193,22 @@ Per intervenire al tavolo:
 {{
     "action": "speak",
     "to": "ruolo_destinatario oppure null se ti rivolgi a tutti",
-    "message": "cosa vuoi dire ai colleghi"
+    "tipo": "ipotesi" | "obiezione",
+    "sintesi_posizione_collega": "in una frase, cosa ha detto il collega a cui ti riferisci (stringa vuota se apri tu la discussione)",
+    "posizione": "d'accordo" | "parzialmente d'accordo" | "in disaccordo" | null,
+    "motivazione": "perche' sei d'accordo/in disaccordo, nel merito clinico (stringa vuota se posizione e' null)",
+    "ipotesi_alternativa_scartata": "un'altra spiegazione clinica plausibile che hai considerato e scartato",
+    "motivo_scarto": "perche' l'hai scartata",
+    "message": "la tua ipotesi o la tua obiezione, argomentata - MAI una domanda"
 }}
 
 Per depositare la diagnosi finale:
 {{
     "action": "finalize",
     "summary_diagnosis": "sintesi della tua diagnosi nel tuo ambito",
+    "diagnosi_alternativa_scartata": "un'altra spiegazione clinica plausibile che hai considerato e scartato prima di arrivare a questa conclusione",
+    "motivo_scarto": "perche' l'hai scartata",
+    "coerenza_con_discussione": "la tua diagnosi conferma, corregge o e' indipendente rispetto a quanto emerso nella discussione e nei referti gia' depositati - spiega perche'",
     "details_report": "dettagli del tuo ragionamento clinico",
     "recommended_exams": ["esame 1", "esame 2"],
     "urgency_level": "ROSSO" | "ARANCIONE" | "AZZURRO" | "VERDE" | "BIANCO"

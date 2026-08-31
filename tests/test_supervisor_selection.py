@@ -59,6 +59,22 @@ async def main():
     )
     await run_case("CASO 3: tre sintomi di ambiti diversi (attesi 3 specialisti)", caso_tre_sintomi)
 
+    caso_singolo = PatientCard(
+        first_name="Elena", last_name="Conti", age="28", sex="femminile",
+        symptom=SymptomProfile(symptoms=[
+            Symptom(description="bruciore quando urino", intensity="forte", duration="1 giorno"),
+        ]),
+    )
+    await run_case("CASO 4: un solo sintomo molto specifico (atteso 1 solo specialista, urologist)", caso_singolo)
+
+    caso_vago = PatientCard(
+        first_name="Davide", last_name="Moretti", age="40", sex="maschile",
+        symptom=SymptomProfile(symptoms=[
+            Symptom(description="febbre e stanchezza generale", intensity="moderata", duration="2 giorni"),
+        ]),
+    )
+    await run_case("CASO 5: sintomo generico/non specifico (atteso general_practitioner)", caso_vago)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

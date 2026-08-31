@@ -31,4 +31,4 @@ class Authors:
     ENT = "Otorinolaringoiatria"
     OPHTHALMOLOGIST = "Oftalmologia"
     UROLOGIST = "Urologia"
-    GENERAL_PRACTITIONER = "Medicina Generale"
+    GENERAL_PRACTITIONER = "Medicina"

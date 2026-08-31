@@ -1,6 +1,7 @@
 # Nodi della fase di valutazione clinica: smistamento (supervisor), consulti
 # specialistici (specialist_node + i 10 wrapper), sintesi finale (primario).
 import json
+import re
 
 from langchain_core.messages import AIMessage
 import chainlit as cl
@@ -10,10 +11,28 @@ from .prompts import SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, ALL_S
 from .common import stream_response, llm_specialist
 from .authors import Authors
 
-# Numero massimo di giri completi del tavolo prima che chi resta sia
-# obbligato a depositare la diagnosi - garantisce che si arrivi sempre al
-# primario, anche nel caso peggiore di una discussione che non converge.
-MAX_ROUNDS = 3
+# Tetto assoluto di battute (speak + finalize insieme) nell'intera discussione -
+# non e' un traguardo (ogni specialista puo' concludere subito se vuole), solo
+# il freno di emergenza che garantisce si arrivi sempre al primario anche nel
+# caso peggiore di una discussione che non converge da sola. Usato sia da
+# router() in graph.py (che conta le battute) sia da specialist_node qui sotto
+# (che forza il finalize quando il tetto e' superato).
+MAX_TOTAL_TURNS = 10
+
+# Quanti specialisti IN PIU' rispetto alla selezione iniziale del supervisore
+# possono essere coinvolti durante la discussione (es. "Cardiologia chiama
+# Neurologia perche' il collega scelto dal supervisore non basta") - un tetto
+# basso di proposito per evitare che il tavolo cresca senza controllo se gli
+# specialisti si chiamano a vicenda. Gestito da router() in graph.py.
+MAX_RECRUITED_SPECIALISTS = 1
+
+# Quante volte ciascuno specialista puo' "speak" prima di essere obbligato a
+# depositare la diagnosi - tetto individuale, piu' stretto del tetto globale
+# MAX_TOTAL_TURNS sopra. Senza questo, si e' osservato in test reale che due
+# specialisti continuano a scambiarsi ipotesi quasi identiche per 4-5 turni a
+# testa prima che il tetto globale intervenga - un tetto per-specialista fa
+# convergere la discussione molto piu' in fretta.
+MAX_SPEAKS_PER_SPECIALIST = 2
 
 
 # Nomi leggibili degli specialisti per i messaggi rivolti al paziente - le
@@ -29,7 +48,7 @@ SPECIALIST_DISPLAY_NAMES = {
     "ent": "Otorinolaringoiatria",
     "ophthalmologist": "Oftalmologia",
     "urologist": "Urologia",
-    "general_practitioner": "Medicina Generale",
+    "general_practitioner": "Medicina",
 }
 
 # Mappa inversa nome->ruolo: il campo "to" che gli specialisti restituiscono
@@ -98,8 +117,44 @@ def _format_round_table(entries: list[RoundTableEntry]) -> str:
     for e in entries:
         chi_parla = SPECIALIST_DISPLAY_NAMES.get(e.author, e.author)
         destinatario = SPECIALIST_DISPLAY_NAMES.get(e.to, e.to) if e.to else "tutti"
-        righe.append(f"{chi_parla} (a {destinatario}): {e.content}")
+        tipo_tag = f" [{e.tipo.upper()}]" if e.tipo else ""
+        posizione_tag = f" [{e.posizione.upper()}]" if e.posizione else ""
+        righe.append(f"{chi_parla} (a {destinatario}){tipo_tag}{posizione_tag}: {e.content}")
     return "\n".join(righe)
+
+
+def _format_finalized_reports(needed_specialists: dict, medical_reports: dict) -> str:
+    """Rende leggibili i referti GIA' depositati per il prompt dello
+    specialista di turno - il contenuto per intero, non solo il nome di chi ha
+    concluso, altrimenti nessuno potrebbe controbattere una diagnosi gia'
+    depositata semplicemente perche' non saprebbe cosa dice.
+
+    Se i referti gia' depositati non concordano sul livello di urgenza, lo
+    segnaliamo esplicitamente in cima - confronto puramente meccanico tra
+    valori gia' strutturati (ROSSO != BIANCO), non un giudizio di Python sul
+    merito clinico: serve solo a far notare al prossimo specialista una
+    discrepanza che altrimenti dovrebbe accorgersi di trovare da solo (vedi
+    SPECIALIST_PROMPT, regola sulla discrepanza di urgenza)."""
+    finalizzati = [r for r, done in needed_specialists.items() if done]
+    if not finalizzati:
+        return "Nessuno ancora."
+    righe = []
+    urgenze = set()
+    for r in finalizzati:
+        nome = SPECIALIST_DISPLAY_NAMES.get(r, r)
+        report = medical_reports.get(r)
+        if report:
+            urgenze.add(report.urgency_level)
+            righe.append(f"{nome}: {report.summary_diagnosis} (urgenza {report.urgency_level}) — {report.details}")
+        else:
+            righe.append(f"{nome}: (referto non disponibile)")
+    testo = "\n".join(righe)
+    if len(urgenze) > 1:
+        testo = (
+            f"ATTENZIONE: i referti non concordano sul livello di urgenza ({', '.join(sorted(urgenze))}).\n\n"
+            f"{testo}"
+        )
+    return testo
 
 
 async def specialist_node(state: MedicalState, role: str):
@@ -112,10 +167,10 @@ async def specialist_node(state: MedicalState, role: str):
 
     card_str = state.patient_card.model_dump_json()
     table_text = _format_round_table(state.round_table)
-    finalizzati = [SPECIALIST_DISPLAY_NAMES.get(r, r) for r, done in state.needed_specialists.items() if done]
-    finalized_text = ", ".join(finalizzati) if finalizzati else "Nessuno ancora."
+    finalized_text = _format_finalized_reports(state.needed_specialists, state.medical_reports)
 
-    force_final = state.round_count >= MAX_ROUNDS
+    own_speak_count = sum(1 for e in state.round_table if e.author == role)
+    force_final = state.total_turns >= MAX_TOTAL_TURNS or own_speak_count >= MAX_SPEAKS_PER_SPECIALIST
     istruzione_obbligo = (
         "ATTENZIONE: il tempo per la discussione e' terminato. Questo turno DEVI "
         'usare esclusivamente "action": "finalize", basandoti su quanto discusso '
@@ -138,7 +193,17 @@ async def specialist_node(state: MedicalState, role: str):
         step.output = content
 
     try:
-        clean_content = content.replace("```json", "").replace("```", "").strip()
+        # qwen/qwen3.6-27b (e altri modelli "thinking") antepongono un blocco
+        # <think>...</think> di ragionamento prima del JSON vero - lo scartiamo
+        # ed estraiamo il primo oggetto {...} invece di assumere che l'intera
+        # risposta sia gia' JSON puro (stesso identico problema gia' risolto
+        # per l'analisi foto in intake.py, quando questo modello veniva usato
+        # solo per la visione).
+        clean_content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)
+        clean_content = clean_content.replace("```json", "").replace("```", "").strip()
+        match = re.search(r"\{.*\}", clean_content, flags=re.DOTALL)
+        if match:
+            clean_content = match.group(0)
         data = json.loads(clean_content)
         action = str(data.get("action", "")).lower().strip()
     except json.JSONDecodeError:
@@ -152,17 +217,83 @@ async def specialist_node(state: MedicalState, role: str):
         target = raw_target if raw_target in ALL_SPECIALISTS else _DISPLAY_NAME_TO_ROLE.get(raw_target)
         if not target or target == role:
             target = None
+
+        if not target:
+            # Rete di sicurezza puramente meccanica (basata su CHI ha parlato
+            # per ultimo, non su COSA ha detto - nessun giudizio di contenuto):
+            # se il modello non specifica un destinatario e la discussione e'
+            # gia' iniziata, ci si rivolge di default all'ultimo collega
+            # diverso da noi che ha parlato. Senza questo, il modello lascia
+            # quasi sempre "to" vuoto anche quando il prompt gli chiede
+            # esplicitamente di confrontarsi con l'ipotesi di un collega
+            # (osservato in test reale) - un destinatario specifico rende la
+            # regola "rispondi a chi ti ha interpellato" molto piu' difficile
+            # da ignorare al turno successivo di quel collega.
+            for prev in reversed(state.round_table):
+                if prev.author != role:
+                    target = prev.author
+                    break
+
         message = str(data.get("message", "")).strip()
 
-        if not message:
-            # Rete di sicurezza: un intervento vuoto non serve a nessuno -
-            # il router lo richiamera' comunque al prossimo giro.
-            print(f"⚠️ {role}: 'speak' senza messaggio, ignorato")
-            return {}
+        # tipo: "ipotesi" o "obiezione" - niente domande a vuoto (vedi
+        # SPECIALIST_PROMPT), non c'e' un "non specificato" valido a parte la
+        # primissima apertura (tavolo e referti entrambi vuoti).
+        tipo = str(data.get("tipo") or "").strip().lower() or None
+        if tipo not in ("ipotesi", "obiezione"):
+            tipo = None
 
-        entry = RoundTableEntry(author=role, to=target, content=message)
+        # posizione/motivazione: obbligano lo specialista a prendere posizione
+        # rispetto a quanto detto dai colleghi (vedi SPECIALIST_PROMPT) invece
+        # di limitarsi ad accumulare la propria ipotesi in parallelo. null e'
+        # valido solo per chi apre la discussione (tavolo ancora vuoto).
+        posizione = str(data.get("posizione") or "").strip().lower() or None
+        if posizione not in ("d'accordo", "parzialmente d'accordo", "in disaccordo"):
+            posizione = None
+        motivazione = str(data.get("motivazione", "")).strip()
+
+        # sintesi_posizione_collega: obbliga a riassumere la posizione del
+        # collega PRIMA di reagire - costringe a "leggerla davvero" invece di
+        # ignorarla (vedi SPECIALIST_PROMPT).
+        sintesi_collega = str(data.get("sintesi_posizione_collega", "")).strip()
+
+        # ipotesi_alternativa_scartata/motivo_scarto: obbligano a nominare
+        # sempre un'altra spiegazione clinica considerata e scartata, anche
+        # quando non c'e' nessuno con cui essere in disaccordo ancora - da'
+        # ai colleghi materiale concreto su cui eventualmente dissentire
+        # (vedi SPECIALIST_PROMPT).
+        alternativa = str(data.get("ipotesi_alternativa_scartata", "")).strip()
+        motivo_scarto = str(data.get("motivo_scarto", "")).strip()
+
+        # "message" e "motivazione" si sovrappongono nello scopo (entrambi
+        # sono "cosa vuoi dire") - osservato in test reale: con un'obiezione
+        # forte, il modello a volte mette tutto il ragionamento in
+        # "motivazione" e lascia "message" vuoto. Scartare l'intervento solo
+        # perche' "message" e' vuoto avrebbe buttato via un'obiezione clinica
+        # vera - consideriamo l'intervento vuoto solo se TUTTI i campi di
+        # contenuto lo sono.
+        parti = []
+        if sintesi_collega:
+            parti.append(f"[Riprendendo il collega: {sintesi_collega}]")
+        if motivazione:
+            parti.append(motivazione)
+        if message:
+            parti.append(message)
+        if alternativa:
+            scarto = f" ({motivo_scarto})" if motivo_scarto else ""
+            parti.append(f"Ho considerato anche '{alternativa}' ma l'ho esclusa{scarto}.")
+        content = " — ".join(parti)
+
+        if not content:
+            # Rete di sicurezza: un intervento davvero vuoto non serve a
+            # nessuno - il router lo richiamera' comunque al prossimo giro.
+            print(f"⚠️ {role}: 'speak' senza contenuto, ignorato")
+            return {}
+        entry = RoundTableEntry(author=role, to=target, tipo=tipo, posizione=posizione, content=content)
         destinatario = SPECIALIST_DISPLAY_NAMES.get(target, target) if target else "tutti"
-        msg_text = f"**{display_name}** (a {destinatario}): {message}"
+        etichette = [e for e in (tipo, posizione) if e]
+        tag = f" *({', '.join(etichette)})*" if etichette else ""
+        msg_text = f"**{display_name}** (a {destinatario}){tag}: {content}"
         await cl.Message(content=msg_text, author=author).send()
 
         return {
@@ -171,10 +302,31 @@ async def specialist_node(state: MedicalState, role: str):
         }
 
     # 2. Deposita la diagnosi finale (azione scelta, o fallback/tempo scaduto)
+    # "coerenza_con_discussione" e "diagnosi_alternativa_scartata" (vedi
+    # SPECIALIST_PROMPT) obbligano lo specialista a dire se la sua diagnosi
+    # conferma/corregge/e' indipendente rispetto a quanto emerso al tavolo, e
+    # a nominare sempre un'altra spiegazione considerata e scartata - li
+    # anteponiamo ai dettagli cosi' restano visibili anche al primario quando
+    # legge tutti i referti insieme.
+    coerenza = str(data.get("coerenza_con_discussione", "")).strip()
+    alternativa_scartata = str(data.get("diagnosi_alternativa_scartata", "")).strip()
+    motivo_scarto_finale = str(data.get("motivo_scarto", "")).strip()
+    dettagli = str(data.get("details_report", "")).strip()
+
+    blocchi = []
+    if coerenza:
+        blocchi.append(coerenza)
+    if alternativa_scartata:
+        scarto = f" ({motivo_scarto_finale})" if motivo_scarto_finale else ""
+        blocchi.append(f"Ipotesi alternativa considerata e scartata: {alternativa_scartata}{scarto}")
+    if dettagli:
+        blocchi.append(dettagli)
+    details_completi = "\n\n".join(blocchi)
+
     try:
         report = SpecialistReport(
             summary_diagnosis=data.get("summary_diagnosis", "Non determinata"),
-            details=data.get("details_report", ""),
+            details=details_completi,
             recommended_exams=data.get("recommended_exams", []),
             urgency_level=data.get("urgency_level", "BIANCO"),
         )

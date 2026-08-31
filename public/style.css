@@ -50,7 +50,7 @@
     --avatar-color-otorino: #fb7185;
     --avatar-color-oftalmologia: #38bdf8;
     --avatar-color-urologia: #34d399;
-    --avatar-color-medicina-generale: #a78bfa;
+    --avatar-color-medicina: #a78bfa;
 
     /*
      * VARIABILI PER LA CHAT
@@ -567,8 +567,8 @@ button[id^="step-"]:hover {
 [data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Urologia"]) {
     --avatar-accent: var(--avatar-color-urologia);
 }
-[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Medicina%20Generale"]) {
-    --avatar-accent: var(--avatar-color-medicina-generale);
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Medicina"]) {
+    --avatar-accent: var(--avatar-color-medicina);
 }
 
 /* Icona per gli Step ("Ricerca Codice Fiscale", "Analisi..."): a differenza
@@ -592,7 +592,7 @@ button[id^="step-"]:hover {
 [data-step-type="tool"] img[alt="Avatar for Otorinolaringoiatria"],
 [data-step-type="tool"] img[alt="Avatar for Oftalmologia"],
 [data-step-type="tool"] img[alt="Avatar for Urologia"],
-[data-step-type="tool"] img[alt="Avatar for Medicina Generale"] {
+[data-step-type="tool"] img[alt="Avatar for Medicina"] {
     visibility: hidden !important;
 }
 
@@ -652,8 +652,8 @@ button[id^="step-"]:hover {
     background-image: url('/public/avatars/urologia.svg') !important;
     background-size: cover !important;
 }
-[data-step-type="tool"] span.relative:has(img[alt="Avatar for Medicina Generale"]) {
-    background-image: url('/public/avatars/medicina_generale.svg') !important;
+[data-step-type="tool"] span.relative:has(img[alt="Avatar for Medicina"]) {
+    background-image: url('/public/avatars/medicina.svg') !important;
     background-size: cover !important;
 }
 

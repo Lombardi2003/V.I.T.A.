@@ -60,10 +60,18 @@ class SpecialistReport(BaseModel):
 # Classe BaseModel per un intervento al "tavolo" tra specialisti (domanda,
 # obiezione o commento) - non e' una diagnosi finale, quella resta su
 # SpecialistReport/medical_reports.
+#
+# "posizione" costringe lo specialista a PRENDERE POSIZIONE rispetto a quanto
+# detto dai colleghi finora, invece di limitarsi ad accumulare la propria
+# ipotesi in parallelo senza mai confrontarsi con quella altrui (osservato in
+# test reale: senza un campo obbligatorio dedicato, la discussione restava
+# educata ma non convergeva mai - vedi SPECIALIST_PROMPT in prompts.py).
 class RoundTableEntry(BaseModel):
     """ Un singolo intervento nella discussione tra specialisti. """
     author: str                    # ruolo di chi parla, es. "cardiologist"
     to: Optional[str] = None       # ruolo destinatario, None = rivolto a tutti
+    tipo: Optional[str] = None       # "ipotesi" | "obiezione" | None (apertura discussione) - niente domande a vuoto, vedi SPECIALIST_PROMPT
+    posizione: Optional[str] = None  # "d'accordo" | "parzialmente d'accordo" | "in disaccordo" | None (apertura discussione)
     content: str = ""
 
 # Classe BaseModel per la diagnosi finale e le raccomandazioni
@@ -103,15 +111,27 @@ class MedicalState(BaseModel):
     # Discussione tra gli specialisti selezionati dal supervisore ("tavola
     # rotonda"): ogni intervento si accumula (operator.add, come le cronologie
     # sopra) - chi entra in scena vede tutta la trascrizione, non solo l'ultimo
-    # scambio. round_count e' un contatore semplice (l'ultimo valore vince,
-    # nessun bisogno di accumulo) che il router usa per limitare i giri.
+    # scambio.
     round_table: Annotated[list[RoundTableEntry], operator.add] = Field(default_factory=list)
-    round_count: int = 0
-    # Indice di turno nell'ordine fisso di needed_specialists (deciso dal
-    # supervisore) - round_table da solo non basta per sapere "di chi e' il
-    # turno dopo", perche' registra solo chi interviene a voce, non chi
-    # deposita direttamente la diagnosi senza parlare. Gestito solo dal router.
+    # Contatore assoluto di battute (speak + finalize insieme) dall'inizio
+    # della discussione - non e' un traguardo da raggiungere (ogni specialista
+    # puo' concludere subito), solo il freno di emergenza se non convergono da
+    # soli. Ha sostituito il vecchio concetto di "giri di una lista fissa":
+    # ora la lista di needed_specialists puo' crescere durante la discussione
+    # (vedi recruited_specialists_count sotto), quindi contare i "giri" non
+    # avrebbe piu' avuto un limite stabile. Gestito solo dal router.
+    total_turns: int = 0
+    # Indice di turno nell'ordine di ingresso al tavolo di needed_specialists
+    # (supervisore + eventuali specialisti coinvolti durante la discussione) -
+    # usato SOLO come ripiego quando l'ultimo intervento non aveva un
+    # destinatario specifico (round_table da solo non basta per sapere "di chi
+    # e' il turno dopo", perche' registra solo chi interviene a voce, non chi
+    # deposita direttamente la diagnosi senza parlare). Gestito solo dal router.
     current_turn_index: int = 0
+    # Quanti specialisti sono stati coinvolti DURANTE la discussione (non dalla
+    # selezione iniziale del supervisore) - tetto massimo gestito dal router,
+    # vedi MAX_RECRUITED_SPECIALISTS in clinical.py.
+    recruited_specialists_count: int = 0
 
     # Contabilita' di conversazione per intake_node: true quando l'argomento e' stato
     # affrontato (anche per negarlo), non dato clinico -> non sta su PatientCard.
