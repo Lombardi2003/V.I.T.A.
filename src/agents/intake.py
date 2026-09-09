@@ -1,5 +1,6 @@
 # Nodi di acquisizione dati dal/sul paziente: passaggio del messaggio utente,
 # raccolta anagrafica, raccolta sintomi, analisi foto.
+import asyncio
 import json
 import base64
 import re
@@ -114,7 +115,13 @@ async def intake_node(state: MedicalState):
     )
     async with cl.Step(name="Analisi dati anagrafici", type="tool", default_open=False, show_input="text") as step:
         step.input = user_msg
-        content = stream_response(prompt)
+        # stream_response e' sincrona (bloccante): chiamata cosi', dentro una
+        # funzione async, bloccherebbe l'INTERO ciclo di eventi di Chainlit
+        # per tutta la durata della chiamata all'LLM - impercettibile con
+        # Groq (pochi secondi), ma con un modello locale lento (Ollama)
+        # l'app sembra completamente ferma (osservato in test reale). asyncio.
+        # to_thread la sposta su un thread separato senza bloccare il resto.
+        content = await asyncio.to_thread(stream_response, prompt)
         step.output = content
 
     # 3. Parsing + merge
@@ -259,7 +266,9 @@ async def reviewer_node(state: MedicalState):
     )
     async with cl.Step(name="Analisi sintomi", type="tool", default_open=False, show_input="text") as step:
         step.input = user_msg
-        content = stream_response(prompt)
+        # Vedi commento su asyncio.to_thread in intake_node poco sopra -
+        # stessa identica ragione.
+        content = await asyncio.to_thread(stream_response, prompt)
         step.output = content
 
     # 3. Parsing (solo il sintomo: l'anagrafica resta di competenza di intake_node)
@@ -292,6 +301,14 @@ async def reviewer_node(state: MedicalState):
 
         intensity = str(item.get("intensity", "")).strip()
         duration = str(item.get("duration", "")).strip()
+        # 'trigger' e' testo libero (circostanze che scatenano/aggravano il
+        # sintomo, es. "peggiora in piedi") - a differenza di intensity/duration
+        # non ha un vocabolario fisso di parole chiave su cui costruire una rete
+        # di sicurezza affidabile (i modi di dire sono troppo vari), quindi qui
+        # ci affidiamo alla regola anti-invenzione nel prompt (REVIEWER_PROMPT,
+        # regola 9) senza un doppio controllo lato Python, come gia' avviene per
+        # 'description'.
+        trigger = str(item.get("trigger", "")).strip()
 
         # Stessa normalizzazione/rete di sicurezza di prima, applicata per sintomo.
         if intensity.lower() == "moderato":
@@ -317,8 +334,10 @@ async def reviewer_node(state: MedicalState):
                 existing["intensity"] = intensity
             if duration:
                 existing["duration"] = duration
+            if trigger:
+                existing["trigger"] = trigger
         else:
-            symptoms.append({"description": desc, "intensity": intensity, "duration": duration})
+            symptoms.append({"description": desc, "intensity": intensity, "duration": duration, "trigger": trigger})
 
     merged_dict = current_card.model_dump()
     merged_dict["symptom"]["symptoms"] = symptoms
@@ -412,7 +431,10 @@ async def photography_node(state: MedicalState):
         async with cl.Step(name="Analisi foto", type="tool", default_open=False, show_input="text") as step:
             step.input = image_path
             try:
-                response = llm_photography.invoke(messages)
+                # Stessa ragione di asyncio.to_thread altrove in questo file:
+                # .invoke() e' sincrona/bloccante, non va chiamata direttamente
+                # dentro una funzione async.
+                response = await asyncio.to_thread(llm_photography.invoke, messages)
                 step.output = response.content
             except Exception as e:
                 step.output = f"Errore durante la chiamata al modello di visione: {e}"

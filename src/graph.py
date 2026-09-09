@@ -5,7 +5,7 @@ from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 # Import dei moduli locali
 from src.state import MedicalState
-from src.agents import reviewer_node, user_node, read_db_node, intake_node, save_db_node, modify_db_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node, MAX_TOTAL_TURNS, MAX_RECRUITED_SPECIALISTS
+from src.agents import reviewer_node, user_node, read_db_node, intake_node, save_db_node, modify_db_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node, MAX_TOTAL_TURNS, MAX_RECRUITED_SPECIALISTS, MAX_SPEAKS_PER_SPECIALIST
 
 # Funzione per la creazione del grafo di stato
 #
@@ -138,8 +138,8 @@ def generate_graph():
     # workflow.add_edge("save_db", END) # Nodo finale (Exit Point)
     # workflow.add_edge("modify_db", END) # Nodo finale (Exit Point)
 
-    # SpecialistReport e RoundTableEntry vivono annidati dentro un dict/list
-    # (medical_reports, round_table) - il serializzatore di default di
+    # GroupHypothesis e RoundTableEntry vivono annidati dentro un campo/lista
+    # (group_hypothesis, round_table) - il serializzatore di default di
     # MemorySaver li tratta come tipi "non registrati" e stampa un warning ad
     # ogni checkpoint (osservato in test reale), avvisando che in una futura
     # versione di LangGraph la deserializzazione verrebbe bloccata del tutto.
@@ -147,7 +147,7 @@ def generate_graph():
     # modalita' strict (che romperebbe la deserializzazione di questi tipi).
     serde = JsonPlusSerializer(
         allowed_msgpack_modules=[
-            ("src.state", "SpecialistReport"),
+            ("src.state", "GroupHypothesis"),
             ("src.state", "RoundTableEntry"),
         ]
     )
@@ -158,33 +158,68 @@ def generate_graph():
     )
 # Funzioni di routing
 def router(state: MedicalState):
-    """Decide chi parla al prossimo turno al tavolo degli specialisti.
+    """Decide chi parla al prossimo turno al tavolo degli specialisti, e
+    quando la discussione e' conclusa.
 
-    Regola principale: se l'ultimo intervento in round_table aveva un
+    La discussione verte su un'UNICA ipotesi di gruppo condivisa
+    (state.group_hypothesis, vedi state.py) invece di N referti indipendenti:
+    "conclusa" non significa piu' "tutti hanno depositato un referto", ma
+    "tutti gli specialisti seduti al tavolo hanno confermato la versione
+    ATTUALE dell'ipotesi" (group_hypothesis.confirmed_by). Ogni volta che
+    qualcuno la rivede, confirmed_by si azzera (vedi specialist_node) - gli
+    altri devono riconfermare la nuova versione, non quella vecchia.
+
+    Prima di scegliere chi parla, il router passa meccanicamente per
+    "confermato" chiunque abbia gia' raggiunto MAX_SPEAKS_PER_SPECIALIST
+    interventi senza mai confermare - non gli viene richiesto un altro turno
+    (nessuna chiamata LLM aggiuntiva), e non gli si mette in bocca un
+    "conferma" finto: e' solo instradamento meccanico (chi ha gia' parlato
+    abbastanza volte), non un giudizio sul contenuto - evita che due
+    specialisti si scambino ipotesi quasi identiche all'infinito.
+
+    Poi, chi parla: se l'ultimo intervento in round_table aveva un
     destinatario specifico ("to"), parla lui al turno successivo - anche se
-    non era ancora al tavolo (lo "recluta", tetto MAX_RECRUITED_SPECIALISTS
-    oltre alla selezione del supervisore: vedi clinical.py). Questo simula una
-    vera conversazione (chi viene interpellato risponde subito) invece di un
-    giro rigido A-B-A-B che ignora chi si e' appena rivolto a chi.
+    non era ancora al tavolo (lo "recluta" per un mini-consulto, tetto
+    MAX_RECRUITED_SPECIALISTS oltre alla selezione del supervisore: vedi
+    clinical.py). Simula una vera conversazione (chi viene interpellato
+    risponde subito) invece di un giro rigido A-B-A-B.
 
     Ripiego: se l'ultimo intervento era rivolto "a tutti" (o non c'e' ancora
-    nessun intervento, o il destinatario ha gia' depositato/il tetto di
-    reclutamento e' gia' pieno), si torna al giro tra chi resta, nell'ordine
-    in cui sono entrati al tavolo (current_turn_index, un puntatore esplicito
-    gestito solo qui - round_table da solo non basta perche' registra solo chi
-    interviene a voce, non chi deposita la diagnosi in silenzio).
+    nessun intervento, o il destinatario ha gia' confermato/il tetto di
+    reclutamento e' pieno), si torna al giro tra chi resta da confermare,
+    nell'ordine in cui sono entrati al tavolo (current_turn_index).
 
-    total_turns e' un contatore assoluto (non piu' "giri di una lista fissa",
-    perche' la lista ora puo' crescere) che specialist_node usa per forzare il
-    finalize oltre MAX_TOTAL_TURNS - garantisce che si arrivi sempre al
-    primario. Quando tutti hanno depositato, passa al primario.
+    total_turns e' il freno di emergenza assoluto: oltre MAX_TOTAL_TURNS si va
+    comunque al primario con l'ipotesi di gruppo cosi' com'e', confermata o meno.
     """
+    if state.total_turns >= MAX_TOTAL_TURNS:
+        print(f"🔀 ROUTER: raggiunto il tetto di {MAX_TOTAL_TURNS} battute -> primario")
+        return {"next_step": "chief_physician"}
+
     needed = dict(state.needed_specialists)
-    pending = {role for role, done in needed.items() if not done}
+    gh = state.group_hypothesis
+    confirmed = set(gh.confirmed_by) if gh else set()
+
+    # Passaggio meccanico per chi ha esaurito i propri interventi senza
+    # confermare (vedi docstring sopra).
+    changed = False
+    for role in needed:
+        if role not in confirmed:
+            speak_count = sum(1 for e in state.round_table if e.author == role)
+            if speak_count >= MAX_SPEAKS_PER_SPECIALIST:
+                confirmed.add(role)
+                changed = True
+                print(f"🔀 ROUTER: {role} ha esaurito i propri interventi ({MAX_SPEAKS_PER_SPECIALIST}), passa senza confermare")
+
+    update = {}
+    if changed and gh:
+        update["group_hypothesis"] = gh.model_copy(update={"confirmed_by": sorted(confirmed)}).model_dump()
+
+    pending = {role for role in needed if role not in confirmed}
 
     if not needed or not pending:
-        print("🔀 ROUTER: tutti gli specialisti hanno depositato la diagnosi -> primario")
-        return {"next_step": "chief_physician"}
+        print("🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario")
+        return {**update, "next_step": "chief_physician"}
 
     recruited_count = state.recruited_specialists_count
     next_role = None
@@ -196,14 +231,14 @@ def router(state: MedicalState):
             if last_to in pending:
                 next_role = last_to
             elif last_to not in needed and recruited_count < MAX_RECRUITED_SPECIALISTS:
-                needed[last_to] = False
+                needed[last_to] = True
                 recruited_count += 1
                 next_role = last_to
                 print(f"🔀 ROUTER: {last_to} coinvolto nella discussione su richiesta di un collega")
-            # altrimenti (gia' finalizzato, o tetto di reclutamento pieno):
+            # altrimenti (gia' confermato, o tetto di reclutamento pieno):
             # si ricade nel ripiego al punto 2, "last_to" non e' piu' valido.
 
-    # 2. Ripiego: giro tra chi resta, nell'ordine di ingresso al tavolo.
+    # 2. Ripiego: giro tra chi resta da confermare, nell'ordine di ingresso al tavolo.
     order = list(needed.keys())
     n = len(order)
     if not next_role:
@@ -219,6 +254,7 @@ def router(state: MedicalState):
 
     print(f"🔀 ROUTER: turno di {next_role} (battuta {total_turns}/{MAX_TOTAL_TURNS})")
     return {
+        **update,
         "next_step": next_role,
         "current_turn_index": next_idx,
         "total_turns": total_turns,

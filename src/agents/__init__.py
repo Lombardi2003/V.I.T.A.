@@ -34,6 +34,7 @@ from .intake import (
 from .clinical import (
     MAX_TOTAL_TURNS,
     MAX_RECRUITED_SPECIALISTS,
+    MAX_SPEAKS_PER_SPECIALIST,
     supervisor_node,
     specialist_node,
     cardiologist_node,

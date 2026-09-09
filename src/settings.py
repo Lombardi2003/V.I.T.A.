@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ENV_PATH, extra="ignore")
 
     groq_api_key: Optional[str] = None
+    # Chiave per l'API di Gemini (Google AI Studio, piano gratuito) - usata
+    # solo quando get_llm() viene chiamato con provider="gemini" esplicito
+    # (vedi factory.py), non fa parte della scelta groq/ollama principale
+    # decisa da use_cloud_acceleration.
+    gemini_api_key: Optional[str] = None
     use_cloud_acceleration: bool = True
 
     # Override opzionali: se assenti, src/llm/factory.py usa un default sensato

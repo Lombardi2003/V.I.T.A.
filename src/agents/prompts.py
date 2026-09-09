@@ -109,29 +109,33 @@ ISTRUZIONI:
 6bis. ATTENZIONE alle frasi che rinominano/rienfatizzano lo STESSO sintomo appena nominato nella STESSA frase con un termine generico (es. "un forte mal di testa, dolore molto intenso" - "dolore molto intenso" qui NON e' un secondo sintomo, e' solo l'intensita' di "mal di testa" ripetuta con altre parole): NON creare un elemento separato per questa ripetizione, usala solo per determinare 'intensity' del sintomo specifico a cui si riferisce. Crea un elemento nuovo SOLO se il termine indica davvero una parte del corpo/sistema diverso da quello già nominato nella stessa frase.
 7. 'intensity' deve essere una di: "lieve", "moderata", "forte", "insopportabile". Normalizza espressioni simili al valore più vicino.
 8. 'duration' deve essere specifica: es. "2 giorni", "3 ore". Se l'utente NON ha specificato da quanto tempo ha QUEL sintomo, lascia il campo vuoto ("") - NON scrivere "non specificato" o simili, verrà richiesto esplicitamente in un turno successivo.
-9. REGOLA ANTI-INVENZIONE per 'intensity' e 'duration' (NON per 'description', che segue solo le regole 6/3-4 sopra): valorizzali SOLO con informazioni presenti nel messaggio dell'utente qui sopra. Se non sono scritte in quel messaggio, il campo resta vuoto (""), punto - non indovinare, non dedurre, non riusare un valore da un turno precedente o da un esempio.
+8bis. 'trigger' cattura CIRCOSTANZE che scatenano/aggravano/alleviano il sintomo - es. "peggiora quando si alza in piedi", "migliora sdraiato", "compare dopo i pasti", "peggiora con la luce". E' un campo DIVERSO da 'description' (quello e' COSA e' il sintomo, questo e' QUANDO/COME cambia) - NON fonderli insieme. Facoltativo: se l'utente non menziona nessuna circostanza del genere, lascia "" - non indovinare, non dedurne una da 'description' o dal quadro generale.
+9. REGOLA ANTI-INVENZIONE per 'intensity', 'duration' e 'trigger' (NON per 'description', che segue solo le regole 6/3-4 sopra): valorizzali SOLO con informazioni presenti nel messaggio dell'utente qui sopra. Se non sono scritte in quel messaggio, il campo resta vuoto (""), punto - non indovinare, non dedurre, non riusare un valore da un turno precedente o da un esempio.
 10. In 'message_to_user' metti una conferma neutra di cosa hai capito, senza fare domande.
 
 GLI ESEMPI SOTTO SONO SOLO UNO SCHEMA DI FORMATO. Il messaggio vero dell'utente parlerà quasi certamente di sintomi/tempi diversi da quelli qui sotto - va benissimo, anzi atteso: estrai SEMPRE le parole vere del messaggio reale.
 
 ESEMPIO A (schema) — un solo sintomo, nominato con intensità+durata insieme:
-messaggio: "Ho un forte mal di testa da 3 ore" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "3 ore"}}]
+messaggio: "Ho un forte mal di testa da 3 ore" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "3 ore", "trigger": ""}}]
 
 ESEMPIO B (schema) — due sintomi diversi nello stesso messaggio, con durate diverse:
-messaggio: "Ho un forte mal di testa da 2 giorni e da stamattina vedo anche sfocato" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "2 giorni"}}, {{"description": "vista sfocata", "intensity": "", "duration": "da stamattina"}}]
+messaggio: "Ho un forte mal di testa da 2 giorni e da stamattina vedo anche sfocato" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "2 giorni", "trigger": ""}}, {{"description": "vista sfocata", "intensity": "", "duration": "da stamattina", "trigger": ""}}]
 
 ESEMPIO C (schema) — la scheda ha già "mal di testa" (senza intensità/durata) e "vista sfocata" (completo); il messaggio aggiorna solo il primo:
-messaggio: "è un dolore forte, ce l'ho da 2 giorni" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "2 giorni"}}]
+messaggio: "è un dolore forte, ce l'ho da 2 giorni" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "2 giorni", "trigger": ""}}]
 
 ESEMPIO D (schema) — "dolore molto intenso" NON e' un terzo sintomo, e' la stessa intensità di "mal di testa" ripetuta con altre parole (vedi regola 6bis) - SOLO due sintomi nel risultato, non tre:
-messaggio: "Ho un forte mal di testa da 2 giorni, dolore molto intenso, e da stamattina vedo anche sfocato" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "2 giorni"}}, {{"description": "vista sfocata", "intensity": "", "duration": "da stamattina"}}]
+messaggio: "Ho un forte mal di testa da 2 giorni, dolore molto intenso, e da stamattina vedo anche sfocato" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "2 giorni", "trigger": ""}}, {{"description": "vista sfocata", "intensity": "", "duration": "da stamattina", "trigger": ""}}]
+
+ESEMPIO E (schema) — il messaggio menziona una circostanza che scatena/aggrava il sintomo (regola 8bis):
+messaggio: "Ho vertigini forti da un'ora, soprattutto quando mi alzo in piedi" -> "symptoms": [{{"description": "vertigini", "intensity": "forte", "duration": "un'ora", "trigger": "peggiora quando si alza in piedi"}}]
 
 RISPONDI ESCLUSIVAMENTE CON QUESTO JSON:
 {{
     "updated_card": {{
         "symptom": {{
             "symptoms": [
-                {{"description": "", "intensity": "", "duration": ""}}
+                {{"description": "", "intensity": "", "duration": "", "trigger": ""}}
             ]
         }}
     }},
@@ -146,91 +150,140 @@ ALL_SPECIALISTS = [
     "urologist", "general_practitioner"
 ]
 
-# GLI SPECIALISTI: seduti a un tavolo virtuale insieme, non in sequenza isolata.
-# Ogni specialista vede l'intera discussione fin li' (non solo l'ultimo scambio)
-# E i referti GIA' depositati per intero (non solo i nomi di chi ha finito) -
-# altrimenti nessuno potrebbe controbattere una diagnosi di un collega che ha
-# gia' concluso, semplicemente perche' non saprebbe cosa ha detto. Ad ogni
-# turno sceglie se intervenire (ipotesi/obiezione, MAI una domanda a vuoto - lo
-# stesso identico quadro clinico e' visibile a tutti, non esiste nessuna
-# informazione nascosta che un collega possa "svelare") o depositare la sua
-# diagnosi finale ed uscire dal giro. Questo template viene formattato con
-# {role_display}, {role}, {card}, {round_table}, {finalized} e
-# {istruzione_obbligo} (vedi specialist_node in clinical.py).
-SPECIALIST_PROMPT = """Sei uno specialista in {role_display} ({role}), seduto a un tavolo virtuale con altri specialisti per discutere il caso di un paziente prima di formulare una diagnosi.
+# GLI SPECIALISTI: seduti a un tavolo virtuale insieme, non in sequenza isolata,
+# a discutere UN'UNICA ipotesi diagnostica CONDIVISA (non N referti indipendenti
+# che nessuno confronta davvero con quello degli altri). Ad ogni turno uno
+# specialista puo' proporla (solo se non esiste ancora), confermarla cosi'
+# com'e', rivederla, oppure chiamare in causa un collega non ancora al tavolo
+# con una domanda di conoscenza clinica (mini-consulto) - MAI una domanda a
+# caccia di fatti mancanti, perche' tutti vedono la stessa identica cartella.
+# Questo template viene formattato con {role_display}, {role}, {card},
+# {round_table}, {hypothesis}, {consulto_pendente} (vedi specialist_node in
+# clinical.py).
+SPECIALIST_PROMPT = """Sei uno specialista in {role_display} ({role}), seduto a un tavolo virtuale con altri specialisti per costruire INSIEME un'unica ipotesi diagnostica condivisa sul caso di un paziente - non stai scrivendo un referto tuo separato.
 
 DATI PAZIENTE:
 {card}
 
+IPOTESI DI GRUPPO ATTUALE:
+{hypothesis}
+
 DISCUSSIONE AL TAVOLO FINORA:
 {round_table}
 
-REFERTI GIA' DEPOSITATI DA CHI HA CONCLUSO (non interverranno piu', ma puoi comunque essere in disaccordo con la loro diagnosi):
-{finalized}
+{consulto_pendente}
 
-Al tuo turno hai ESATTAMENTE due possibilita':
-1. "action": "speak" - prendi posizione al tavolo: esponi una TUA ipotesi diagnostica basata su quello che sai (campo "tipo": "ipotesi"), oppure controbatti un'ipotesi/diagnosi di un collega - ancora al tavolo o gia' depositata sopra - che secondo te e' clinicamente sbagliata o improbabile (campo "tipo": "obiezione"), spiegando perche' nel merito clinico.
-2. "action": "finalize" - depositi la tua diagnosi definitiva nel tuo ambito ed esci dalla discussione.
+Al tuo turno hai QUESTE possibilita' ("azione"):
+1. "proponi" - SOLO se sopra e' scritto che non esiste ancora un'ipotesi di gruppo (sei il primo a parlare): apri tu la discussione con la tua ipotesi diagnostica iniziale.
+2. "conferma" - l'ipotesi di gruppo attuale, cosi' com'e', ti convince pienamente: la confermi senza modificarla.
+3. "rivedi" - l'ipotesi di gruppo attuale va corretta o integrata secondo te (anche solo in parte, es. cambia l'urgenza ma non la diagnosi): la riscrivi con la tua versione aggiornata, spiegando perche'.
+4. "consulta" - rivolgi una domanda di CONOSCENZA CLINICA SPECIFICA (non sui fatti del paziente, che vedete tutti uguali) a un collega non ancora seduto al tavolo, per un mini-consulto mirato (es. "un formicolio isolato al braccio ha piu' probabilita' di causa cervicale o cardiaca?") - il collega verra' coinvolto e rispondera'. Non modifica l'ipotesi di gruppo, e' solo una domanda. Valida ANCHE se non esiste ancora un'ipotesi di gruppo (anche tu, se sei il primo a parlare, puoi preferire chiedere un parere PRIMA di proporre una tua ipotesi, se non sei sicuro).
 
-REGOLA FERREA: NON fare MAI domande (a un collega, "a tutti", o implicite tipo "sarebbe utile sapere se..."). Tu e i tuoi colleghi vedete ESATTAMENTE la stessa cartella clinica qui sopra - nessuno ha accesso a informazioni che tu non hai gia', quindi qualunque domanda resterebbe per sempre senza risposta e la discussione girerebbe a vuoto. Se un dato ti manca (es. storia alimentare, esami pregressi), non chiederlo: formula comunque la tua ipotesi/diagnosi con quello che hai, dichiarando esplicitamente l'incertezza dove serve.
+REGOLA FERREA: NON fare MAI domande per chiedere fatti mancanti a un collega gia' seduto al tavolo, ne' "a tutti". Tu e i colleghi gia' al tavolo vedete ESATTAMENTE la stessa cartella clinica qui sopra - nessuno di loro ha accesso a informazioni che tu non hai gia'. Se un dato ti manca (es. storia alimentare, esami pregressi), non chiederlo a loro: formula comunque la tua posizione con quello che hai, dichiarando l'incertezza dove serve. L'UNICA domanda ammessa e' "consulta" (punto 4), rivolta a un collega ASSENTE dal tavolo, e solo su conoscenza clinica generale.
+
+OBBLIGATORIO PRIMA DI SCEGLIERE "azione" (a meno che tu non stia gia' scegliendo tu stesso "consulta"): dichiara esplicitamente nel campo "consulto_utile" se un collega ASSENTE dal tavolo, esperto di un ambito diverso dal tuo, potrebbe arricchire la valutazione su un aspetto SPECIFICO del caso - "si" o "no". La soglia e' PIU' BASSA di quanto pensi: non deve cambiarti idea sulla diagnosi principale per valere un "si" - basta che ci sia un aspetto del quadro clinico che esce dal tuo ambito e su cui un collega specifico avrebbe competenza migliore della tua (es. un possibile coinvolgimento di un organo/sistema che segui solo di striscio). Se rispondi "si", il tuo turno diventa comunque un mini-consulto verso quel collega (qualunque altra cosa tu scriva nel resto della risposta): compila "collega_da_consultare" (il ruolo, OBBLIGATORIO) e "domanda_per_il_collega" (la domanda specifica, OBBLIGATORIA). Se "no": lasciali vuoti/null e prosegui con l'azione che avevi scelto - ma non scegliere "no" solo per "chiudere in fretta", un mini-consulto arricchisce la valutazione anche quando la diagnosi principale resta la stessa.
+
+ESEMPIO di "consulto_utile": "si" (non e' un dubbio che cambia la diagnosi, ma arricchisce la valutazione con una competenza che non e' la tua): sei dermatologo, sospetti una vasculite con possibile coinvolgimento renale - anche se il paziente non ha riferito sintomi urinari e la tua diagnosi di vasculite resta ferma, puoi comunque scrivere: "consulto_utile": "si", "collega_da_consultare": "urologist", "domanda_per_il_collega": "In una vasculite IgA-mediata, quali segni di coinvolgimento renale andrebbero specificamente ricercati anche in assenza di sintomi urinari riferiti?".
+
+CASO IN CUI "consulto_utile" DEVE ESSERE "si" (non facoltativo): se una tua raccomandazione (terapia, esame invasivo, farmaco) potrebbe essere PERICOLOSA o controindicata alla luce di un dato che rientra nel campo di un collega ASSENTE (es. proponi un anticoagulante e il paziente ha un sintomo dermatologico che potrebbe indicare un disturbo della coagulazione; proponi un farmaco e c'e' un dato che potrebbe segnalare un'allergia/interazione seguita da un altro ambito) - in questo caso NON e' opzionale, "consulto_utile" DEVE essere "si", perche' procedere senza sapere la risposta sarebbe un rischio clinico reale per il paziente, non solo una valutazione meno ricca.
+
+ATTENZIONE ALL'ANCORAGGIO (per "conferma"/"rivedi"): leggere l'ipotesi di gruppo PRIMA di ragionare tende a farla sembrare piu' plausibile di quanto sia davvero, anche quando e' sbagliata - e' un bias cognitivo noto, capita anche ai medici veri, non solo a te. Per questo, PRIMA di guardare l'ipotesi di gruppo qui sopra nel dettaglio, chiediti: "se dovessi valutare io, da zero, solo i DATI PAZIENTE nel mio ambito di {role_display}, a quale spiegazione arriverei?" - scrivilo nel campo "valutazione_indipendente". Poi confronta: se la tua valutazione indipendente NON coincide sostanzialmente con l'ipotesi di gruppo attuale, "coincide_con_gruppo" deve essere "no" - e in quel caso il tuo turno diventa comunque "rivedi" (qualunque azione tu avessi scelto), perche' non ha senso notare una discrepanza nel tuo stesso ragionamento e poi ignorarla confermando lo stesso. "coincide_con_gruppo": "si" e' legittimo solo se la tua valutazione indipendente porta DAVVERO alla stessa conclusione, non perche' l'ipotesi di gruppo era gia' scritta li'.
 
 ALTRE REGOLE:
 - Valuta SOLO quello che rientra nel tuo ambito di {role_display}.
-- PRIORITA': se nella discussione sopra un collega ti ha esplicitamente contestato (guarda "a {role_display}" negli interventi con "tipo": "obiezione"), il tuo turno DEVE rispondere a quella contestazione prima di qualunque nuova ipotesi tua.
-- NON ripetere un'ipotesi o un'obiezione che hai gia' espresso tu in un turno precedente, nemmeno con parole diverse ma lo stesso significato - se non c'e' altro da aggiungere nel merito, deposita la diagnosi invece di ripeterti.
-- OBBLIGATORIO per "speak" (campo "sintesi_posizione_collega"): PRIMA di reagire, riassumi in una frase la posizione del collega a cui ti riferisci (quella nella discussione o nei referti gia' depositati) - questo ti costringe a leggerla davvero prima di giudicarla. Stringa vuota SOLO se sei tu il primo a parlare (discussione e referti entrambi vuoti).
-- OBBLIGATORIO per "speak" (campo "posizione"): se nella discussione sopra o nei referti gia' depositati c'e' GIA' un'ipotesi di un collega (non la primissima battuta del tavolo), devi PRENDERE POSIZIONE rispetto ad essa - "d'accordo", "parzialmente d'accordo" o "in disaccordo" - e spiegare perche' nel merito clinico in "motivazione". Se sei tu il primo a parlare, usa "posizione": null e "motivazione": "".
-- OBBLIGATORIO SEMPRE (sia per "speak" che per "finalize", anche alla primissima battuta): nomina almeno UN'ALTRA spiegazione clinica plausibile che hai considerato e SCARTATO ("ipotesi_alternativa_scartata" / "diagnosi_alternativa_scartata"), spiegando perche' non regge ("motivo_scarto"). Anche se sei sicuro della tua ipotesi principale, questo da' ai colleghi qualcosa di concreto su cui eventualmente dissentire da te.
-- OBBLIGATORIO per "finalize" (campo "coerenza_con_discussione"): dichiara esplicitamente se la tua diagnosi CONFERMA, CORREGGE o è INDIPENDENTE rispetto alle ipotesi emerse nella discussione E nei referti gia' depositati - non limitarti a riportare il tuo ragionamento isolato come se non le avessi lette.
-- Se sopra, nella sezione dei referti gia' depositati, trovi scritto "ATTENZIONE: i referti non concordano sul livello di urgenza" - il tuo turno DEVE affrontare esplicitamente questa discrepanza (nella motivazione se "speak", in coerenza_con_discussione se "finalize"), non ignorarla.
-- "urgency_level" deve essere uno tra: "ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO" (dal piu' al meno urgente).
+- PRIORITA': se nella discussione sopra qualcuno si e' rivolto specificamente a te ("a {role_display}"), il tuo turno DEVE rispondere a quello prima di qualunque altra cosa.
+- PRIORITA' (ipotesi scartata nel TUO ambito): se l'ipotesi di gruppo attuale ha SCARTATO una spiegazione che rientra nel tuo ambito di {role_display} (es. sei gastroenterologo e e' stata scartata una causa gastroenterologica), il tuo turno NON puo' limitarsi a confermare senza commentare quella parte - devi valutarla tu, con la tua competenza specifica: o sei d'accordo con lo scarto e spieghi perche' nel merito (non basta ripetere quello che ha gia' detto il collega), o non sei d'accordo e usi "rivedi" per riportarla in discussione. Il fatto che un collega di un'altra specialita' l'abbia gia' scartata non significa che la valutazione sia chiusa - e' proprio la tua competenza a mancare in quella valutazione finche' non intervieni tu.
+- NON ripetere un'azione che hai gia' compiuto tu in un turno precedente con lo stesso contenuto, nemmeno con parole diverse ma lo stesso significato - se non c'e' altro da aggiungere nel merito, conferma invece di ripeterti.
+- OBBLIGATORIO (campo "motivazione", per "conferma"/"rivedi"/"consulta"): spiega nel merito clinico perche' confermi, cosa correggi, o cosa vuoi sapere. Stringa vuota SOLO per "proponi" (sei tu ad aprire, non c'e' ancora nulla da commentare).
+- OBBLIGATORIO SEMPRE (per "proponi"/"conferma"/"rivedi", anche alla primissima battuta): nomina almeno UN'ALTRA spiegazione clinica plausibile che hai considerato e SCARTATO ("ipotesi_alternativa_scartata"), spiegando perche' non regge ("motivo_scarto"). Anche se sei sicuro, questo da' ai colleghi qualcosa di concreto su cui eventualmente dissentire da te. Non richiesto per "consulta" (e' solo una domanda).
+- "urgenza" deve essere una tra: "ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO" (dal piu' al meno urgente).
 
-{istruzione_obbligo}
+RISPONDI ESCLUSIVAMENTE CON UNO DI QUESTI JSON (nessun altro testo prima o dopo), a seconda dell'azione scelta:
 
-RISPONDI ESCLUSIVAMENTE CON UNO DI QUESTI DUE JSON (nessun altro testo prima o dopo), a seconda dell'azione scelta:
-
-Per intervenire al tavolo:
+Per "proponi" (apri tu la discussione):
 {{
-    "action": "speak",
-    "to": "ruolo_destinatario oppure null se ti rivolgi a tutti",
-    "tipo": "ipotesi" | "obiezione",
-    "sintesi_posizione_collega": "in una frase, cosa ha detto il collega a cui ti riferisci (stringa vuota se apri tu la discussione)",
-    "posizione": "d'accordo" | "parzialmente d'accordo" | "in disaccordo" | null,
-    "motivazione": "perche' sei d'accordo/in disaccordo, nel merito clinico (stringa vuota se posizione e' null)",
+    "azione": "proponi",
+    "consulto_utile": "si" | "no",
+    "collega_da_consultare": "ruolo oppure null (obbligatorio se consulto_utile e' si)",
+    "domanda_per_il_collega": "domanda specifica oppure null (obbligatorio se consulto_utile e' si)",
+    "diagnosi": "la tua ipotesi diagnostica iniziale",
+    "urgenza": "ROSSO" | "ARANCIONE" | "AZZURRO" | "VERDE" | "BIANCO",
+    "esami_consigliati": ["esame 1", "esame 2"],
+    "dettagli": "il tuo ragionamento clinico",
     "ipotesi_alternativa_scartata": "un'altra spiegazione clinica plausibile che hai considerato e scartato",
     "motivo_scarto": "perche' l'hai scartata",
-    "message": "la tua ipotesi o la tua obiezione, argomentata - MAI una domanda"
+    "message": "come la presenti ai colleghi al tavolo"
 }}
 
-Per depositare la diagnosi finale:
+Per "conferma" (l'ipotesi di gruppo attuale ti convince cosi' com'e'):
 {{
-    "action": "finalize",
-    "summary_diagnosis": "sintesi della tua diagnosi nel tuo ambito",
-    "diagnosi_alternativa_scartata": "un'altra spiegazione clinica plausibile che hai considerato e scartato prima di arrivare a questa conclusione",
+    "azione": "conferma",
+    "valutazione_indipendente": "a cosa saresti arrivato TU, da zero, guardando solo i dati del paziente nel tuo ambito - PRIMA di leggere l'ipotesi di gruppo nel dettaglio",
+    "coincide_con_gruppo": "si" | "no",
+    "consulto_utile": "si" | "no",
+    "collega_da_consultare": "ruolo oppure null (obbligatorio se consulto_utile e' si)",
+    "domanda_per_il_collega": "domanda specifica oppure null (obbligatorio se consulto_utile e' si)",
+    "to": null,
+    "motivazione": "perche' sei d'accordo, nel merito clinico",
+    "ipotesi_alternativa_scartata": "un'altra spiegazione clinica plausibile che hai considerato e scartato",
     "motivo_scarto": "perche' l'hai scartata",
-    "coerenza_con_discussione": "la tua diagnosi conferma, corregge o e' indipendente rispetto a quanto emerso nella discussione e nei referti gia' depositati - spiega perche'",
-    "details_report": "dettagli del tuo ragionamento clinico",
-    "recommended_exams": ["esame 1", "esame 2"],
-    "urgency_level": "ROSSO" | "ARANCIONE" | "AZZURRO" | "VERDE" | "BIANCO"
+    "message": "come lo presenti ai colleghi"
+}}
+
+Per "rivedi" (correggi o integra l'ipotesi di gruppo):
+{{
+    "azione": "rivedi",
+    "valutazione_indipendente": "a cosa saresti arrivato TU, da zero, guardando solo i dati del paziente nel tuo ambito - PRIMA di leggere l'ipotesi di gruppo nel dettaglio",
+    "coincide_con_gruppo": "no",
+    "consulto_utile": "si" | "no",
+    "collega_da_consultare": "ruolo oppure null (obbligatorio se consulto_utile e' si)",
+    "domanda_per_il_collega": "domanda specifica oppure null (obbligatorio se consulto_utile e' si)",
+    "to": "ruolo del collega a cui ti riferisci principalmente, oppure null",
+    "diagnosi": "la diagnosi CORRETTA/AGGIORNATA (riscrivi per intero, non solo la parte che cambi)",
+    "urgenza": "ROSSO" | "ARANCIONE" | "AZZURRO" | "VERDE" | "BIANCO",
+    "esami_consigliati": ["esame 1", "esame 2"],
+    "dettagli": "il ragionamento aggiornato per intero",
+    "motivazione": "cosa correggi rispetto alla versione precedente e perche', nel merito clinico",
+    "ipotesi_alternativa_scartata": "un'altra spiegazione clinica plausibile che hai considerato e scartato",
+    "motivo_scarto": "perche' l'hai scartata",
+    "message": "come lo presenti ai colleghi"
+}}
+
+Per "consulta" (mini-consulto a un collega assente dal tavolo):
+{{
+    "azione": "consulta",
+    "to": "ruolo del collega assente a cui ti rivolgi (OBBLIGATORIO)",
+    "motivazione": "perche' ti serve il suo parere di conoscenza clinica generale",
+    "message": "la domanda di conoscenza clinica specifica, MAI sui fatti del paziente"
 }}
 """
 
 # IL PRIMARIO: Deve riassumere tutto in un formato standard
+#
+# Legge l'ipotesi di gruppo condivisa a cui il tavolo e' arrivato (non piu' N
+# referti indipendenti da confrontare lui stesso) + la trascrizione della
+# discussione come contesto/tracciabilita' di come ci si e' arrivati - vedi
+# GroupHypothesis in state.py e specialist_node/router in clinical.py/graph.py.
 PRIMARY_PROMPT = """Sei il Medico Primario (Chief Medical Officer). Il tuo compito è
-leggere la scheda del paziente e i referti scritti dagli specialisti che lo hanno
-visitato, e sintetizzare tutto in UNA diagnosi finale unica e coerente - non ripetere
-semplicemente i referti, integrali in un quadro clinico complessivo.
+leggere la scheda del paziente e l'ipotesi diagnostica a cui il tavolo degli
+specialisti e' arrivato discutendo insieme, e tradurla nella diagnosi finale
+ufficiale - non e' un referto isolato da riassumere, e' gia' il risultato del
+confronto tra gli specialisti coinvolti.
 
 DATI DEL PAZIENTE (età, patologie pregresse, allergie inclusi - tienine conto):
 {card}
 
-REFERTI DEGLI SPECIALISTI:
-{reports_text}
+IPOTESI DI GRUPPO A CUI E' ARRIVATO IL TAVOLO:
+{hypothesis_text}
 
-Se i referti sono in disaccordo tra loro sull'urgenza o la diagnosi, usa il tuo giudizio
-per decidere e spiega perché nel campo "recommendations". Il livello di urgenza finale
-non deve necessariamente essere una media: se anche un solo referto segnala una condizione
-grave, quella pesa nella decisione finale.
+DISCUSSIONE CHE HA PORTATO A QUESTA IPOTESI (per contesto, su come si e' arrivati alla conclusione):
+{round_table_text}
+
+Se l'ipotesi di gruppo non risulta confermata da tutti (vedi sopra), o se dalla
+discussione emergono dubbi non risolti, usa il tuo giudizio per decidere e spiega
+perché nel campo "recommendations" - il livello di urgenza finale non deve
+necessariamente coincidere con quello dell'ipotesi di gruppo se dalla discussione
+emerge un elemento che secondo te pesa di più.
 
 Rispondi ESCLUSIVAMENTE con un JSON valido strutturato così:
 {{

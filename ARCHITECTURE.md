@@ -49,9 +49,9 @@ The Chainlit entry point. Ensures `.env` is complete (`ensure_env()`) before imp
 
 ### 🧬 `src/state.py`
 Defines the Pydantic data model shared by the whole graph:
-- `MedicalState`: the top-level graph state — conversation history, `patient_card`, routing flags (`next_step`, `triage_complete`, `patient_exists`), `needed_specialists`, `medical_reports`, `final_diagnosis`.
+- `MedicalState`: the top-level graph state — conversation history, `patient_card`, routing flags (`next_step`, `triage_complete`, `patient_exists`), `needed_specialists`, `group_hypothesis`, `final_diagnosis`.
 - `PatientCard` / `SymptomProfile` / `PhotoAnalysis`: the structured clinical record being built up during triage.
-- `SpecialistReport` / `FinalDiagnosis`: the output shape each specialist / the chief physician must produce.
+- `GroupHypothesis`: the SHARED diagnostic hypothesis the round table proposes/confirms/revises together turn by turn, instead of N independent per-specialist reports. `FinalDiagnosis`: the output shape the chief physician must produce from it.
 
 Every field name here must match the JSON keys the LLM is asked to return in `src/agents/prompts.py`'s prompts — they're kept in sync by hand, not enforced automatically.
 

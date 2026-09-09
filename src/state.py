@@ -20,6 +20,15 @@ class Symptom(BaseModel):
     description: str = ""
     intensity: str = ""
     duration: str = ""
+    # Circostanze che scatenano/aggravano/alleviano il sintomo (es. "peggiora
+    # quando si alza in piedi", "migliora a riposo") - separato da 'description'
+    # perche' e' un'informazione DIVERSA (non "cosa e'" ma "quando/come cambia").
+    # Prima di questo campo, il revisore capiva questi dettagli (li ripeteva nel
+    # messaggio di conferma all'utente) ma non aveva dove salvarli, quindi
+    # sparivano prima di arrivare al supervisore/agli specialisti (osservato in
+    # test reale: "vertigini quando mi alzo in piedi" arrivava al tavolo come
+    # semplice "vertigini", perdendo l'indizio posturale/cardiovascolare).
+    trigger: str = ""
 
 # Classe BaseModel per il profilo dei sintomi del paziente
 class SymptomProfile(BaseModel):
@@ -44,34 +53,41 @@ class PatientCard(BaseModel):
     # Dati medici
     symptom: SymptomProfile = Field(default_factory=SymptomProfile)
 
-# Classe BaseModel per il report dello specialista
+# Classe BaseModel per l'ipotesi diagnostica CONDIVISA dal tavolo degli
+# specialisti - sostituisce N referti indipendenti (il vecchio
+# SpecialistReport/medical_reports): invece di ognuno per conto proprio, tutti
+# gli specialisti coinvolti leggono, confermano o rivedono questo STESSO
+# oggetto turno dopo turno (vedi specialist_node/router in clinical.py e
+# graph.py). Si sovrascrive per intero ad ogni turno (niente reducer, come
+# patient_card), MAI accumulato come round_table sotto.
 #
 # urgency_level usa i codici colore del triage italiano (non la scala ESI):
 # e' la stessa scala gia' richiesta da PRIMARY_PROMPT per la diagnosi finale -
-# tenerle allineate qui evita un mismatch che farebbe fallire la validazione
-# Pydantic al primo referto (osservato leggendo il codice, mai girato prima).
-class SpecialistReport(BaseModel):
-    """ Report di diagnosi e consigli di uno specialista. """
-    summary_diagnosis: str = ""
-    details: str = ""
-    recommended_exams: List[str] = Field(default_factory=list)
+# tenerle allineate evita un mismatch che farebbe fallire la validazione
+# Pydantic (osservato leggendo il codice, mai girato prima).
+class GroupHypothesis(BaseModel):
+    """ Ipotesi diagnostica condivisa dal tavolo, rivista turno per turno. """
+    diagnosis: str = ""
     urgency_level: Literal["ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO"] = "BIANCO"
+    recommended_exams: List[str] = Field(default_factory=list)
+    details: str = ""
+    discarded_alternative: str = ""
+    discard_reason: str = ""
+    last_updated_by: str = ""      # ruolo di chi l'ha proposta/rivista per ultimo
+    # Chi ha confermato la versione ATTUALE (si azzera ogni volta che qualcuno
+    # la rivede - vedi specialist_node) - il router (graph.py) considera la
+    # discussione conclusa quando coincide con tutti i needed_specialists.
+    confirmed_by: List[str] = Field(default_factory=list)
 
-# Classe BaseModel per un intervento al "tavolo" tra specialisti (domanda,
-# obiezione o commento) - non e' una diagnosi finale, quella resta su
-# SpecialistReport/medical_reports.
-#
-# "posizione" costringe lo specialista a PRENDERE POSIZIONE rispetto a quanto
-# detto dai colleghi finora, invece di limitarsi ad accumulare la propria
-# ipotesi in parallelo senza mai confrontarsi con quella altrui (osservato in
-# test reale: senza un campo obbligatorio dedicato, la discussione restava
-# educata ma non convergeva mai - vedi SPECIALIST_PROMPT in prompts.py).
+# Classe BaseModel per un intervento al "tavolo" tra specialisti - non e' piu'
+# un'opinione isolata, e' un'azione compiuta sull'ipotesi di gruppo condivisa
+# (GroupHypothesis sopra): la propone, la conferma, la rivede, oppure chiama
+# in causa (mini-consulto) uno specialista non ancora seduto al tavolo.
 class RoundTableEntry(BaseModel):
     """ Un singolo intervento nella discussione tra specialisti. """
-    author: str                    # ruolo di chi parla, es. "cardiologist"
-    to: Optional[str] = None       # ruolo destinatario, None = rivolto a tutti
-    tipo: Optional[str] = None       # "ipotesi" | "obiezione" | None (apertura discussione) - niente domande a vuoto, vedi SPECIALIST_PROMPT
-    posizione: Optional[str] = None  # "d'accordo" | "parzialmente d'accordo" | "in disaccordo" | None (apertura discussione)
+    author: str                 # ruolo di chi parla, es. "cardiologist"
+    to: Optional[str] = None    # ruolo destinatario, None = rivolto a tutti
+    azione: str = ""            # "proponi" | "conferma" | "rivedi" | "consulta"
     content: str = ""
 
 # Classe BaseModel per la diagnosi finale e le raccomandazioni
@@ -103,8 +119,15 @@ class MedicalState(BaseModel):
     patient_card: PatientCard = Field(default_factory=PatientCard)
 
     # Dizionari: usiamo default_factory=dict
+    # needed_specialists: chi e' seduto al tavolo (selezione del supervisore +
+    # eventuali reclutati durante la discussione, vedi router in graph.py) - il
+    # valore booleano non porta piu' informazione propria (era "ha depositato
+    # il referto" nel vecchio disegno a referti indipendenti), resta True per
+    # tutti, il dizionario serve solo come insieme ordinato di ruoli.
     needed_specialists: dict[str, bool] = Field(default_factory=dict)
-    medical_reports: dict[str, SpecialistReport] = Field(default_factory=dict)
+    # Ipotesi diagnostica condivisa dal tavolo - None finche' nessuno ha ancora
+    # aperto la discussione (vedi GroupHypothesis sopra).
+    group_hypothesis: Optional[GroupHypothesis] = None
 
     final_diagnosis: FinalDiagnosis = Field(default_factory=FinalDiagnosis)
 
