@@ -18,6 +18,10 @@ _BASE_URLS = {
     "groq": "https://api.groq.com/openai/v1",
     "ollama": "http://127.0.0.1:11434/v1",
     "gemini": "https://generativelanguage.googleapis.com/v1beta/openai/",
+    # Stesso endpoint di "gemini" - solo un progetto/account Google diverso
+    # (vedi gemini_fra_api_key in settings.py), quindi con la sua quota
+    # gratuita giornaliera separata (20 richieste/giorno "per progetto").
+    "gemini_fra": "https://generativelanguage.googleapis.com/v1beta/openai/",
 }
 _DEFAULT_TEXT_MODELS = {
     # TEXT_8B non e' piu' nel catalogo modelli dell'account (verificato dalla
@@ -25,6 +29,7 @@ _DEFAULT_TEXT_MODELS = {
     "groq": Models.Groq.TEXT_20B,
     "ollama": Models.Ollama.TEXT_LLAMA3,
     "gemini": Models.Gemini.TEXT_FLASH,
+    "gemini_fra": Models.Gemini.TEXT_FLASH,
 }
 _DEFAULT_VISION_MODELS = {
     "groq": Models.Groq.VISION_QWEN,
@@ -32,6 +37,7 @@ _DEFAULT_VISION_MODELS = {
     # gemini-2.5-flash e' nativamente multimodale (nessun modello di visione
     # separato come per Groq), quindi riusiamo lo stesso TEXT_FLASH qui.
     "gemini": Models.Gemini.TEXT_FLASH,
+    "gemini_fra": Models.Gemini.TEXT_FLASH,
 }
 
 
@@ -69,6 +75,7 @@ def get_llm(
     api_keys = {
         "groq": settings.groq_api_key,
         "gemini": settings.gemini_api_key,
+        "gemini_fra": settings.gemini_fra_key,
         "ollama": "ollama",
     }
     kwargs = dict(

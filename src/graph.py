@@ -189,6 +189,19 @@ def router(state: MedicalState):
     reclutamento e' pieno), si torna al giro tra chi resta da confermare,
     nell'ordine in cui sono entrati al tavolo (current_turn_index).
 
+    Riapertura per reazione: se TUTTI hanno gia' confermato ma l'ultimissimo
+    intervento chiama in causa per nome un collega gia' seduto al tavolo
+    (anche se gia' tra i confermati) - una conferma con un'aggiunta nuova, o
+    una domanda mirata - gli si da' UNA battuta in piu' per reagire prima di
+    chiudere, invece di passare dritto al primario. Senza questo, un "confermo,
+    e aggiungerei anche l'EGA" non riceveva mai una replica: il tavolo si
+    chiudeva nell'istante stesso in cui l'ultimo confermava, anche se aveva
+    appena detto qualcosa di nuovo (osservato in test reale: la discussione
+    sembrava "uno propone, uno conferma" invece di un vero botta-e-risposta).
+    Il tetto MAX_SPEAKS_PER_SPECIALIST (gia' usato sopra) basta a evitare un
+    ping-pong infinito: chi viene riaperto ha comunque un numero massimo di
+    interventi.
+
     total_turns e' il freno di emergenza assoluto: oltre MAX_TOTAL_TURNS si va
     comunque al primario con l'ipotesi di gruppo cosi' com'e', confermata o meno.
     """
@@ -217,15 +230,29 @@ def router(state: MedicalState):
 
     pending = {role for role in needed if role not in confirmed}
 
-    if not needed or not pending:
+    # Riapertura per reazione (vedi docstring): solo quando non resta piu'
+    # nessuno da confermare, altrimenti la normale priorita' al punto 1 sotto
+    # se ne occupa gia'.
+    reopen_role = None
+    if not pending and state.round_table:
+        last_entry = state.round_table[-1]
+        last_to = last_entry.to
+        if last_to and last_to in needed and last_to != last_entry.author:
+            speak_count = sum(1 for e in state.round_table if e.author == last_to)
+            if speak_count < MAX_SPEAKS_PER_SPECIALIST:
+                reopen_role = last_to
+                print(f"🔀 ROUTER: {last_to} chiamato in causa dopo aver gia' confermato, una battuta di reazione")
+
+    if not needed or (not pending and not reopen_role):
         print("🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario")
         return {**update, "next_step": "chief_physician"}
 
     recruited_count = state.recruited_specialists_count
-    next_role = None
+    next_role = reopen_role
 
-    # 1. Priorita': chi e' stato interpellato direttamente nell'ultimo intervento.
-    if state.round_table:
+    # 1. Priorita': chi e' stato interpellato direttamente nell'ultimo intervento
+    # (non se abbiamo gia' deciso una riapertura per reazione sopra).
+    if next_role is None and state.round_table:
         last_to = state.round_table[-1].to
         if last_to:
             if last_to in pending:

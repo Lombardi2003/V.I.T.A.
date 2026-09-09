@@ -173,27 +173,29 @@ async def specialist_node(state: MedicalState, role: str):
     table_text = _format_round_table(state.round_table)
     hypothesis_text = _format_group_hypothesis(state.group_hypothesis)
 
-    # Se l'ultimo intervento era un mini-consulto rivolto PROPRIO a questo
-    # specialista (azione "consulta", to == role), questo turno DEVE rispondere
-    # a quella domanda specifica prima di qualsiasi altra cosa - senza questo,
-    # uno specialista appena reclutato apre semplicemente una sua ipotesi
-    # generale, ignorando la domanda puntuale che lo ha fatto chiamare in causa
-    # (osservato in test reale: nessuna regola generica bastava a farglielo
-    # notare, dato che al momento del reclutamento non esiste ancora
-    # un'ipotesi di gruppo su cui reagire - il turno cade sempre su "proponi").
+    # Se l'ultimo intervento era rivolto PROPRIO a questo specialista (to ==
+    # role) - un mini-consulto (azione "consulta") o una riapertura per
+    # reazione decisa dal router quando tutti avevano gia' confermato (vedi
+    # router in graph.py) - questo turno DEVE rispondere a quel punto preciso
+    # prima di qualsiasi altra cosa. Senza questo, uno specialista appena
+    # chiamato in causa apre semplicemente una sua ipotesi/conferma generica,
+    # ignorando cio' che lo ha fatto richiamare (osservato in test reale sul
+    # mini-consulto: nessuna regola generica bastava a farglielo notare).
     # Iniettiamo un'istruzione dedicata solo quando serve, stesso pattern gia'
     # usato per force_final nel disegno precedente (Python rileva il contesto
     # meccanicamente, il prompt si adatta).
     consulto_pendente = ""
     if state.round_table:
         last = state.round_table[-1]
-        if last.azione == "consulta" and last.to == role:
+        if last.to == role:
             chi_chiede = SPECIALIST_DISPLAY_NAMES.get(last.author, last.author)
+            e_domanda = last.azione == "consulta"
             consulto_pendente = (
-                f'ATTENZIONE: {chi_chiede} ti ha appena chiamato con un mini-consulto e una '
-                f'domanda SPECIFICA: "{last.content}". Il tuo turno DEVE rispondere '
-                f'ESPLICITAMENTE e per primo a questa domanda (nel campo "dettagli"/"message"), '
-                f"prima di qualsiasi ipotesi generale tua."
+                f'ATTENZIONE: {chi_chiede} ti ha appena rivolto '
+                f'{"un mini-consulto con una domanda SPECIFICA" if e_domanda else "una considerazione specifica, indirizzata a te"}: '
+                f'"{last.content}". Il tuo turno DEVE rispondere '
+                f'ESPLICITAMENTE e per primo a questo punto (nel campo "dettagli"/"message"), '
+                f"prima di qualsiasi altra cosa."
             )
 
     prompt = SPECIALIST_PROMPT.format(

@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     # (vedi factory.py), non fa parte della scelta groq/ollama principale
     # decisa da use_cloud_acceleration.
     gemini_api_key: Optional[str] = None
+    # Seconda chiave Gemini, da un account/progetto Google Cloud diverso da
+    # quello di gemini_api_key - la quota gratuita (20 richieste/giorno) e'
+    # per-progetto (vedi commento in common.py), quindi questa ha un conteggio
+    # separato. E' quella attiva per llm_specialist quando la prima si esaurisce.
+    gemini_fra_key: Optional[str] = None
     use_cloud_acceleration: bool = True
 
     # Override opzionali: se assenti, src/llm/factory.py usa un default sensato
