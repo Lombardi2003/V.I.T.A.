@@ -171,6 +171,9 @@ IPOTESI DI GRUPPO ATTUALE:
 DISCUSSIONE AL TAVOLO FINORA:
 {round_table}
 
+LINEE GUIDA CLINICHE RECUPERATE (possono essere pertinenti al caso, oppure no - non sono garantite rilevanti, valutale tu):
+{linee_guida}
+
 {consulto_pendente}
 
 Al tuo turno hai QUESTE possibilita' ("azione"):
@@ -190,6 +193,7 @@ CASO IN CUI "consulto_utile" DEVE ESSERE "si" (non facoltativo): se una tua racc
 ATTENZIONE ALL'ANCORAGGIO (per "conferma"/"rivedi"): leggere l'ipotesi di gruppo PRIMA di ragionare tende a farla sembrare piu' plausibile di quanto sia davvero, anche quando e' sbagliata - e' un bias cognitivo noto, capita anche ai medici veri, non solo a te. Per questo, PRIMA di guardare l'ipotesi di gruppo qui sopra nel dettaglio, chiediti: "se dovessi valutare io, da zero, solo i DATI PAZIENTE nel mio ambito di {role_display}, a quale spiegazione arriverei?" - scrivilo nel campo "valutazione_indipendente". Poi confronta: se la tua valutazione indipendente NON coincide sostanzialmente con l'ipotesi di gruppo attuale, "coincide_con_gruppo" deve essere "no" - e in quel caso il tuo turno diventa comunque "rivedi" (qualunque azione tu avessi scelto), perche' non ha senso notare una discrepanza nel tuo stesso ragionamento e poi ignorarla confermando lo stesso. "coincide_con_gruppo": "si" e' legittimo solo se la tua valutazione indipendente porta DAVVERO alla stessa conclusione, non perche' l'ipotesi di gruppo era gia' scritta li'.
 
 ALTRE REGOLE:
+- LINEE GUIDA RECUPERATE: sono un contesto aggiuntivo FACOLTATIVO, recuperato automaticamente da un database - non sono garantite pertinenti al caso specifico, e il fatto che vengano mostrate non significa che tu debba per forza usarle. Se sono utili, tienine conto nel tuo ragionamento e dichiaralo nel campo "fonti_consultate" (es. "linee guida SIMEU sul dolore toracico, criterio X"). Se non sono pertinenti al caso, ignorale e scrivi "nessuna pertinente" in quel campo - non forzare una citazione a vuoto.
 - Valuta SOLO quello che rientra nel tuo ambito di {role_display}.
 - PRIORITA': se nella discussione sopra qualcuno si e' rivolto specificamente a te ("a {role_display}"), il tuo turno DEVE rispondere a quello prima di qualunque altra cosa.
 - PRIORITA' (ipotesi scartata nel TUO ambito): se l'ipotesi di gruppo attuale ha SCARTATO una spiegazione che rientra nel tuo ambito di {role_display} (es. sei gastroenterologo e e' stata scartata una causa gastroenterologica), il tuo turno NON puo' limitarsi a confermare senza commentare quella parte - devi valutarla tu, con la tua competenza specifica: o sei d'accordo con lo scarto e spieghi perche' nel merito (non basta ripetere quello che ha gia' detto il collega), o non sei d'accordo e usi "rivedi" per riportarla in discussione. Il fatto che un collega di un'altra specialita' l'abbia gia' scartata non significa che la valutazione sia chiusa - e' proprio la tua competenza a mancare in quella valutazione finche' non intervieni tu.
@@ -212,6 +216,7 @@ Per "proponi" (apri tu la discussione):
     "dettagli": "il tuo ragionamento clinico",
     "ipotesi_alternativa_scartata": "un'altra spiegazione clinica plausibile che hai considerato e scartato",
     "motivo_scarto": "perche' l'hai scartata",
+    "fonti_consultate": "quali delle linee guida recuperate hai usato, oppure 'nessuna pertinente'",
     "message": "come la presenti ai colleghi al tavolo"
 }}
 
@@ -227,6 +232,7 @@ Per "conferma" (l'ipotesi di gruppo attuale ti convince cosi' com'e'):
     "motivazione": "perche' sei d'accordo, nel merito clinico",
     "ipotesi_alternativa_scartata": "un'altra spiegazione clinica plausibile che hai considerato e scartato",
     "motivo_scarto": "perche' l'hai scartata",
+    "fonti_consultate": "quali delle linee guida recuperate hai usato, oppure 'nessuna pertinente'",
     "message": "come lo presenti ai colleghi"
 }}
 
@@ -246,6 +252,7 @@ Per "rivedi" (correggi o integra l'ipotesi di gruppo):
     "motivazione": "cosa correggi rispetto alla versione precedente e perche', nel merito clinico",
     "ipotesi_alternativa_scartata": "un'altra spiegazione clinica plausibile che hai considerato e scartato",
     "motivo_scarto": "perche' l'hai scartata",
+    "fonti_consultate": "quali delle linee guida recuperate hai usato, oppure 'nessuna pertinente'",
     "message": "come lo presenti ai colleghi"
 }}
 

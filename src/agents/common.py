@@ -50,13 +50,16 @@ llm_photography = get_llm(vision=True)
 # quanto accadesse sui nodi "lenti". Tornati su Gemini TEXT_FLASH.
 #
 # Entrambe le chiavi Gemini (gemini_api_key e gemini_fra_api_key, vedi
-# settings.py) hanno gia' esaurito la quota gratuita di 20 richieste/giorno
-# durante i test di oggi, in momenti diversi - la quota e' per-progetto
-# Google Cloud, non per-chiave, quindi le due si esauriscono indipendentemente.
-# Tornati su provider="gemini" (la prima chiave) dopo aver verificato con una
-# chiamata reale che nel frattempo si e' liberata. Gli altri nodi
+# settings.py) hanno esaurito la quota gratuita di 20 richieste/giorno durante
+# i test di oggi, in momenti diversi - la quota e' per-progetto Google Cloud,
+# non per-chiave, quindi le due si esauriscono indipendentemente.
+#
+# Tornati su Groq TEXT_20B per la fase di sviluppo del RAG (vedi src/rag/):
+# in questa fase serve iterare rapidamente sull'integrazione, non tanto
+# discussioni lunghe del tavolo - Groq resta piu' rapido a rispondere quando
+# funziona, anche con lo svantaggio noto dell'8K TPM condiviso. Gli altri nodi
 # (intake/reviewer/supervisor/primario) restano su Groq/.env come sempre.
-llm_specialist = get_llm(model_name=Models.Gemini.TEXT_FLASH, provider="gemini")
+llm_specialist = get_llm(model_name=Models.Groq.TEXT_20B, provider="groq")
 
 # Database
 mdb = MedicalDatabase()

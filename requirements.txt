@@ -6,3 +6,20 @@ pydantic==2.12.5
 pydantic-settings==2.10.1
 SQLAlchemy==2.0.48
 sqlmodel==0.0.37
+
+# RAG (src/rag/): linee guida cliniche recuperate per il tavolo rotondo -
+# embedding locale (nessuna quota/costo esterno, vedi src/agents/common.py per
+# lo storico dei problemi di quota con Gemini/Groq), database vettoriale Chroma.
+# NB1: chromadb <1.0 (es. 0.5.x) dipende da chroma-hnswlib, un'estensione C++ che
+# su Windows richiede Microsoft Visual C++ Build Tools per compilare (non
+# presenti su questa macchina, verificato con un tentativo reale di installazione
+# fallito) - chromadb >=1.0 ha riscritto il core in Rust, con wheel precompilate
+# per Windows, nessuna compilazione locale necessaria.
+# NB2: l'indice Chroma (chroma_db/) NON va salvato dentro la cartella di
+# progetto - vedi il commento su CHROMA_DIR in src/rag/build_index.py: la
+# sincronizzazione OneDrive in background corrompe l'indice HNSW binario
+# (verificato con un test reale), quindi viene salvato in %LOCALAPPDATA%.
+chromadb==1.5.9
+langchain-chroma==1.1.0
+langchain-huggingface[full]==1.2.2
+pypdf==6.1.1

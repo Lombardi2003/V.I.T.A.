@@ -11,6 +11,7 @@ from src.state import MedicalState, RoundTableEntry, GroupHypothesis, FinalDiagn
 from .prompts import SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, ALL_SPECIALISTS
 from .common import stream_response, llm_specialist
 from .authors import Authors
+from src.rag.retriever import retrieve
 
 # Tetto assoluto di battute nell'intera discussione al tavolo - non e' un
 # traguardo (il tavolo puo' convergere prima, se tutti confermano l'ipotesi di
@@ -198,6 +199,37 @@ async def specialist_node(state: MedicalState, role: str):
                 f"prima di qualsiasi altra cosa."
             )
 
+    # Recupero RAG (src/rag/): SEMPRE eseguito, un turno = una ricerca - non e'
+    # una scelta del modello (vedi discussione: lasciare al modello "se
+    # cercare" ha lo stesso rischio gia' visto oggi con consulto_utile e
+    # coincide_con_gruppo, entrambi ignorati quando lasciati liberi, funzionanti
+    # solo forzati meccanicamente). Il modello resta libero pero' di IGNORARE il
+    # risultato se non pertinente (vedi SPECIALIST_PROMPT, campo
+    # "fonti_consultate") - il recupero e' obbligatorio, l'uso no.
+    #
+    # Query per-turno (non solo i sintomi fissi, Opzione A): include anche il
+    # contenuto dell'ultimo intervento se rivolto a questo specialista, cosi'
+    # un mini-consulto su un dettaglio specifico (es. "criteri di sospensione
+    # anticoagulante") recupera contesto mirato a QUEL dettaglio, non solo al
+    # quadro clinico generale del paziente.
+    sintomi_query = ", ".join(s.description for s in state.patient_card.symptom.symptoms)
+    query_parts = [display_name, sintomi_query]
+    if consulto_pendente and state.round_table:
+        query_parts.append(state.round_table[-1].content)
+    linee_guida_chunks = retrieve(" - ".join(p for p in query_parts if p))
+    linee_guida_text = (
+        "\n\n".join(f"- {chunk}" for chunk in linee_guida_chunks)
+        if linee_guida_chunks
+        else "Nessuna linea guida pertinente trovata nel database."
+    )
+    # Log di cosa e' stato recuperato per QUESTO turno - permette di verificare
+    # durante i test se il contenuto che lo specialista dichiara di aver usato
+    # (campo "fonti_consultate" nella risposta) corrisponde davvero a quello
+    # che il RAG ha trovato, invece di fidarsi solo della dichiarazione del modello.
+    print(f"📚 RAG [{role}]: {len(linee_guida_chunks)} pezzi recuperati")
+    for i, chunk in enumerate(linee_guida_chunks, 1):
+        print(f"   {i}. {chunk[:150]}...")
+
     prompt = SPECIALIST_PROMPT.format(
         role_display=display_name,
         role=role,
@@ -205,6 +237,7 @@ async def specialist_node(state: MedicalState, role: str):
         round_table=table_text,
         hypothesis=hypothesis_text,
         consulto_pendente=consulto_pendente,
+        linee_guida=linee_guida_text,
     )
 
     try:
