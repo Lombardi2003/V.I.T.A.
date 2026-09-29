@@ -13,6 +13,8 @@ import time
 from collections import Counter
 from pathlib import Path
 
+from huggingface_hub import snapshot_download
+from huggingface_hub.errors import LocalEntryNotFoundError
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -30,6 +32,25 @@ CHROMA_DIR = PROJECT_ROOT / "data" / "chroma_db"
 EMBEDDING_MODEL_NAME = "intfloat/multilingual-e5-small"
 
 COLLECTION_NAME = "linee_guida_cliniche"
+
+
+def load_embeddings() -> HuggingFaceEmbeddings:
+    """Modello di embedding, caricato dalla cache locale se c'e' gia'.
+
+    Passando solo il nome del modello, la libreria interroga HuggingFace a ogni
+    avvio per controllare i file (decine di richieste HEAD, visibili nei log
+    dell'app) anche se il modello e' gia' scaricato: avvio piu' lento e
+    dipendenza dalla rete. Se il modello e' in cache lo carichiamo invece dalla
+    sua cartella locale, senza nessuna chiamata; se non c'e' (primo avvio su un
+    PC nuovo, es. dopo aver clonato il progetto) lo scarichiamo come prima, una
+    volta sola.
+    """
+    try:
+        model_path = snapshot_download(EMBEDDING_MODEL_NAME, local_files_only=True)
+    except LocalEntryNotFoundError:
+        print(f"Modello di embedding non ancora in cache: lo scarico ({EMBEDDING_MODEL_NAME})...")
+        model_path = EMBEDDING_MODEL_NAME
+    return HuggingFaceEmbeddings(model_name=model_path)
 
 # --- Pulizia del testo e filtro dei pezzi ---
 # Il testo estratto dai PDF contiene molto materiale che non e' contenuto
@@ -305,7 +326,7 @@ def main() -> None:
     scartati = ", ".join(f"{n} {motivo}" for motivo, n in discarded_total.most_common()) or "nessuno"
     print(f"\nTotale: {len(chunks)} pezzi da {len(pdf_paths)} documenti (scartati: {scartati})")
     print(f"Carico il modello di embedding ({EMBEDDING_MODEL_NAME})...")
-    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
+    embeddings = load_embeddings()
 
     # Si scrive PRIMA in una cartella temporanea FUORI dal progetto (fuori da
     # OneDrive), poi si copia il risultato completo in data/chroma_db/ - MAI

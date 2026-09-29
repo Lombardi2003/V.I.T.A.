@@ -157,6 +157,25 @@ def generate_graph():
         interrupt_before=["user"]
     )
 # Funzioni di routing
+def _turns_spoken(round_table, role: str) -> int:
+    """Quanti TURNI ha avuto uno specialista (non quante righe ha scritto nella
+    discussione): un turno puo' produrre due righe - un'azione sull'ipotesi
+    seguita subito dal mini-consulto che lo specialista ha chiesto nello stesso
+    turno (vedi specialist_node in clinical.py) - e va contato una volta sola,
+    altrimenti MAX_SPEAKS_PER_SPECIALIST scatterebbe dopo un solo turno."""
+    turns = 0
+    for i, entry in enumerate(round_table):
+        if entry.author != role:
+            continue
+        same_turn_consult = (
+            entry.azione == "consulta" and i > 0
+            and round_table[i - 1].author == role and round_table[i - 1].azione != "consulta"
+        )
+        if not same_turn_consult:
+            turns += 1
+    return turns
+
+
 def router(state: MedicalState):
     """Decide chi parla al prossimo turno al tavolo degli specialisti, e
     quando la discussione e' conclusa.
@@ -218,7 +237,7 @@ def router(state: MedicalState):
     changed = False
     for role in needed:
         if role not in confirmed:
-            speak_count = sum(1 for e in state.round_table if e.author == role)
+            speak_count = _turns_spoken(state.round_table, role)
             if speak_count >= MAX_SPEAKS_PER_SPECIALIST:
                 confirmed.add(role)
                 changed = True
@@ -237,13 +256,31 @@ def router(state: MedicalState):
     if not pending and state.round_table:
         last_entry = state.round_table[-1]
         last_to = last_entry.to
-        if last_to and last_to in needed and last_to != last_entry.author:
-            speak_count = sum(1 for e in state.round_table if e.author == last_to)
+        # Solo se il destinatario l'ha scelto lo specialista (to_explicit), non
+        # quello messo in automatico da specialist_node - vedi state.py.
+        if last_to and last_entry.to_explicit and last_to in needed and last_to != last_entry.author:
+            speak_count = _turns_spoken(state.round_table, last_to)
             if speak_count < MAX_SPEAKS_PER_SPECIALIST:
                 reopen_role = last_to
                 print(f"🔀 ROUTER: {last_to} chiamato in causa dopo aver gia' confermato, una battuta di reazione")
 
-    if not needed or (not pending and not reopen_role):
+    # Mini-consulto ancora senza risposta verso un collega non ancora al tavolo:
+    # la discussione resta aperta anche se tutti hanno gia' confermato - caso
+    # tipico, uno specialista da solo al tavolo che nello STESSO turno propone
+    # l'ipotesi (e quindi la conferma) e chiede un consulto (vedi
+    # specialist_node): senza questo si passava al primario e la domanda
+    # restava senza risposta. Il reclutamento vero e proprio avviene al punto 1.
+    open_consult = False
+    if state.round_table:
+        last_entry = state.round_table[-1]
+        open_consult = (
+            last_entry.azione == "consulta"
+            and bool(last_entry.to)
+            and last_entry.to not in needed
+            and state.recruited_specialists_count < MAX_RECRUITED_SPECIALISTS
+        )
+
+    if not needed or (not pending and not reopen_role and not open_consult):
         print("🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario")
         return {**update, "next_step": "chief_physician"}
 

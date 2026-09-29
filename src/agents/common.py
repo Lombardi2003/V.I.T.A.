@@ -1,20 +1,76 @@
 # Configurazione condivisa tra tutti i moduli di agents/: client LLM, connessione
 # al database, e piccole utility comuni (stream_response). I nomi degli autori
 # per i messaggi (es. "System") vivono in authors.py, non qui.
+import re
+import time
+
+import openai
+
 from src.database import MedicalDatabase
 from src.settings import get_settings
 from src.llm import get_llm, Models
 
+# Nuovi tentativi per gli errori TEMPORANEI dell'API (non per quelli
+# definitivi come chiave non valida o richiesta malformata, che fallirebbero
+# identici). Il caso tipico e' il 429 di Groq (limite di token al minuto,
+# osservato in test reale durante il tavolo rotondo): prima non veniva gestito
+# in nessun nodo tranne gli specialisti - un 429 nel supervisore, nell'intake
+# o nel primario mandava in errore l'intera conversazione - e negli specialisti
+# il turno veniva solo saltato e ritentato subito dal router, senza pause, cioe'
+# quasi sempre di nuovo oltre il limite.
+MAX_LLM_RETRIES = 2
+MAX_RETRY_WAIT_SECONDS = 30  # oltre, meglio arrendersi che bloccare la chat
+DEFAULT_RETRY_WAIT_SECONDS = 5
+_TRANSIENT_ERRORS = (
+    openai.RateLimitError,
+    openai.APIConnectionError,   # include APITimeoutError
+    openai.InternalServerError,
+)
+# Groq indica quanto aspettare nel messaggio d'errore: "Please try again in 6.8325s"
+# (oppure "in 1m2.5s" quando l'attesa supera il minuto).
+_RETRY_AFTER = re.compile(r"try again in (?:(\d+)m)?([\d.]+)s", re.IGNORECASE)
+
+
+def _retry_wait_seconds(error: Exception) -> float:
+    match = _RETRY_AFTER.search(str(error))
+    if not match:
+        return DEFAULT_RETRY_WAIT_SECONDS
+    minutes, seconds = match.groups()
+    return int(minutes or 0) * 60 + float(seconds) + 1  # +1 s di margine
+
+
+def call_with_retry(fn, *args, **kwargs):
+    """Esegue una chiamata all'LLM ritentandola dopo un errore temporaneo,
+    aspettando il tempo suggerito dall'API (con un tetto). Sincrona: va sempre
+    chiamata dentro asyncio.to_thread, come gia' fanno tutti i nodi, cosi'
+    l'attesa non blocca il ciclo di eventi di Chainlit."""
+    for attempt in range(MAX_LLM_RETRIES + 1):
+        try:
+            return fn(*args, **kwargs)
+        except _TRANSIENT_ERRORS as e:
+            wait = _retry_wait_seconds(e)
+            if attempt == MAX_LLM_RETRIES or wait > MAX_RETRY_WAIT_SECONDS:
+                raise
+            print(f"\n⏳ LLM: errore temporaneo ({type(e).__name__}), nuovo tentativo "
+                  f"{attempt + 1}/{MAX_LLM_RETRIES} tra {wait:.1f}s")
+            time.sleep(wait)
+
 
 def stream_response(prompt_current_card, llm=None):
     llm = llm or llm_agents
-    full_response = ""
-    for chunk in llm.stream(prompt_current_card):
-        content = chunk.content
-        print(content, end="", flush=True)
-        full_response += content
-    print("\n")
-    return full_response
+
+    def _stream():
+        # La risposta si ricostruisce da zero a ogni tentativo: un errore puo'
+        # arrivare anche a meta' dello streaming (osservato in test reale).
+        full_response = ""
+        for chunk in llm.stream(prompt_current_card):
+            content = chunk.content
+            print(content, end="", flush=True)
+            full_response += content
+        print("\n")
+        return full_response
+
+    return call_with_retry(_stream)
 
 
 # Configurazione del modello LLM (Groq o Ollama, vedi src/llm/factory.py)

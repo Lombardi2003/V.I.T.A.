@@ -10,7 +10,7 @@ import chainlit as cl
 
 from src.state import MedicalState, PatientCard, PhotoAnalysis
 from .prompts import INTAKE_PROMPT, REVIEWER_PROMPT, PHOTO_PROMPT
-from .common import stream_response, llm_photography
+from .common import stream_response, call_with_retry, llm_photography
 from .authors import Authors
 
 
@@ -433,8 +433,9 @@ async def photography_node(state: MedicalState):
             try:
                 # Stessa ragione di asyncio.to_thread altrove in questo file:
                 # .invoke() e' sincrona/bloccante, non va chiamata direttamente
-                # dentro una funzione async.
-                response = await asyncio.to_thread(llm_photography.invoke, messages)
+                # dentro una funzione async. call_with_retry: nuovi tentativi
+                # dopo un errore temporaneo dell'API (vedi common.py).
+                response = await asyncio.to_thread(call_with_retry, llm_photography.invoke, messages)
                 step.output = response.content
             except Exception as e:
                 step.output = f"Errore durante la chiamata al modello di visione: {e}"

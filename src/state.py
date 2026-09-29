@@ -87,8 +87,22 @@ class RoundTableEntry(BaseModel):
     """ Un singolo intervento nella discussione tra specialisti. """
     author: str                 # ruolo di chi parla, es. "cardiologist"
     to: Optional[str] = None    # ruolo destinatario, None = rivolto a tutti
+    # False quando "to" NON l'ha scelto lo specialista ma e' stato messo in
+    # automatico (l'ultimo collega che ha parlato, vedi specialist_node): il
+    # router da' una battuta di reazione solo a chi e' stato chiamato in causa
+    # davvero - prima la dava quasi dopo ogni conferma, perche' il destinatario
+    # automatico sembrava sempre una chiamata in causa (chiamate LLM in piu'
+    # anche senza nulla da aggiungere).
+    to_explicit: bool = True
     azione: str = ""            # "proponi" | "conferma" | "rivedi" | "consulta"
     content: str = ""
+    # Urgenza sostenuta da chi parla in questo intervento (None per "consulta",
+    # che e' solo una domanda). Registrata per ogni intervento, non solo
+    # nell'ipotesi di gruppo, perche' quella tiene solo l'ULTIMA versione: le
+    # urgenze proposte prima e poi riviste andavano perse, e il primario non
+    # sapeva che qualcuno al tavolo aveva indicato un codice piu' alto (vedi
+    # primary_node in clinical.py).
+    urgency: Optional[Literal["ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO"]] = None
 
 # Classe BaseModel per la diagnosi finale e le raccomandazioni
 #

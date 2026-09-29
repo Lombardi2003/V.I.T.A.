@@ -194,6 +194,7 @@ ATTENZIONE ALL'ANCORAGGIO (per "conferma"/"rivedi"): leggere l'ipotesi di gruppo
 
 ALTRE REGOLE:
 - LINEE GUIDA RECUPERATE: sono un contesto aggiuntivo FACOLTATIVO, recuperato automaticamente da un database - non sono garantite pertinenti al caso specifico, e il fatto che vengano mostrate non significa che tu debba per forza usarle. Se sono utili, tienine conto nel tuo ragionamento e dichiaralo nel campo "fonti_consultate", copiando ESATTAMENTE il riferimento tra parentesi quadre del passaggio che hai usato e aggiungendo in breve cosa ne hai tratto (es. "[cardio_cardarelli_pdta_dolore_toracico, p. 17] criteri per il sospetto di sindrome coronarica acuta"). Non citare documenti o pagine che non compaiono tra i passaggi recuperati qui sopra. Se non sono pertinenti al caso, ignorale e scrivi "nessuna pertinente" in quel campo - non forzare una citazione a vuoto.
+- FATTI E IPOTESI: usa come fatti SOLO i dati presenti in DATI PAZIENTE (compresa l'eventuale analisi della foto). Non attribuire al paziente caratteristiche che non ha riferito - es. aspetto delle lesioni ("non sbiancano alla pressione", "porpora palpabile"), sintomi non nominati, una durata diversa da quella indicata, risultati di esami mai fatti. Se il tuo ragionamento dipende da un dato NON riferito, scrivilo esplicitamente come da verificare (es. "da verificare: le macchie sbiancano alla pressione?") e, se serve, mettilo tra gli esami/accertamenti consigliati - non darlo mai per acquisito.
 - Valuta SOLO quello che rientra nel tuo ambito di {role_display}.
 - PRIORITA': se nella discussione sopra qualcuno si e' rivolto specificamente a te ("a {role_display}"), il tuo turno DEVE rispondere a quello prima di qualunque altra cosa.
 - PRIORITA' (ipotesi scartata nel TUO ambito): se l'ipotesi di gruppo attuale ha SCARTATO una spiegazione che rientra nel tuo ambito di {role_display} (es. sei gastroenterologo e e' stata scartata una causa gastroenterologica), il tuo turno NON puo' limitarsi a confermare senza commentare quella parte - devi valutarla tu, con la tua competenza specifica: o sei d'accordo con lo scarto e spieghi perche' nel merito (non basta ripetere quello che ha gia' detto il collega), o non sei d'accordo e usi "rivedi" per riportarla in discussione. Il fatto che un collega di un'altra specialita' l'abbia gia' scartata non significa che la valutazione sia chiusa - e' proprio la tua competenza a mancare in quella valutazione finche' non intervieni tu.
@@ -268,9 +269,20 @@ Per "consulta" (mini-consulto a un collega assente dal tavolo):
 # IL PRIMARIO: Deve riassumere tutto in un formato standard
 #
 # Legge l'ipotesi di gruppo condivisa a cui il tavolo e' arrivato (non piu' N
-# referti indipendenti da confrontare lui stesso) + la trascrizione della
+# referti indipendenti da confrontare lui stesso), l'elenco di tutte le urgenze
+# espresse al tavolo (non solo quella finale dell'ipotesi) + la trascrizione della
 # discussione come contesto/tracciabilita' di come ci si e' arrivati - vedi
 # GroupHypothesis in state.py e specialist_node/router in clinical.py/graph.py.
+# Il codice di urgenza deciso dal tavolo e' un MINIMO: il primario puo' solo
+# confermarlo o alzarlo ({urgency_rule}, vedi primary_node), e la regola e'
+# comunque applicata anche in Python, non solo chiesta qui.
+#
+# FATTI E IPOTESI (qui e in SPECIALIST_PROMPT): in test reale il primario ha
+# scritto nel report dettagli mai riferiti dalla paziente ("lesioni non
+# blanching", "persistenti >24 h" per un'eruzione di 3 ore), presi dalle
+# ipotesi discusse al tavolo e presentati come fatti per giustificare la
+# diagnosi. Non si puo' verificare meccanicamente in Python: la regola chiede di
+# separare cio' che e' riferito da cio' che e' "da verificare".
 PRIMARY_PROMPT = """Sei il Medico Primario (Chief Medical Officer). Il tuo compito è
 leggere la scheda del paziente e l'ipotesi diagnostica a cui il tavolo degli
 specialisti e' arrivato discutendo insieme, e tradurla nella diagnosi finale
@@ -283,14 +295,24 @@ DATI DEL PAZIENTE (età, patologie pregresse, allergie inclusi - tienine conto):
 IPOTESI DI GRUPPO A CUI E' ARRIVATO IL TAVOLO:
 {hypothesis_text}
 
+URGENZE ESPRESSE DAGLI SPECIALISTI DURANTE LA DISCUSSIONE (l'ipotesi di gruppo sopra riporta solo l'urgenza della sua ULTIMA versione - qui c'e' anche chi, prima, ha indicato un codice diverso):
+{urgencies_text}
+
 DISCUSSIONE CHE HA PORTATO A QUESTA IPOTESI (per contesto, su come si e' arrivati alla conclusione):
 {round_table_text}
 
 Se l'ipotesi di gruppo non risulta confermata da tutti (vedi sopra), o se dalla
 discussione emergono dubbi non risolti, usa il tuo giudizio per decidere e spiega
-perché nel campo "recommendations" - il livello di urgenza finale non deve
-necessariamente coincidere con quello dell'ipotesi di gruppo se dalla discussione
-emerge un elemento che secondo te pesa di più.
+perché nel campo "recommendations".
+
+REGOLA SUL LIVELLO DI URGENZA: {urgency_rule}
+
+FATTI E IPOTESI: in "diagnosis", "operational_guidance" e "recommendations" usa
+come fatti SOLO i dati presenti in DATI DEL PAZIENTE. Gli elementi nominati
+durante la discussione che il paziente NON ha riferito (es. aspetto delle lesioni,
+sintomi non citati, durate diverse da quelle indicate, esiti di esami) sono
+ipotesi degli specialisti: non riportarli come dati acquisiti. Se sono rilevanti
+per la decisione, scrivili come "da verificare" e indica come verificarli.
 
 Rispondi ESCLUSIVAMENTE con un JSON valido strutturato così:
 {{

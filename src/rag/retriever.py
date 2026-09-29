@@ -9,9 +9,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
 
-from .build_index import CHROMA_DIR, COLLECTION_NAME, EMBEDDING_MODEL_NAME
+from .build_index import CHROMA_DIR, COLLECTION_NAME, load_embeddings
 
 # Specialita' dei documenti in data/guidelines/ (prefisso del nome del file,
 # vedi specialty_from_filename in build_index.py) per ciascun ruolo del tavolo
@@ -50,9 +49,8 @@ class RetrievedChunk:
 def _get_vectorstore() -> Chroma | None:
     if not CHROMA_DIR.exists():
         return None
-    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
     return Chroma(
-        embedding_function=embeddings,
+        embedding_function=load_embeddings(),
         persist_directory=str(CHROMA_DIR),
         collection_name=COLLECTION_NAME,
     )

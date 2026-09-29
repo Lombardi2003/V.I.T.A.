@@ -63,6 +63,18 @@ SPECIALIST_DISPLAY_NAMES = {
 # anche quando lo specialista intendeva rivolgersi a un collega preciso.
 _DISPLAY_NAME_TO_ROLE = {name.lower(): role for role, name in SPECIALIST_DISPLAY_NAMES.items()}
 
+# Scala dei codici colore, dal piu' al meno urgente (stessa di GroupHypothesis
+# e FinalDiagnosis in state.py).
+URGENCY_LEVELS = ["ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO"]
+
+
+def _parse_urgency(value) -> str | None:
+    """Urgenza scritta dall'LLM -> uno dei 5 codici, oppure None se assente o
+    non riconoscibile. Senza questa normalizzazione un "arancione" minuscolo
+    faceva fallire la validazione dell'ipotesi di gruppo (Literal in state.py)."""
+    text = str(value or "").strip().upper()
+    return text if text in URGENCY_LEVELS else None
+
 
 # Nodo del supervisore
 async def supervisor_node(state: MedicalState):
@@ -129,8 +141,27 @@ def _format_round_table(entries: list[RoundTableEntry]) -> str:
     for e in entries:
         chi_parla = SPECIALIST_DISPLAY_NAMES.get(e.author, e.author)
         destinatario = SPECIALIST_DISPLAY_NAMES.get(e.to, e.to) if e.to else "tutti"
-        azione_tag = f" [{e.azione.upper()}]" if e.azione else ""
+        tag = ", ".join(t for t in (e.azione.upper(), f"urgenza {e.urgency}" if e.urgency else "") if t)
+        azione_tag = f" [{tag}]" if tag else ""
         righe.append(f"{chi_parla} (a {destinatario}){azione_tag}: {e.content}")
+    return "\n".join(righe)
+
+
+def _format_urgencies(entries: list[RoundTableEntry]) -> str:
+    """Tutte le urgenze espresse durante la discussione, nell'ordine in cui sono
+    state dette - per il primario, che altrimenti vede solo quella dell'ultima
+    versione dell'ipotesi di gruppo."""
+    righe = []
+    for turno, e in enumerate(entries, 1):
+        if e.urgency:
+            chi = SPECIALIST_DISPLAY_NAMES.get(e.author, e.author)
+            righe.append(f"- {e.urgency}: {chi} (intervento {turno}, {e.azione})")
+    if not righe:
+        return "Nessuna urgenza espressa esplicitamente al tavolo."
+    livelli = {e.urgency for e in entries if e.urgency}
+    if len(livelli) > 1:
+        piu_alta = min(livelli, key=URGENCY_LEVELS.index)
+        righe.append(f"ATTENZIONE: il tavolo NON e' stato concorde sull'urgenza - la piu' alta espressa e' {piu_alta}.")
     return "\n".join(righe)
 
 
@@ -264,9 +295,10 @@ async def specialist_node(state: MedicalState, role: str):
             content = await asyncio.to_thread(stream_response, prompt, llm_specialist)
             step.output = content
     except Exception as e:
-        # Un errore diretto dell'API (es. rate limit superato a meta' dello
-        # streaming, osservato in test reale con openai.APIError) non deve
-        # mandare in crash l'intero grafo - stesso trattamento riservato al
+        # Un errore diretto dell'API che resta anche dopo i nuovi tentativi di
+        # stream_response (vedi call_with_retry in common.py - es. rate limit
+        # superato a meta' dello streaming, osservato in test reale con
+        # openai.APIError) non deve mandare in crash l'intero grafo - stesso trattamento riservato al
         # JSON malformato/troncato piu' sotto: nessun aggiornamento, il
         # router richiamera' comunque questo specialista al prossimo giro
         # (fino a MAX_SPEAKS_PER_SPECIALIST).
@@ -328,10 +360,19 @@ async def specialist_node(state: MedicalState, role: str):
         # standard (vedi SUPERVISOR_PROMPT, "SINTOMI MISTI/NON CHIARI").
         print(f"🔀 {role}: consulto_utile=si verso '{raw_collega}' (non nel roster) -> reindirizzato a general_practitioner")
         collega = "general_practitioner" if role != "general_practitioner" else None
+    # Il mini-consulto forzato si AGGIUNGE all'azione scelta dallo specialista,
+    # non la sostituisce: prima si registra la sua proposta/revisione/conferma
+    # dell'ipotesi di gruppo, poi parte il consulto (vedi fondo del nodo).
+    # Prima il turno diventava SOLO un consulto e il resto della risposta veniva
+    # buttato: osservato in test reale, un gastroenterologo propone urgenza
+    # ARANCIONE + consulto, la proposta si perde, il dermatologo consultato apre
+    # lui l'ipotesi con VERDE e il primario chiude su VERDE - mentre in altre
+    # esecuzioni dello stesso caso, senza consulto forzato al primo turno, il
+    # risultato era ARANCIONE.
+    forced_consult_to = None
     if consulto_utile and collega and azione != "consulta":
-        print(f"🔀 {role}: consulto_utile=si -> mini-consulto forzato verso {collega}")
-        azione = "consulta"
-        data = {**data, "to": collega, "message": data.get("domanda_per_il_collega") or ""}
+        print(f"🔀 {role}: consulto_utile=si -> mini-consulto verso {collega}, in aggiunta all'azione '{azione}'")
+        forced_consult_to = collega
 
     # Rete di sicurezza puramente meccanica: "proponi" e' valido solo se non
     # esiste ancora un'ipotesi, "conferma"/"rivedi" solo se esiste gia' - un'azione
@@ -373,6 +414,14 @@ async def specialist_node(state: MedicalState, role: str):
         if not str(data.get("diagnosi", "")).strip() and valutazione_indipendente:
             data = {**data, "diagnosi": valutazione_indipendente}
 
+    # Consulto forzato al primo turno senza una diagnosi da proporre: non c'e'
+    # nessuna proposta da salvare (si aprirebbe un'ipotesi vuota, "Diagnosi non
+    # determinata") - il turno resta un semplice mini-consulto, come prima.
+    if forced_consult_to and azione == "proponi" and not str(data.get("diagnosi", "")).strip():
+        azione = "consulta"
+        data = {**data, "to": forced_consult_to, "message": data.get("domanda_per_il_collega") or ""}
+        forced_consult_to = None
+
     raw_target = str(data.get("to") or "").strip().lower()
     target = raw_target if raw_target in ALL_SPECIALISTS else _DISPLAY_NAME_TO_ROLE.get(raw_target)
     if target == role:
@@ -395,24 +444,25 @@ async def specialist_node(state: MedicalState, role: str):
         if not target:
             print(f"⚠️ {role}: 'consulta' senza destinatario valido, ignorato")
             return {}
-        domanda = message or motivazione or "(nessuna domanda specificata)"
-        entry = RoundTableEntry(author=role, to=target, azione="consulta", content=domanda)
-        destinatario = SPECIALIST_DISPLAY_NAMES.get(target, target)
-        msg_text = f"**{display_name}** chiede un mini-consulto a **{destinatario}**: {domanda}"
-        await cl.Message(content=msg_text, author=author).send()
+        entry, msg_text = await _send_consult(
+            role, display_name, author, target, message or motivazione or "(nessuna domanda specificata)"
+        )
         return {
             "round_table": [entry],
             "general_history": [AIMessage(content=msg_text)],
         }
 
     # --- "proponi"/"conferma"/"rivedi": agiscono sull'ipotesi di gruppo condivisa ---
+    target_explicit = bool(target)
     if not target:
         # Rete di sicurezza puramente meccanica (basata su CHI ha parlato per
         # ultimo, non su COSA ha detto): se non specificato e la discussione
         # e' gia' iniziata, ci si rivolge di default all'ultimo collega
         # diverso da noi che ha parlato - senza questo il modello lascia quasi
         # sempre "to" vuoto anche quando dovrebbe confrontarsi con qualcuno
-        # (osservato in test reale nel disegno precedente).
+        # (osservato in test reale nel disegno precedente). Segnato come NON
+        # esplicito (to_explicit=False): il router non lo tratta come una
+        # chiamata in causa che meriti una battuta di reazione.
         for prev in reversed(state.round_table):
             if prev.author != role:
                 target = prev.author
@@ -429,10 +479,11 @@ async def specialist_node(state: MedicalState, role: str):
     content_msg = " — ".join(parti)
 
     prev_gh = state.group_hypothesis
+    stated_urgency = _parse_urgency(data.get("urgenza"))
     if azione == "proponi":
         gh = GroupHypothesis(
             diagnosis=str(data.get("diagnosi", "")).strip() or "Diagnosi non determinata",
-            urgency_level=data.get("urgenza", "BIANCO"),
+            urgency_level=stated_urgency or "BIANCO",
             recommended_exams=data.get("esami_consigliati", []),
             details=str(data.get("dettagli", "")).strip(),
             discarded_alternative=alternativa,
@@ -444,7 +495,7 @@ async def specialist_node(state: MedicalState, role: str):
     elif azione == "rivedi":
         gh = GroupHypothesis(
             diagnosis=str(data.get("diagnosi", "")).strip() or prev_gh.diagnosis,
-            urgency_level=data.get("urgenza") or prev_gh.urgency_level,
+            urgency_level=stated_urgency or prev_gh.urgency_level,
             recommended_exams=data.get("esami_consigliati") or prev_gh.recommended_exams,
             details=str(data.get("dettagli", "")).strip() or prev_gh.details,
             discarded_alternative=alternativa or prev_gh.discarded_alternative,
@@ -463,19 +514,50 @@ async def specialist_node(state: MedicalState, role: str):
     if not content_msg:
         content_msg = "(nessun commento aggiuntivo)"
 
-    entry = RoundTableEntry(author=role, to=target, azione=azione, content=content_msg)
+    # Urgenza sostenuta da chi parla: per "proponi"/"rivedi" quella della nuova
+    # versione dell'ipotesi; per "conferma" quella dell'ipotesi confermata,
+    # A MENO CHE lo specialista non ne abbia scritta una sua diversa - succede
+    # quando voleva "proporre" ma un'ipotesi c'era gia' e il turno e' stato
+    # trasformato in conferma (vedi rete di sicurezza sulle azioni piu' sopra):
+    # prima quella sua urgenza andava persa senza lasciare traccia.
+    entry_urgency = gh.urgency_level if azione in ("proponi", "rivedi") else (stated_urgency or gh.urgency_level)
+    entry = RoundTableEntry(
+        author=role, to=target, to_explicit=target_explicit,
+        azione=azione, content=content_msg, urgency=entry_urgency,
+    )
     destinatario = SPECIALIST_DISPLAY_NAMES.get(target, target) if target else "tutti"
     azione_label = {"proponi": "apre la discussione", "conferma": "conferma", "rivedi": "rivede l'ipotesi"}[azione]
     msg_text = f"**{display_name}** {azione_label} (a {destinatario}): {content_msg}"
     if azione in ("proponi", "rivedi"):
         msg_text += f"\n\n*Ipotesi di gruppo aggiornata: {gh.diagnosis} (urgenza {gh.urgency_level})*"
+    elif entry_urgency != gh.urgency_level:
+        msg_text += f"\n\n*Urgenza indicata da {display_name}: {entry_urgency} (ipotesi di gruppo: {gh.urgency_level})*"
     await cl.Message(content=msg_text, author=author).send()
 
+    entries = [entry]
+    messages = [AIMessage(content=msg_text)]
+    if forced_consult_to:
+        # Il consulto va per ULTIMO nella discussione: il router fa parlare
+        # subito il destinatario dell'ultimo intervento (vedi router in graph.py).
+        domanda = str(data.get("domanda_per_il_collega") or "").strip() or "(nessuna domanda specificata)"
+        consult_entry, consult_text = await _send_consult(role, display_name, author, forced_consult_to, domanda)
+        entries.append(consult_entry)
+        messages.append(AIMessage(content=consult_text))
+
     return {
-        "round_table": [entry],
+        "round_table": entries,
         "group_hypothesis": gh.model_dump(),
-        "general_history": [AIMessage(content=msg_text)],
+        "general_history": messages,
     }
+
+
+async def _send_consult(role: str, display_name: str, author: str, target: str, domanda: str):
+    """Registra e mostra in chat un mini-consulto verso un collega."""
+    entry = RoundTableEntry(author=role, to=target, azione="consulta", content=domanda)
+    destinatario = SPECIALIST_DISPLAY_NAMES.get(target, target)
+    msg_text = f"**{display_name}** chiede un mini-consulto a **{destinatario}**: {domanda}"
+    await cl.Message(content=msg_text, author=author).send()
+    return entry, msg_text
 
 
 # Wrapper per i nodi specifici: ognuno chiama semplicemente specialist_node
@@ -559,8 +641,34 @@ async def primary_node(state: MedicalState):
         )
 
     round_table_text = _format_round_table(state.round_table)
+    urgencies_text = _format_urgencies(state.round_table)
 
-    prompt = PRIMARY_PROMPT.format(card=card_str, hypothesis_text=hypothesis_text, round_table_text=round_table_text)
+    # Il codice dell'ipotesi di gruppo e' il MINIMO del codice finale: gli
+    # specialisti formano insieme la diagnosi comune, il primario la assembla e
+    # puo' solo confermarne il codice o alzarlo (ad es. se vede nella
+    # discussione, o tra le urgenze espresse, un elemento che pesa di piu') -
+    # mai abbassarlo. Chiesto nel prompt e poi garantito in Python piu' sotto,
+    # senza affidarsi al fatto che l'LLM obbedisca: in test reale lo stesso
+    # caso clinico ha dato codici finali diversi da un'esecuzione all'altra.
+    urgency_floor = gh.urgency_level if gh is not None else None
+    if urgency_floor:
+        piu_alti = URGENCY_LEVELS[:URGENCY_LEVELS.index(urgency_floor)]
+        urgency_rule = (
+            f"il tavolo ha deciso il codice {urgency_floor}. Puoi solo confermarlo"
+            + (f" oppure ALZARLO ({' / '.join(reversed(piu_alti))})" if piu_alti else "")
+            + ", MAI abbassarlo. Se lo alzi, spiega in \"recommendations\" quale elemento della "
+            "discussione o del quadro clinico lo giustifica."
+        )
+    else:
+        urgency_rule = "il tavolo non e' arrivato a un'ipotesi condivisa: decidi tu il codice, motivandolo."
+
+    prompt = PRIMARY_PROMPT.format(
+        card=card_str,
+        hypothesis_text=hypothesis_text,
+        urgencies_text=urgencies_text,
+        round_table_text=round_table_text,
+        urgency_rule=urgency_rule,
+    )
 
     async with cl.Step(name="Sintesi finale", type="tool", default_open=False, show_input="text") as step:
         step.input = hypothesis_text
@@ -573,22 +681,35 @@ async def primary_node(state: MedicalState):
         report_data = json.loads(clean_content)
         final = FinalDiagnosis(
             diagnosis=report_data.get("diagnosis", "Diagnosi non determinata"),
-            urgency_level=report_data.get("urgency_level", "BIANCO"),
+            # Codice mancante o non riconoscibile: si parte dal codice del
+            # tavolo invece che dal piu' basso (BIANCO).
+            urgency_level=_parse_urgency(report_data.get("urgency_level")) or urgency_floor or "BIANCO",
             specialists_involved=coinvolti,
             operational_guidance=report_data.get("operational_guidance", ""),
             recommendations=report_data.get("recommendations", ""),
         )
     except Exception as e:
         # Stessa rete di sicurezza degli altri nodi: JSON malformato o fuori
-        # schema (es. urgency_level non tra i 5 valori validi) non deve
-        # crashare il grafo - ripieghiamo su una diagnosi segnaposto.
+        # schema non deve crashare il grafo - ripieghiamo su una diagnosi
+        # segnaposto, ma con il codice deciso dal tavolo: prima era BIANCO, il
+        # codice piu' basso, che per un errore tecnico e' la scelta peggiore.
         print(f"⚠️ PRIMARIO: risposta non valida dall'LLM, fallback ({e})")
         final = FinalDiagnosis(
             diagnosis="Diagnosi non determinata per un errore tecnico.",
-            urgency_level="BIANCO",
+            urgency_level=urgency_floor or "BIANCO",
             specialists_involved=coinvolti,
             recommendations="Si consiglia una valutazione medica diretta.",
         )
+
+    # Regola del minimo, applicata meccanicamente (vedi commento su urgency_floor).
+    nota_urgenza = ""
+    if urgency_floor and URGENCY_LEVELS.index(final.urgency_level) > URGENCY_LEVELS.index(urgency_floor):
+        print(f"🔒 PRIMARIO: codice {final.urgency_level} piu' basso di quello del tavolo -> riportato a {urgency_floor}")
+        nota_urgenza = (
+            f"\n\n*Codice riportato a {urgency_floor}: il primario aveva indicato {final.urgency_level}, "
+            "ma non puo' abbassare il codice deciso dal tavolo degli specialisti.*"
+        )
+        final = final.model_copy(update={"urgency_level": urgency_floor})
 
     print(f"👨‍⚕️ PRIMARIO → diagnosi={final.diagnosis!r} | urgenza={final.urgency_level}")
 
@@ -597,6 +718,7 @@ async def primary_node(state: MedicalState):
         f"{final.recommendations}\n\n"
         f"**Indicazioni operative:** {final.operational_guidance}\n\n"
         f"**Livello di urgenza:** {final.urgency_level}"
+        f"{nota_urgenza}"
     )
     await cl.Message(content=msg, author=Authors.PRIMARY_PHYSICIAN).send()
 
