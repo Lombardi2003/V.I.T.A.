@@ -79,6 +79,21 @@ Everything about choosing/building LLM clients, split like `src/agents/`:
 
 `src/settings.py` deliberately stays outside this package: it reads configuration for the whole project, not just the LLM. `src/llm/__init__.py` re-exports `get_llm`/`Models`, so callers just do `from src.llm import get_llm, Models`.
 
+### 🔍 `src/rag/` — Retrieval-Augmented Generation
+
+Gives each specialist access to real clinical guidelines (Italian SIMEU/ISS/SIOT/SIDeMaST/SITIP/SOI/regional PDTA documents, `data/guidelines/`) instead of relying only on the LLM's parametric knowledge. Two files:
+
+- **`build_index.py`** — one-off script (`python -m src.rag.build_index`, not part of the app's runtime flow) that chunks every PDF, embeds each chunk locally, and persists the result as a Chroma vector index in `data/chroma_db/`. Run again whenever `data/guidelines/` changes.
+- **`retriever.py`** — `retrieve(query, k=3)`, called from `specialist_node` (`src/agents/clinical.py`) on every specialist turn. Returns `[]` (never raises) if the index hasn't been built yet, so RAG degrades gracefully rather than crashing the graph.
+
+**Design decisions, and why:**
+- **Mechanical retrieval, not agentic** (i.e. not an LLM-decided "should I call the retrieval tool now" pattern, à la LangChain Deep Agents). Retrieval always runs, on every specialist turn — the decision left to the model is only whether the *result* is relevant enough to use, surfaced as a non-mandatory `fonti_consultate` field in the specialist's JSON output. This was a deliberate choice: testing this session's round-table behavior showed the model reliably under-fires optional, judgment-gated actions (the `rivedi`/disagreement action never fired organically in a full day of live testing) — an optional retrieval tool would likely see the same under-use.
+- **Per-turn, not once per round table**: each specialist turn builds a fresh query from `display_name` + symptom descriptions (+ the pending consult content, if any) and retrieves again, rather than retrieving once at the start of the table. Keeps the retrieved context targeted to whichever specialist is speaking.
+- **No specialty-based metadata filtering (yet)**: retrieval is a plain semantic search across the whole corpus, not scoped to the speaking specialist's guidelines. Deferred deliberately — add it later only if testing surfaces a real precision problem, rather than building it speculatively now.
+- **Embedding model**: `intfloat/multilingual-e5-small`, run locally via `sentence-transformers`/`langchain-huggingface` (no external API, no extra quota risk on top of the LLM calls). Chosen for Italian-language support and because it needs no separate background service (unlike Ollama's embedding models). Requires a `"query: "` prefix on search queries (`retriever.py`) and a `"passage: "` prefix on indexed chunks (`build_index.py`) — this model does not add them automatically.
+
+> ⚠️ **Known limitation**: `build_index.py` writes the index to a temporary directory first and only copies it into `data/chroma_db/` after actively verifying (retry loop, not a fixed sleep) that it reads back correctly — building directly inside this project's folder corrupts Chroma's on-disk index, because the folder is synced by OneDrive and OneDrive holds file locks during/shortly after both writes and copies. The workaround is retry loops (see the module's own comments for the full story), which work but can take several minutes. Moving the project directory outside of OneDrive entirely would remove the root cause — `data/chroma_db` would then be an ordinary git-tracked folder with no special handling needed.
+
 ### 🗄️ `src/database.py`
 The persistence layer for finalized patient records — separate from the graph's own (in-memory) conversation state. `PatientRecord` is the SQLModel table (primary key: `fiscal_code`); `MedicalDatabase` wraps the SQLite engine and exposes `save_patient`, `update_patient_conditions`, `read_patient`, `verify_patient_exists`. The database path is always resolved relative to the project root, regardless of the working directory the app is launched from.
 

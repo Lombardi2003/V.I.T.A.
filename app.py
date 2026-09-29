@@ -10,9 +10,14 @@ from src.state import MedicalState, PatientCard, PhotoAnalysis
 from src.graph import generate_graph
 from src.llm import Models
 from src.agents import llm_agents, llm_photography
+from src.rag.retriever import warm_up
 
 # Inizializziamo il grafo
 app = generate_graph()
+
+# Modello di embedding e indice delle linee guida caricati subito, non al primo
+# turno del primo specialista (vedi src/rag/retriever.py).
+warm_up()
 
 
 @cl.on_chat_start

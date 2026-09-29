@@ -11,7 +11,7 @@ from src.state import MedicalState, RoundTableEntry, GroupHypothesis, FinalDiagn
 from .prompts import SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, ALL_SPECIALISTS
 from .common import stream_response, llm_specialist
 from .authors import Authors
-from src.rag.retriever import retrieve
+from src.rag.retriever import build_queries, retrieve
 
 # Tetto assoluto di battute nell'intera discussione al tavolo - non e' un
 # traguardo (il tavolo puo' convergere prima, se tutti confermano l'ipotesi di
@@ -212,13 +212,27 @@ async def specialist_node(state: MedicalState, role: str):
     # un mini-consulto su un dettaglio specifico (es. "criteri di sospensione
     # anticoagulante") recupera contesto mirato a QUEL dettaglio, non solo al
     # quadro clinico generale del paziente.
-    sintomi_query = ", ".join(s.description for s in state.patient_card.symptom.symptoms)
-    query_parts = [display_name, sintomi_query]
-    if consulto_pendente and state.round_table:
-        query_parts.append(state.round_table[-1].content)
-    linee_guida_chunks = retrieve(" - ".join(p for p in query_parts if p))
+    #
+    # Il ruolo passato a retrieve() limita la ricerca alle linee guida della
+    # specialita' di chi parla + i documenti generali di triage (vedi
+    # retriever.py), e ogni pezzo arriva nel prompt con documento e pagina -
+    # cosi' "fonti_consultate" puo' citare una fonte vera e verificabile,
+    # invece di una descrizione inventata dal modello.
+    #
+    # Una ricerca per ciascun sintomo, non una sola con tutti i sintomi
+    # insieme (vedi build_queries in retriever.py): i sintomi fuori
+    # dall'ambito di questo specialista non devono "sporcare" la ricerca.
+    queries = build_queries(
+        display_name,
+        [s.description for s in state.patient_card.symptom.symptoms],
+        extra=state.round_table[-1].content if consulto_pendente and state.round_table else "",
+    )
+    # asyncio.to_thread: la ricerca (embedding della query + indice) e'
+    # sincrona - stessa ragione delle chiamate LLM piu' sotto, non deve
+    # bloccare il ciclo di eventi di Chainlit.
+    linee_guida_chunks = await asyncio.to_thread(retrieve, queries, role)
     linee_guida_text = (
-        "\n\n".join(f"- {chunk}" for chunk in linee_guida_chunks)
+        "\n\n".join(f"- [{chunk.citation}] {chunk.text}" for chunk in linee_guida_chunks)
         if linee_guida_chunks
         else "Nessuna linea guida pertinente trovata nel database."
     )
@@ -228,7 +242,7 @@ async def specialist_node(state: MedicalState, role: str):
     # che il RAG ha trovato, invece di fidarsi solo della dichiarazione del modello.
     print(f"📚 RAG [{role}]: {len(linee_guida_chunks)} pezzi recuperati")
     for i, chunk in enumerate(linee_guida_chunks, 1):
-        print(f"   {i}. {chunk[:150]}...")
+        print(f"   {i}. [{chunk.citation}] {chunk.text[:150]}...")
 
     prompt = SPECIALIST_PROMPT.format(
         role_display=display_name,
