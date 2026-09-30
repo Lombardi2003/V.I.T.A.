@@ -445,6 +445,29 @@ async def specialist_node(state: MedicalState, role: str):
         print(f"🔀 {role}: consulto_utile=si -> mini-consulto verso {collega}, in aggiunta all'azione '{azione}'")
         forced_consult_to = collega
 
+    # "consulta" verso un ruolo che non esiste tra i 10 disponibili (es.
+    # "allergologo"): stesso ripiego di consulto_utile qui sopra, il consulto va
+    # al medico generico. Se non si puo' (chi chiede E' il medico generico, o
+    # non ha indicato nessun destinatario) il turno non fallisce: il resto della
+    # risposta vale come intervento normale sull'ipotesi di gruppo. Prima il
+    # turno falliva e basta - osservato in test reale: il medico generico,
+    # chiamato a rispondere al consulto di un dermatologo, chiede a sua volta
+    # l'"allergologo", fallisce due volte di fila e la sua risposta al collega
+    # va persa.
+    if azione == "consulta":
+        raw_to = str(data.get("to") or "").strip()
+        consult_target = _role_from_name(raw_to)
+        if not consult_target or consult_target == role:
+            if raw_to and role != "general_practitioner":
+                print(f"🔀 {role}: 'consulta' verso '{raw_to}' (non nel roster) -> reindirizzato a general_practitioner")
+                data = {**data, "to": "general_practitioner"}
+            else:
+                azione = "conferma" if state.group_hypothesis is not None else "proponi"
+                print(f"🔀 {role}: 'consulta' senza destinatario possibile -> la risposta vale come '{azione}'")
+                if azione == "proponi" and not str(data.get("diagnosi", "")).strip():
+                    print(f"⚠️ {role}: nessuna diagnosi da proporre - turno fallito")
+                    return _failed_turn(state, role)
+
     # Rete di sicurezza puramente meccanica: "proponi" e' valido solo se non
     # esiste ancora un'ipotesi, "conferma"/"rivedi" solo se esiste gia' - un'azione
     # fuori schema o incoerente col contesto (risposta malformata, o "proponi"
@@ -562,6 +585,13 @@ async def specialist_node(state: MedicalState, role: str):
 
     prev_gh = state.group_hypothesis
     stated_urgency = _parse_urgency(data.get("urgenza"))
+    # Lista di esami: un modello puo' restituirla come testo unico invece che
+    # come lista, e la validazione dell'ipotesi fallirebbe - la normalizziamo.
+    exams = data.get("esami_consigliati") or []
+    if isinstance(exams, str):
+        exams = [exams]
+    exams = [str(e) for e in exams if str(e).strip()]
+    data = {**data, "esami_consigliati": exams}
     if azione == "proponi":
         gh = GroupHypothesis(
             diagnosis=str(data.get("diagnosi", "")).strip() or "Diagnosi non determinata",
@@ -711,7 +741,9 @@ async def primary_node(state: MedicalState):
         hypothesis_text = "Il tavolo non e' arrivato a nessuna ipotesi condivisa."
     else:
         confermato_da = ", ".join(SPECIALIST_DISPLAY_NAMES.get(r, r) for r in gh.confirmed_by) or "nessuno"
-        mancano = [r for r in coinvolti if r not in gh.confirmed_by]
+        passati = [r for r in state.passed_without_confirming if r not in gh.confirmed_by]
+        passati_txt = ", ".join(SPECIALIST_DISPLAY_NAMES.get(r, r) for r in passati) or "nessuno"
+        mancano = [r for r in coinvolti if r not in gh.confirmed_by and r not in passati]
         mancano_txt = ", ".join(SPECIALIST_DISPLAY_NAMES.get(r, r) for r in mancano) or "nessuno"
         hypothesis_text = (
             f"Diagnosi: {gh.diagnosis}\n"
@@ -721,6 +753,8 @@ async def primary_node(state: MedicalState):
             f"Alternativa considerata e scartata dal tavolo: {gh.discarded_alternative or '(nessuna)'}"
             f"{f' ({gh.discard_reason})' if gh.discard_reason else ''}\n"
             f"Confermata da: {confermato_da}\n"
+            f"NON confermata da (hanno finito i loro interventi o le loro risposte non erano "
+            f"leggibili, il loro silenzio NON e' un assenso): {passati_txt}\n"
             f"NON (ancora) confermata da: {mancano_txt}"
         )
 

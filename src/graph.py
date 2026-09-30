@@ -197,9 +197,10 @@ def router(state: MedicalState):
     qualcuno la rivede, confirmed_by si azzera (vedi specialist_node) - gli
     altri devono riconfermare la nuova versione, non quella vecchia.
 
-    Prima di scegliere chi parla, il router passa meccanicamente per
-    "confermato" chiunque abbia gia' raggiunto MAX_SPEAKS_PER_SPECIALIST
-    interventi senza mai confermare - non gli viene richiesto un altro turno
+    Prima di scegliere chi parla, il router fa passare oltre chiunque abbia
+    gia' raggiunto MAX_SPEAKS_PER_SPECIALIST interventi (o MAX_FAILED_TURNS
+    turni falliti) senza confermare - lo segna in passed_without_confirming,
+    NON tra chi ha confermato, e il primario lo sa. Non gli viene richiesto un altro turno
     (nessuna chiamata LLM aggiuntiva), e non gli si mette in bocca un
     "conferma" finto: e' solo instradamento meccanico (chi ha gia' parlato
     abbastanza volte), non un giudizio sul contenuto - evita che due
@@ -251,22 +252,25 @@ def router(state: MedicalState):
     confirmed = set(gh.confirmed_by) if gh else set()
 
     # Passaggio meccanico per chi ha esaurito i propri interventi senza
-    # confermare (vedi docstring sopra).
-    changed = False
-    for role in needed:
-        if role not in confirmed and not _can_speak(state, role):
-            confirmed.add(role)
-            changed = True
-            if state.failed_turns.get(role, 0) >= MAX_FAILED_TURNS:
-                print(f"🔀 ROUTER: {role} ha avuto {MAX_FAILED_TURNS} turni falliti, passa senza confermare")
-            else:
-                print(f"🔀 ROUTER: {role} ha esaurito i propri interventi ({MAX_SPEAKS_PER_SPECIALIST}), passa senza confermare")
+    # confermare (vedi docstring sopra). Resta FUORI da confirmed_by: prima
+    # veniva aggiunto li', e il primario leggeva "confermata da tutti" anche
+    # quando qualcuno non si era mai espresso (osservato in prova: medico
+    # generico con 2 turni falliti contato tra chi confermava). Si ricalcola a
+    # ogni giro: dopo un "rivedi" chi non puo' piu' parlare passa di nuovo.
+    passed = [role for role in needed if role not in confirmed and not _can_speak(state, role)]
+    for role in passed:
+        if role in state.passed_without_confirming:
+            continue
+        if state.failed_turns.get(role, 0) >= MAX_FAILED_TURNS:
+            print(f"🔀 ROUTER: {role} ha avuto {MAX_FAILED_TURNS} turni falliti, passa senza confermare")
+        else:
+            print(f"🔀 ROUTER: {role} ha esaurito i propri interventi ({MAX_SPEAKS_PER_SPECIALIST}), passa senza confermare")
 
     update = {}
-    if changed and gh:
-        update["group_hypothesis"] = gh.model_copy(update={"confirmed_by": sorted(confirmed)}).model_dump()
+    if passed != state.passed_without_confirming:
+        update["passed_without_confirming"] = passed
 
-    pending = {role for role in needed if role not in confirmed}
+    pending = {role for role in needed if role not in confirmed and role not in passed}
 
     # Riapertura per reazione (vedi docstring): solo quando non resta piu'
     # nessuno da confermare, altrimenti la normale priorita' al punto 1 sotto

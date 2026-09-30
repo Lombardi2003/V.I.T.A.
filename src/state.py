@@ -187,6 +187,11 @@ class MedicalState(BaseModel):
     # il router fa passare oltre chi ne accumula MAX_FAILED_TURNS (clinical.py)
     # invece di richiamarlo all'infinito.
     failed_turns: dict[str, int] = Field(default_factory=dict)
+    # Chi il router ha fatto passare oltre senza che confermasse la versione
+    # attuale dell'ipotesi (interventi o turni falliti esauriti): tenuto
+    # separato da group_hypothesis.confirmed_by, cosi' il primario non legge
+    # un consenso che non c'e' stato.
+    passed_without_confirming: list[str] = Field(default_factory=list)
 
     verification_started: bool = False
     verification_queue: list[str] = Field(default_factory=list)
