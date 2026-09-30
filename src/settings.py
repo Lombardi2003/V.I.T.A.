@@ -1,7 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional
-from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -14,37 +13,28 @@ class Settings(BaseSettings):
     I nomi dei campi (in minuscolo) corrispondono alle variabili nel file .env
     (in maiuscolo): aggiungere qui un campo e' sufficiente perche' venga anche
     richiesto automaticamente da scripts/setup_env.py.
+
+    Nel .env stanno solo le chiavi (segrete, fuori da git) e la temperatura:
+    QUALI modelli usa l'app si sceglie in cima a src/llm/factory.py (su git,
+    cosi' ogni esperimento e' ripetibile), e i modelli davvero in uso vengono
+    stampati all'avvio. Eventuali vecchie voci MODEL_NAME, VISION_MODEL_NAME,
+    USE_CLOUD_ACCELERATION ancora presenti nel .env vengono ignorate.
     """
     model_config = SettingsConfigDict(env_file=ENV_PATH, extra="ignore")
 
+    # Chiavi dei provider: servono solo quelle dei provider dei modelli scelti
+    # (se ne manca una necessaria, l'errore arriva alla creazione del client,
+    # vedi _api_key_for in src/llm/factory.py).
     groq_api_key: Optional[str] = None
-    # Chiave per l'API di Gemini (Google AI Studio, piano gratuito) - usata
-    # solo quando get_llm() viene chiamato con provider="gemini" esplicito
-    # (vedi factory.py), non fa parte della scelta groq/ollama principale
-    # decisa da use_cloud_acceleration.
+    # Chiave per l'API di Gemini (Google AI Studio, piano gratuito).
     gemini_api_key: Optional[str] = None
     # Seconda chiave Gemini, da un account/progetto Google Cloud diverso da
-    # quello di gemini_api_key - la quota gratuita (20 richieste/giorno) e'
-    # per-progetto (vedi commento in common.py), quindi questa ha un conteggio
-    # separato. E' quella attiva per llm_specialist quando la prima si esaurisce.
+    # quello di gemini_api_key (la quota gratuita di 20 richieste/giorno e'
+    # per-progetto). Attualmente non usata da src/llm/factory.py: basta
+    # metterla al posto di GEMINI_API_KEY quando la prima si esaurisce.
     gemini_fra_key: Optional[str] = None
-    use_cloud_acceleration: bool = True
 
-    # Override opzionali: se assenti, src/llm/factory.py usa un default sensato
-    # per il provider attivo (Groq se use_cloud_acceleration=True, altrimenti Ollama).
-    model_name: Optional[str] = None
-    vision_model_name: Optional[str] = None
     temperature: float = 0.0
-
-    @model_validator(mode="after")
-    def _check_groq_key_when_needed(self) -> "Settings":
-        if self.use_cloud_acceleration and not self.groq_api_key:
-            raise ValueError(
-                "USE_CLOUD_ACCELERATION e' true ma GROQ_API_KEY non e' impostata. "
-                "Imposta una chiave valida con 'python scripts/setup_env.py --update', "
-                "oppure metti USE_CLOUD_ACCELERATION=False per usare Ollama in locale."
-            )
-        return self
 
 
 @lru_cache

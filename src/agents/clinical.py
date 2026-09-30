@@ -9,7 +9,7 @@ import chainlit as cl
 
 from src.state import MedicalState, RoundTableEntry, GroupHypothesis, FinalDiagnosis
 from .prompts import SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, ALL_SPECIALISTS
-from .common import stream_response, llm_specialist
+from .common import extract_json, stream_response
 from .authors import Authors
 from src.rag.retriever import build_queries, retrieve
 
@@ -17,8 +17,27 @@ from src.rag.retriever import build_queries, retrieve
 # traguardo (il tavolo puo' convergere prima, se tutti confermano l'ipotesi di
 # gruppo), solo il freno di emergenza che garantisce si arrivi sempre al
 # primario anche nel caso peggiore di una discussione che non converge da
-# sola. Gestito interamente da router() in graph.py.
-MAX_TOTAL_TURNS = 10
+# sola. Gestito interamente da router() in graph.py. Portato da 10 a 12 con
+# il giro di verifica finale e il tetto di 3 interventi a testa, che allungano
+# la discussione.
+MAX_TOTAL_TURNS = 12
+
+# Quanti turni FALLITI (risposta illeggibile, errore dell'API anche dopo i
+# nuovi tentativi, consulto senza destinatario valido) uno specialista puo'
+# avere prima che il router lo faccia passare oltre, senza ridargli la parola.
+# Prima un turno fallito non veniva contato da nessuna parte e il router
+# richiamava lo stesso specialista all'infinito: osservato in test reale, 9
+# fallimenti di fila dello stesso specialista fino al tetto MAX_TOTAL_TURNS,
+# senza nessuna discussione. Gestito da router() in graph.py.
+MAX_FAILED_TURNS = 2
+
+
+def _failed_turn(state: MedicalState, role: str) -> dict:
+    """Aggiornamento dello stato per un turno fallito di questo specialista:
+    nessun effetto sulla discussione, solo il conteggio dei fallimenti."""
+    failed = dict(state.failed_turns)
+    failed[role] = failed.get(role, 0) + 1
+    return {"failed_turns": failed}
 
 # Quanti specialisti IN PIU' rispetto alla selezione iniziale del supervisore
 # possono essere coinvolti durante la discussione (es. "Cardiologia chiama
@@ -35,7 +54,11 @@ MAX_RECRUITED_SPECIALISTS = 1
 # continuano a scambiarsi ipotesi quasi identiche per 4-5 turni a testa prima
 # che il tetto globale intervenga - un tetto per-specialista fa convergere la
 # discussione molto piu' in fretta. Gestito interamente da router() in graph.py.
-MAX_SPEAKS_PER_SPECIALIST = 2
+# Portato da 2 a 3 quando le regole della discussione (replica a chi chiede un
+# consulto, battute di reazione) hanno reso piu' frequente il botta e
+# risposta: con 2 il secondo intervento finiva spesso per essere l'ultimo. Il
+# turno del giro di verifica finale non conta in questo tetto (vedi router).
+MAX_SPEAKS_PER_SPECIALIST = 3
 
 
 # Nomi leggibili degli specialisti per i messaggi rivolti al paziente - le
@@ -61,7 +84,43 @@ SPECIALIST_DISPLAY_NAMES = {
 # senza questo, un "to": "Dermatologia" veniva scartato silenziosamente
 # perche' non presente in ALL_SPECIALISTS, e il messaggio finiva "a tutti"
 # anche quando lo specialista intendeva rivolgersi a un collega preciso.
+#
+# Oltre al nome della specialita' ("Dermatologia"), gli specialisti usano
+# spesso il nome del MEDICO in italiano ("dermatologo") - osservato in test
+# reale: un consulto chiesto al "dermatologo" non veniva riconosciuto e finiva
+# al medico generico (il ripiego per i ruoli fuori dal roster), anche se il
+# dermatologo era disponibile. Le varianti sotto coprono i nomi dei medici
+# (maschile e femminile) e le forme brevi piu' comuni.
+_ITALIAN_DOCTOR_NAMES = {
+    "cardiologist": ["cardiologo", "cardiologa"],
+    "neurologist": ["neurologo", "neurologa"],
+    "dermatologist": ["dermatologo", "dermatologa"],
+    "orthopedist": ["ortopedico", "ortopedica", "ortopedia e traumatologia", "traumatologo"],
+    "gastroenterologist": ["gastroenterologo", "gastroenterologa"],
+    "pulmonologist": ["pneumologo", "pneumologa"],
+    "ent": ["otorinolaringoiatra", "otorino", "orl"],
+    "ophthalmologist": ["oftalmologo", "oftalmologa", "oculista", "oculistica"],
+    "urologist": ["urologo", "urologa"],
+    "general_practitioner": ["medico di base", "medico generico", "medico di medicina generale",
+                             "medicina generale", "mmg"],
+}
 _DISPLAY_NAME_TO_ROLE = {name.lower(): role for role, name in SPECIALIST_DISPLAY_NAMES.items()}
+_DISPLAY_NAME_TO_ROLE.update(
+    {name: role for role, names in _ITALIAN_DOCTOR_NAMES.items() for name in names}
+)
+_NAME_PREFIX = re.compile(r"^(il|lo|la|l'|al|allo|alla|dott\.?|dr\.?|dottor|dottoressa)\s*", re.IGNORECASE)
+
+
+def _role_from_name(raw) -> str | None:
+    """Ruolo interno (es. "dermatologist") dal nome che lo specialista ha
+    scritto per un collega: il ruolo stesso, il nome della specialita'
+    ("Dermatologia") o il nome del medico ("il dermatologo"); None se non e'
+    nessuno dei 10 specialisti del sistema."""
+    text = str(raw or "").strip().lower().rstrip(".,;:!?")
+    text = _NAME_PREFIX.sub("", text).strip()
+    if text in ALL_SPECIALISTS:
+        return text
+    return _DISPLAY_NAME_TO_ROLE.get(text)
 
 # Scala dei codici colore, dal piu' al meno urgente (stessa di GroupHypothesis
 # e FinalDiagnosis in state.py).
@@ -101,8 +160,7 @@ async def supervisor_node(state: MedicalState):
         step.output = content
 
     try:
-        clean_content = content.replace("```json", "").replace("```", "").strip()
-        data = json.loads(clean_content)
+        data = extract_json(content)
 
         specs = data.get("specialists", [])
         clean_specs = [s.lower() for s in specs if s.lower() in ALL_SPECIALISTS]
@@ -141,7 +199,11 @@ def _format_round_table(entries: list[RoundTableEntry]) -> str:
     for e in entries:
         chi_parla = SPECIALIST_DISPLAY_NAMES.get(e.author, e.author)
         destinatario = SPECIALIST_DISPLAY_NAMES.get(e.to, e.to) if e.to else "tutti"
-        tag = ", ".join(t for t in (e.azione.upper(), f"urgenza {e.urgency}" if e.urgency else "") if t)
+        tag = ", ".join(t for t in (
+            "GIRO DI VERIFICA" if e.verification else "",
+            e.azione.upper(),
+            f"urgenza {e.urgency}" if e.urgency else "",
+        ) if t)
         azione_tag = f" [{tag}]" if tag else ""
         righe.append(f"{chi_parla} (a {destinatario}){azione_tag}: {e.content}")
     return "\n".join(righe)
@@ -230,6 +292,24 @@ async def specialist_node(state: MedicalState, role: str):
                 f"prima di qualsiasi altra cosa."
             )
 
+    # Turno del giro di verifica finale (deciso dal router, vedi graph.py):
+    # tutti hanno gia' confermato, ora ciascuno deve dire se, letti i
+    # colleghi, la propria valutazione e' cambiata - in modo esplicito, non con
+    # una conferma di rito.
+    is_verification = state.verifying_role == role
+    istruzione_verifica = ""
+    if is_verification:
+        istruzione_verifica = (
+            "GIRO DI VERIFICA FINALE: tutti gli specialisti al tavolo hanno confermato l'ipotesi di "
+            "gruppo attuale. Prima della chiusura, rileggi con attenzione TUTTA la discussione qui "
+            "sopra, in particolare cio' che hanno detto i colleghi dopo il tuo ultimo intervento. "
+            "Alla luce dei loro interventi, la tua valutazione e' cambiata? Se si', usa \"rivedi\" "
+            "e spiega in \"motivazione\" quale intervento di quale collega ti ha fatto cambiare idea. "
+            "Se no, usa \"conferma\" e in \"motivazione\" indica quale punto sollevato dai colleghi "
+            "hai considerato e perche' non cambia la tua valutazione - non limitarti a ripetere "
+            "che sei d'accordo."
+        )
+
     # Recupero RAG (src/rag/): SEMPRE eseguito, un turno = una ricerca - non e'
     # una scelta del modello (vedi discussione: lasciare al modello "se
     # cercare" ha lo stesso rischio gia' visto oggi con consulto_utile e
@@ -281,7 +361,7 @@ async def specialist_node(state: MedicalState, role: str):
         card=card_str,
         round_table=table_text,
         hypothesis=hypothesis_text,
-        consulto_pendente=consulto_pendente,
+        consulto_pendente="\n\n".join(t for t in (consulto_pendente, istruzione_verifica) if t),
         linee_guida=linee_guida_text,
     )
 
@@ -290,34 +370,25 @@ async def specialist_node(state: MedicalState, role: str):
             step.input = table_text
             # asyncio.to_thread: vedi commento su supervisor_node poco sopra -
             # stessa identica ragione. Qui e' il punto piu' critico del grafo
-            # per questo problema, dato che llm_specialist puo' essere un
-            # modello locale (Ollama) molto piu' lento di Groq.
-            content = await asyncio.to_thread(stream_response, prompt, llm_specialist)
+            # per questo problema (molte chiamate consecutive, e il modello
+            # potrebbe essere uno locale molto piu' lento di Groq).
+            content = await asyncio.to_thread(stream_response, prompt)
             step.output = content
     except Exception as e:
         # Un errore diretto dell'API che resta anche dopo i nuovi tentativi di
         # stream_response (vedi call_with_retry in common.py - es. rate limit
         # superato a meta' dello streaming, osservato in test reale con
         # openai.APIError) non deve mandare in crash l'intero grafo - stesso trattamento riservato al
-        # JSON malformato/troncato piu' sotto: nessun aggiornamento, il
-        # router richiamera' comunque questo specialista al prossimo giro
-        # (fino a MAX_SPEAKS_PER_SPECIALIST).
-        print(f"⚠️ {role}: errore API ({e}), nessun aggiornamento - richiamato al prossimo giro")
-        return {}
+        # JSON malformato/troncato piu' sotto: nessun aggiornamento della
+        # discussione, solo il conteggio del turno fallito (il router lo fa
+        # passare oltre dopo MAX_FAILED_TURNS fallimenti).
+        print(f"⚠️ {role}: errore API ({e}), nessun aggiornamento - turno fallito")
+        return _failed_turn(state, role)
 
     try:
-        # qwen/qwen3.6-27b (e altri modelli "thinking") antepongono un blocco
-        # <think>...</think> di ragionamento prima del JSON vero - lo scartiamo
-        # ed estraiamo il primo oggetto {...} invece di assumere che l'intera
-        # risposta sia gia' JSON puro (stesso identico problema gia' risolto
-        # per l'analisi foto in intake.py, quando questo modello veniva usato
-        # solo per la visione).
-        clean_content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)
-        clean_content = clean_content.replace("```json", "").replace("```", "").strip()
-        match = re.search(r"\{.*\}", clean_content, flags=re.DOTALL)
-        if match:
-            clean_content = match.group(0)
-        data = json.loads(clean_content)
+        # extract_json gestisce anche i modelli che antepongono al JSON un
+        # blocco <think>...</think> o testo libero (vedi src/llm/calls.py).
+        data = extract_json(content)
         azione = str(data.get("azione", "")).lower().strip()
     except json.JSONDecodeError:
         # Un JSON malformato/troncato (osservato in test reale: la risposta
@@ -327,12 +398,12 @@ async def specialist_node(state: MedicalState, role: str):
         # vera, magari gia' scritta ma troncata prima del completamento del
         # JSON, verrebbe convertita in un consenso silenzioso alla diagnosi
         # sbagliata - trovato mentre si testava apposta la correzione di
-        # un'ipotesi iniettata scorretta). Usciamo qui senza aggiornare nulla:
-        # il router richiamera' comunque questo specialista al turno
-        # successivo (fino a MAX_SPEAKS_PER_SPECIALIST), stesso identico
-        # trattamento riservato a un intervento vuoto piu' sotto.
-        print(f"⚠️ {role}: errore lettura JSON (risposta malformata/troncata), nessun aggiornamento - richiamato al prossimo giro")
-        return {}
+        # un'ipotesi iniettata scorretta). Usciamo qui senza aggiornare la
+        # discussione, contando solo il turno fallito: il router puo'
+        # ridargli la parola, ma dopo MAX_FAILED_TURNS fallimenti lo fa
+        # passare oltre (stesso trattamento degli altri turni falliti).
+        print(f"⚠️ {role}: errore lettura JSON (risposta malformata/troncata), nessun aggiornamento - turno fallito")
+        return _failed_turn(state, role)
 
     # Campo obbligatorio forzato "consulto_utile" (vedi SPECIALIST_PROMPT): se
     # lo specialista dichiara che il parere di un collega ASSENTE cambierebbe
@@ -345,7 +416,7 @@ async def specialist_node(state: MedicalState, role: str):
     # test reale: la sola prosa non bastava mai a far scegliere "consulta").
     consulto_utile = str(data.get("consulto_utile", "")).strip().lower() == "si"
     raw_collega = str(data.get("collega_da_consultare") or "").strip().lower()
-    collega = raw_collega if raw_collega in ALL_SPECIALISTS else _DISPLAY_NAME_TO_ROLE.get(raw_collega)
+    collega = _role_from_name(raw_collega)
     if collega == role:
         collega = None
     if consulto_utile and raw_collega and not collega:
@@ -422,8 +493,7 @@ async def specialist_node(state: MedicalState, role: str):
         data = {**data, "to": forced_consult_to, "message": data.get("domanda_per_il_collega") or ""}
         forced_consult_to = None
 
-    raw_target = str(data.get("to") or "").strip().lower()
-    target = raw_target if raw_target in ALL_SPECIALISTS else _DISPLAY_NAME_TO_ROLE.get(raw_target)
+    target = _role_from_name(data.get("to"))
     if target == role:
         target = None
 
@@ -442,8 +512,8 @@ async def specialist_node(state: MedicalState, role: str):
     # leggendo il campo "to" di questo intervento.
     if azione == "consulta":
         if not target:
-            print(f"⚠️ {role}: 'consulta' senza destinatario valido, ignorato")
-            return {}
+            print(f"⚠️ {role}: 'consulta' senza destinatario valido, ignorato - turno fallito")
+            return _failed_turn(state, role)
         entry, msg_text = await _send_consult(
             role, display_name, author, target, message or motivazione or "(nessuna domanda specificata)"
         )
@@ -453,6 +523,18 @@ async def specialist_node(state: MedicalState, role: str):
         }
 
     # --- "proponi"/"conferma"/"rivedi": agiscono sull'ipotesi di gruppo condivisa ---
+    # Risposta a un mini-consulto: e' SEMPRE rivolta a chi l'ha chiesto, in modo
+    # esplicito, cosi' il router gli ridara' la parola per replicare (vedi
+    # "riapertura per reazione" nel router in graph.py). Prima la risposta
+    # andava a chiunque indicasse il modello (spesso nessuno), e chi aveva
+    # chiesto il consulto non parlava piu': osservato in test reale, il
+    # gastroenterologo chiede un parere al dermatologo, il dermatologo risponde
+    # e conferma, e la discussione si chiude senza che la domanda abbia avuto
+    # un seguito.
+    if state.round_table:
+        last = state.round_table[-1]
+        if last.azione == "consulta" and last.to == role and last.author != role:
+            target = last.author
     target_explicit = bool(target)
     if not target:
         # Rete di sicurezza puramente meccanica (basata su CHI ha parlato per
@@ -523,11 +605,13 @@ async def specialist_node(state: MedicalState, role: str):
     entry_urgency = gh.urgency_level if azione in ("proponi", "rivedi") else (stated_urgency or gh.urgency_level)
     entry = RoundTableEntry(
         author=role, to=target, to_explicit=target_explicit,
-        azione=azione, content=content_msg, urgency=entry_urgency,
+        azione=azione, content=content_msg, urgency=entry_urgency, verification=is_verification,
     )
     destinatario = SPECIALIST_DISPLAY_NAMES.get(target, target) if target else "tutti"
     azione_label = {"proponi": "apre la discussione", "conferma": "conferma", "rivedi": "rivede l'ipotesi"}[azione]
     msg_text = f"**{display_name}** {azione_label} (a {destinatario}): {content_msg}"
+    if is_verification:
+        msg_text = "*Giro di verifica finale* — " + msg_text
     if azione in ("proponi", "rivedi"):
         msg_text += f"\n\n*Ipotesi di gruppo aggiornata: {gh.diagnosis} (urgenza {gh.urgency_level})*"
     elif entry_urgency != gh.urgency_level:
@@ -677,8 +761,7 @@ async def primary_node(state: MedicalState):
         step.output = content
 
     try:
-        clean_content = content.replace("```json", "").replace("```", "").strip()
-        report_data = json.loads(clean_content)
+        report_data = extract_json(content)
         final = FinalDiagnosis(
             diagnosis=report_data.get("diagnosis", "Diagnosi non determinata"),
             # Codice mancante o non riconoscibile: si parte dal codice del

@@ -5,7 +5,7 @@ from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 # Import dei moduli locali
 from src.state import MedicalState
-from src.agents import reviewer_node, user_node, read_db_node, intake_node, save_db_node, modify_db_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node, MAX_TOTAL_TURNS, MAX_RECRUITED_SPECIALISTS, MAX_SPEAKS_PER_SPECIALIST
+from src.agents import reviewer_node, user_node, read_db_node, intake_node, save_db_node, modify_db_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node, MAX_TOTAL_TURNS, MAX_RECRUITED_SPECIALISTS, MAX_SPEAKS_PER_SPECIALIST, MAX_FAILED_TURNS
 
 # Funzione per la creazione del grafo di stato
 #
@@ -165,7 +165,8 @@ def _turns_spoken(round_table, role: str) -> int:
     altrimenti MAX_SPEAKS_PER_SPECIALIST scatterebbe dopo un solo turno."""
     turns = 0
     for i, entry in enumerate(round_table):
-        if entry.author != role:
+        # Il turno del giro di verifica finale non conta (vedi router).
+        if entry.author != role or entry.verification:
             continue
         same_turn_consult = (
             entry.azione == "consulta" and i > 0
@@ -174,6 +175,14 @@ def _turns_spoken(round_table, role: str) -> int:
         if not same_turn_consult:
             turns += 1
     return turns
+
+
+def _can_speak(state: MedicalState, role: str) -> bool:
+    """Lo specialista puo' ancora avere un turno: non ha esaurito i propri
+    interventi (MAX_SPEAKS_PER_SPECIALIST) ne' i turni falliti ammessi
+    (MAX_FAILED_TURNS, vedi clinical.py)."""
+    return (_turns_spoken(state.round_table, role) < MAX_SPEAKS_PER_SPECIALIST
+            and state.failed_turns.get(role, 0) < MAX_FAILED_TURNS)
 
 
 def router(state: MedicalState):
@@ -221,6 +230,15 @@ def router(state: MedicalState):
     ping-pong infinito: chi viene riaperto ha comunque un numero massimo di
     interventi.
 
+    Giro di verifica finale: quando tutti hanno confermato (e non resta nessuna
+    reazione o mini-consulto in sospeso), prima del primario ogni specialista
+    al tavolo ha UN ultimo turno per dire se, letti gli interventi dei
+    colleghi, la sua valutazione e' cambiata (istruzione aggiunta al prompt da
+    specialist_node, vedi verifying_role in state.py). Se qualcuno rivede
+    l'ipotesi, gli altri devono riconfermarla e la discussione riprende come
+    sempre; il giro si fa una volta sola, e il suo turno non conta nel tetto
+    MAX_SPEAKS_PER_SPECIALIST.
+
     total_turns e' il freno di emergenza assoluto: oltre MAX_TOTAL_TURNS si va
     comunque al primario con l'ipotesi di gruppo cosi' com'e', confermata o meno.
     """
@@ -236,11 +254,12 @@ def router(state: MedicalState):
     # confermare (vedi docstring sopra).
     changed = False
     for role in needed:
-        if role not in confirmed:
-            speak_count = _turns_spoken(state.round_table, role)
-            if speak_count >= MAX_SPEAKS_PER_SPECIALIST:
-                confirmed.add(role)
-                changed = True
+        if role not in confirmed and not _can_speak(state, role):
+            confirmed.add(role)
+            changed = True
+            if state.failed_turns.get(role, 0) >= MAX_FAILED_TURNS:
+                print(f"🔀 ROUTER: {role} ha avuto {MAX_FAILED_TURNS} turni falliti, passa senza confermare")
+            else:
                 print(f"🔀 ROUTER: {role} ha esaurito i propri interventi ({MAX_SPEAKS_PER_SPECIALIST}), passa senza confermare")
 
     update = {}
@@ -259,8 +278,7 @@ def router(state: MedicalState):
         # Solo se il destinatario l'ha scelto lo specialista (to_explicit), non
         # quello messo in automatico da specialist_node - vedi state.py.
         if last_to and last_entry.to_explicit and last_to in needed and last_to != last_entry.author:
-            speak_count = _turns_spoken(state.round_table, last_to)
-            if speak_count < MAX_SPEAKS_PER_SPECIALIST:
+            if _can_speak(state, last_to):
                 reopen_role = last_to
                 print(f"🔀 ROUTER: {last_to} chiamato in causa dopo aver gia' confermato, una battuta di reazione")
 
@@ -281,8 +299,28 @@ def router(state: MedicalState):
         )
 
     if not needed or (not pending and not reopen_role and not open_consult):
+        # Giro di verifica finale (vedi docstring): parte la prima volta che
+        # tutti hanno confermato, poi un turno a testa nell'ordine del tavolo.
+        queue = list(state.verification_queue)
+        if needed and not state.verification_started:
+            queue = list(needed.keys())
+            update["verification_started"] = True
+            print("🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale")
+        # Chi ha gia' esaurito i turni falliti ammessi non fa il giro di verifica.
+        queue = [r for r in queue if state.failed_turns.get(r, 0) < MAX_FAILED_TURNS]
+        if needed and queue:
+            next_role = queue.pop(0)
+            total_turns = state.total_turns + 1
+            print(f"🔀 ROUTER: giro di verifica, turno di {next_role} (battuta {total_turns}/{MAX_TOTAL_TURNS})")
+            return {
+                **update,
+                "next_step": next_role,
+                "verifying_role": next_role,
+                "verification_queue": queue,
+                "total_turns": total_turns,
+            }
         print("🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario")
-        return {**update, "next_step": "chief_physician"}
+        return {**update, "next_step": "chief_physician", "verifying_role": ""}
 
     recruited_count = state.recruited_specialists_count
     next_role = reopen_role
@@ -290,9 +328,20 @@ def router(state: MedicalState):
     # 1. Priorita': chi e' stato interpellato direttamente nell'ultimo intervento
     # (non se abbiamo gia' deciso una riapertura per reazione sopra).
     if next_role is None and state.round_table:
-        last_to = state.round_table[-1].to
+        last_entry = state.round_table[-1]
+        last_to = last_entry.to
         if last_to:
             if last_to in pending:
+                next_role = last_to
+            elif (last_to in needed and last_entry.to_explicit and last_to != last_entry.author
+                  and _can_speak(state, last_to)):
+                # Chiamato in causa ESPLICITAMENTE dopo aver gia' confermato (es.
+                # la risposta a un suo mini-consulto, vedi specialist_node): parla
+                # subito, prima degli altri ancora da confermare - altrimenti,
+                # finito il giro, l'ultimo intervento non sarebbe piu' rivolto a
+                # lui e la replica andrebbe persa (osservato con due specialisti:
+                # il consulto riceveva risposta ma chi l'aveva chiesto non
+                # replicava mai).
                 next_role = last_to
             elif last_to not in needed and recruited_count < MAX_RECRUITED_SPECIALISTS:
                 needed[last_to] = True
@@ -320,6 +369,7 @@ def router(state: MedicalState):
     return {
         **update,
         "next_step": next_role,
+        "verifying_role": "",
         "current_turn_index": next_idx,
         "total_turns": total_turns,
         "needed_specialists": needed,

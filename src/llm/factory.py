@@ -1,11 +1,10 @@
-"""Costruisce i client LLM (testo e visione) come ChatOpenAI.
+"""Costruisce i client LLM che gli agenti usano ("ecco il tuo LLM").
 
 Groq, Ollama e Gemini espongono tutti un endpoint compatibile con l'API REST
-di OpenAI (rispettivamente /openai/v1, /v1 e /v1beta/openai/, quest'ultimo
-verificato con una chiamata reale a GET .../models): usare ChatOpenAI per
-tutti e tre, invece dei client dedicati, permette di passare da un provider
-all'altro cambiando solo base_url/model/api_key, con un'unica funzione invece
-di piu' implementazioni parallele.
+di OpenAI: per tutti il client si costruisce nello stesso identico modo,
+ChatOpenAI(api_key, base_url, model, temperature) - cambiano solo i valori.
+Un provider nuovo con API compatibile si aggiunge in _PROVIDERS (e il suo
+elenco di modelli in models.py), senza toccare gli agenti.
 """
 from typing import Optional
 
@@ -14,89 +13,104 @@ from langchain_openai import ChatOpenAI
 from src.settings import get_settings
 from .models import Models
 
-_BASE_URLS = {
-    "groq": "https://api.groq.com/openai/v1",
-    "ollama": "http://127.0.0.1:11434/v1",
-    "gemini": "https://generativelanguage.googleapis.com/v1beta/openai/",
-    # Stesso endpoint di "gemini" - solo un progetto/account Google diverso
-    # (vedi gemini_fra_api_key in settings.py), quindi con la sua quota
-    # gratuita giornaliera separata (20 richieste/giorno "per progetto").
-    "gemini_fra": "https://generativelanguage.googleapis.com/v1beta/openai/",
+# ============================================================================
+# MODELLI ATTIVI - l'UNICO punto del progetto in cui si sceglie quale modello
+# usa l'app. Per cambiarlo, sostituire il nome con un altro del catalogo
+# (models.py), es. Models.Ollama.TEXT_LLAMA3 per lavorare in locale. I modelli
+# davvero in uso vengono stampati all'avvio e mostrati nel pannello dell'app.
+# ============================================================================
+TEXT_MODEL = Models.Groq.TEXT_120B     # tutti i nodi di testo (anagrafica, sintomi, supervisore, specialisti, primario)
+# Quanto "ragiona" in silenzio il modello del testo prima di rispondere
+# ("low"/"medium"/"high"), solo per i modelli di ragionamento che lo
+# supportano (es. openai/gpt-oss-*); None = parametro non inviato (da usare con
+# modelli che non lo supportano, altrimenti la richiesta viene rifiutata).
+# "low": con il default, un turno di specialista ha usato fino a ~4000 token di
+# solo ragionamento interno (misurato con chiamate reali) - con il limite di
+# Groq le risposte venivano troncate a meta' del JSON e il turno saltava (in
+# una prova, 9 volte di fila). Con "low" lo stesso turno ne usa ~600.
+TEXT_REASONING = "low"
+VISION_MODEL = Models.Groq.VISION_QWEN  # analisi della foto
+
+# Provider: indirizzo del server e nome della chiave in settings.py (None =
+# nessuna chiave: Ollama in locale non la verifica, basta un valore qualsiasi).
+_PROVIDERS = {
+    "groq": ("https://api.groq.com/openai/v1", "groq_api_key"),
+    "ollama": ("http://127.0.0.1:11434/v1", None),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini_api_key"),
 }
-_DEFAULT_TEXT_MODELS = {
-    # TEXT_8B non e' piu' nel catalogo modelli dell'account (verificato dalla
-    # pagina dei rate limit Groq) - TEXT_20B come default di fallback.
-    "groq": Models.Groq.TEXT_20B,
-    "ollama": Models.Ollama.TEXT_LLAMA3,
-    "gemini": Models.Gemini.TEXT_FLASH,
-    "gemini_fra": Models.Gemini.TEXT_FLASH,
-}
-_DEFAULT_VISION_MODELS = {
-    "groq": Models.Groq.VISION_QWEN,
-    "ollama": Models.Ollama.VISION_MOONDREAM,
-    # gemini-2.5-flash e' nativamente multimodale (nessun modello di visione
-    # separato come per Groq), quindi riusiamo lo stesso TEXT_FLASH qui.
-    "gemini": Models.Gemini.TEXT_FLASH,
-    "gemini_fra": Models.Gemini.TEXT_FLASH,
+
+# Limite di token al MINUTO dell'account, per provider (assente = nessun
+# limite, es. Ollama in locale). Groq (piano gratuito) rifiuta con errore 413
+# "Request too large" ogni richiesta in cui token del prompt + max_tokens
+# riservati alla risposta superano questo limite - a prescindere da quanti
+# token la risposta userebbe davvero (verificato con chiamate reali:
+# "Requested 8032" = 5032 di prompt + 3000 di max_tokens, rifiutata). Vedi
+# calls.py per come viene rispettato.
+TOKENS_PER_MINUTE = {
+    "groq": 8000,
 }
 
 
-def get_llm(
-    *,
-    vision: bool = False,
-    temperature: Optional[float] = None,
-    model_name: Optional[str] = None,
-    provider: Optional[str] = None,
-) -> ChatOpenAI:
-    """Restituisce un client ChatOpenAI pronto per il provider attivo.
+def provider_of_model(model_name: str) -> str:
+    """Provider di un modello, dalla classe di models.py in cui sta il suo nome
+    (Models.Groq.* -> "groq")."""
+    for provider_name, provider_models in vars(Models).items():
+        if isinstance(provider_models, type) and model_name in vars(provider_models).values():
+            return provider_name.lower()
+    raise ValueError(
+        f"Modello '{model_name}' non presente in src/llm/models.py: aggiungilo sotto il suo provider."
+    )
 
-    provider e' normalmente deciso da use_cloud_acceleration (True -> Groq,
-    False -> Ollama in locale); vision=True seleziona il modello di visione
-    invece di quello testuale. model_name/temperature, se non passati, vengono
-    presi da Settings e in ultima istanza da un default per-provider.
 
-    Il parametro "provider" qui sopra e' una via di fuga esplicita: forza
-    "groq"/"ollama"/"gemini" per QUESTA chiamata, ignorando
-    use_cloud_acceleration - serve per i casi in cui un singolo client (es.
-    llm_specialist in common.py) deve restare su un provider specifico
-    indipendentemente dal resto dell'app (es. Ollama in locale o Gemini per
-    non consumare la quota Groq durante i test del tavolo rotondo, mentre gli
-    altri nodi restano su Groq).
-    """
+def build_llm(model_name: str, reasoning_effort: Optional[str] = None) -> ChatOpenAI:
+    """Client per un modello del catalogo - stessa costruzione per ogni provider."""
+    provider = provider_of_model(model_name)
+    base_url, key_field = _PROVIDERS[provider]
     settings = get_settings()
-    resolved_provider = provider or ("groq" if settings.use_cloud_acceleration else "ollama")
-
-    defaults = _DEFAULT_VISION_MODELS if vision else _DEFAULT_TEXT_MODELS
-    override = settings.vision_model_name if vision else settings.model_name
-    resolved_model = model_name or (override if not provider else None) or defaults[resolved_provider]
-
-    # Ollama in locale non richiede una vera autenticazione (il valore non
-    # viene verificato), quindi usiamo una stringa segnaposto.
-    api_keys = {
-        "groq": settings.groq_api_key,
-        "gemini": settings.gemini_api_key,
-        "gemini_fra": settings.gemini_fra_key,
-        "ollama": "ollama",
-    }
-    kwargs = dict(
-        model=resolved_model,
-        temperature=temperature if temperature is not None else settings.temperature,
-        base_url=_BASE_URLS[resolved_provider],
-        api_key=api_keys[resolved_provider],
+    api_key = getattr(settings, key_field) if key_field else "ollama"
+    if not api_key:
+        raise RuntimeError(
+            f"Il modello scelto usa il provider '{provider}' ma {key_field.upper()} non e' impostata "
+            "nel .env. Impostala con 'python scripts/setup_env.py --update', oppure scegli un modello "
+            "di un altro provider in cima a src/llm/factory.py."
+        )
+    extra = {"reasoning_effort": reasoning_effort} if reasoning_effort else {}
+    return ChatOpenAI(
+        api_key=api_key,
+        base_url=base_url,
+        model=model_name,
+        temperature=settings.temperature,
+        **extra,
         # Senza un max_tokens esplicito, il default (basso) del client tronca
-        # risposte lunghe a meta' - osservato in test reale con Gemini
-        # (modello "thinking": il ragionamento interno consuma token dallo
-        # stesso budget di quello visibile, quindi si esaurisce ancora piu'
-        # in fretta). 4096 e' abbondante per un turno del tavolo rotondo
-        # (JSON con piu' campi di testo) senza essere eccessivo.
+        # risposte lunghe a meta' - osservato in test reale. 4096 e' il
+        # massimo; calls.py lo riduce a ogni chiamata se serve per stare nel
+        # limite di token al minuto del provider.
         max_tokens=4096,
     )
-    # NB: niente response_format={"type": "json_object"} forzato per la visione -
-    # qwen/qwen3.6-27b (il modello vision Groq attuale) e' un modello "thinking":
-    # antepone un blocco <think>...</think> di ragionamento prima del JSON, e il
-    # validatore server-side di response_format=json_object si aspetta l'INTERA
-    # risposta come JSON puro, quindi fallisce con 400 json_validate_failed
-    # (verificato con chiamata reale). Il parsing lato Python (photography_node)
-    # gestisce gia' testo extra prima/dopo il JSON.
 
-    return ChatOpenAI(**kwargs)
+
+def get_llm(*, vision: bool = False) -> ChatOpenAI:
+    """"Ecco il tuo LLM": il client del modello attivo (testo, o foto con
+    vision=True). Da chiamare una volta, all'avvio."""
+    if vision:
+        return build_llm(VISION_MODEL)
+    return build_llm(TEXT_MODEL, reasoning_effort=TEXT_REASONING)
+
+
+def provider_of(llm: ChatOpenAI) -> Optional[str]:
+    """Provider di un client costruito qui, dal suo indirizzo."""
+    base_url = str(getattr(llm, "openai_api_base", "") or "")
+    return next((name for name, (url, _) in _PROVIDERS.items() if url == base_url), None)
+
+
+def tokens_per_minute_limit(llm: ChatOpenAI) -> Optional[int]:
+    """Limite di token al minuto del provider di questo client, o None se non c'e'."""
+    return TOKENS_PER_MINUTE.get(provider_of(llm))
+
+
+def describe_llm(llm: ChatOpenAI) -> str:
+    """Modello EFFETTIVAMENTE usato da un client (letto dal client stesso, non
+    dalla configurazione), es. "groq/openai/gpt-oss-120b" - per il terminale
+    all'avvio, il pannello dell'app e i risultati dei benchmark."""
+    effort = getattr(llm, "reasoning_effort", None)
+    return f"{provider_of(llm) or '?'}/{llm.model_name}" + (f" (ragionamento {effort})" if effort else "")

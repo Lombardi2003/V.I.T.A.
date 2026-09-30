@@ -10,7 +10,7 @@ import chainlit as cl
 
 from src.state import MedicalState, PatientCard, PhotoAnalysis
 from .prompts import INTAKE_PROMPT, REVIEWER_PROMPT, PHOTO_PROMPT
-from .common import stream_response, call_with_retry, llm_photography
+from .common import stream_response, call_with_retry, extract_json, llm_vision
 from .authors import Authors
 
 
@@ -126,8 +126,7 @@ async def intake_node(state: MedicalState):
 
     # 3. Parsing + merge
     try:
-        clean = content.replace("```json", "").replace("```", "").strip()
-        data = json.loads(clean)
+        data = extract_json(content)
         extracted: dict = data.get("updated_card", {})
         if "allergies" in extracted:
             extracted["allergies"] = _sanitize_string_list(extracted["allergies"])
@@ -273,8 +272,7 @@ async def reviewer_node(state: MedicalState):
 
     # 3. Parsing (solo il sintomo: l'anagrafica resta di competenza di intake_node)
     try:
-        clean = content.replace("```json", "").replace("```", "").strip()
-        data = json.loads(clean)
+        data = extract_json(content)
         extracted_list = data.get("updated_card", {}).get("symptom", {}).get("symptoms", [])
         if not isinstance(extracted_list, list):
             extracted_list = []
@@ -435,7 +433,7 @@ async def photography_node(state: MedicalState):
                 # .invoke() e' sincrona/bloccante, non va chiamata direttamente
                 # dentro una funzione async. call_with_retry: nuovi tentativi
                 # dopo un errore temporaneo dell'API (vedi common.py).
-                response = await asyncio.to_thread(call_with_retry, llm_photography.invoke, messages)
+                response = await asyncio.to_thread(call_with_retry, llm_vision.invoke, messages)
                 step.output = response.content
             except Exception as e:
                 step.output = f"Errore durante la chiamata al modello di visione: {e}"
@@ -445,17 +443,10 @@ async def photography_node(state: MedicalState):
                 return {"general_history": [AIMessage(content=msg)], "next_step": "supervisor"}
 
         try:
-            # qwen/qwen3.6-27b (modello vision Groq) e' un modello "thinking":
-            # antepone un blocco <think>...</think> di ragionamento prima del
-            # JSON vero e proprio (osservato in test reale) - lo scartiamo e
-            # poi estraiamo il primo oggetto {...}, invece di assumere che
-            # l'intera risposta sia gia' JSON puro.
-            clean = re.sub(r"<think>.*?</think>", "", response.content, flags=re.DOTALL)
-            clean = clean.replace("```json", "").replace("```", "").strip()
-            match = re.search(r"\{.*\}", clean, flags=re.DOTALL)
-            if match:
-                clean = match.group(0)
-            clinical_data = json.loads(clean)
+            # extract_json gestisce anche i modelli "thinking" (come quello di
+            # visione attuale) che antepongono al JSON un blocco <think>...</think>
+            # (vedi src/llm/calls.py).
+            clinical_data = extract_json(response.content)
 
             tipo  = clinical_data.get("lesion_type", "")
             descr = clinical_data.get("description", "")

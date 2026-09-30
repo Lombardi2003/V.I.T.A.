@@ -103,6 +103,10 @@ class RoundTableEntry(BaseModel):
     # sapeva che qualcuno al tavolo aveva indicato un codice piu' alto (vedi
     # primary_node in clinical.py).
     urgency: Optional[Literal["ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO"]] = None
+    # True se l'intervento e' il turno del giro di verifica finale (vedi
+    # MedicalState.verification_queue e router in graph.py): non conta nel
+    # tetto MAX_SPEAKS_PER_SPECIALIST.
+    verification: bool = False
 
 # Classe BaseModel per la diagnosi finale e le raccomandazioni
 #
@@ -169,6 +173,24 @@ class MedicalState(BaseModel):
     # selezione iniziale del supervisore) - tetto massimo gestito dal router,
     # vedi MAX_RECRUITED_SPECIALISTS in clinical.py.
     recruited_specialists_count: int = 0
+
+    # Giro di verifica finale (router in graph.py): quando tutti hanno
+    # confermato, prima del primario, ogni specialista al tavolo ha un ultimo
+    # turno per dire se, letti i colleghi, la sua valutazione e' cambiata - la
+    # sola regola "tutti confermano, si chiude" premiava chi confermava subito,
+    # senza un momento in cui ciascuno ripensa alla luce degli altri.
+    # verification_started: il giro e' gia' partito (si fa UNA volta sola).
+    # verification_queue: chi deve ancora fare il suo turno di verifica.
+    # verifying_role: a chi il router ha appena dato un turno di verifica
+    # (specialist_node lo legge per aggiungere l'istruzione al prompt).
+    # Turni FALLITI per specialista (risposta illeggibile, errore dell'API):
+    # il router fa passare oltre chi ne accumula MAX_FAILED_TURNS (clinical.py)
+    # invece di richiamarlo all'infinito.
+    failed_turns: dict[str, int] = Field(default_factory=dict)
+
+    verification_started: bool = False
+    verification_queue: list[str] = Field(default_factory=list)
+    verifying_role: str = ""
 
     # Contabilita' di conversazione per intake_node: true quando l'argomento e' stato
     # affrontato (anche per negarlo), non dato clinico -> non sta su PatientCard.

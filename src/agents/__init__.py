@@ -13,9 +13,8 @@
 from .common import (
     stream_response,
     settings,
-    USE_CLOUD_ACCELERATION,
-    llm_agents,
-    llm_photography,
+    llm,
+    llm_vision,
     mdb,
 )
 from .authors import Authors
@@ -35,6 +34,7 @@ from .clinical import (
     MAX_TOTAL_TURNS,
     MAX_RECRUITED_SPECIALISTS,
     MAX_SPEAKS_PER_SPECIALIST,
+    MAX_FAILED_TURNS,
     supervisor_node,
     specialist_node,
     cardiologist_node,

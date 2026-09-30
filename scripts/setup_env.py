@@ -7,11 +7,10 @@ ensure_env() near the top of app.py, before `src.graph` is imported).
 The list of required values isn't hardcoded here: it's read directly from
 Settings.model_fields, so when a new field is added to the Settings class in
 the future, this script asks for it automatically, with no second file (e.g.
-.env.example) to keep in sync by hand. The one exception is `groq_api_key`,
-which is only asked for when `use_cloud_acceleration` is true (see
-_relevant_fields below) — mirroring the same condition already enforced by
-Settings' own validator, so Ollama-only setups aren't asked for a Groq key
-they don't need.
+.env.example) to keep in sync by hand. API keys are the exception: each one is
+asked for only if one of the models the app uses (chosen at the top of
+src/llm/factory.py) runs on that provider (see _relevant_fields below), so an
+Ollama-only setup isn't asked for keys it doesn't need.
 
 Usage:
     python scripts/setup_env.py            # asks only for missing values
@@ -58,30 +57,32 @@ def _write_env(values: dict[str, str]) -> None:
     )
 
 
-def _cloud_acceleration_enabled(existing: dict[str, str]) -> bool:
-    """Reads USE_CLOUD_ACCELERATION from the current .env (or its Settings default)."""
-    default = Settings.model_fields["use_cloud_acceleration"].default
-    raw = existing.get("USE_CLOUD_ACCELERATION", str(default))
-    return raw.strip().lower() in {"1", "true", "yes", "y"}
+# Settings fields that hold a provider's API key (asked for only when needed).
+_KEY_FIELDS = {"groq_api_key", "gemini_api_key", "gemini_fra_key"}
+
+
+def _needed_key_fields() -> set[str]:
+    """API-key fields needed by the models the app actually uses (chosen at
+    the top of src/llm/factory.py) - e.g. an Ollama-only setup needs none."""
+    from src.llm.factory import TEXT_MODEL, VISION_MODEL, _PROVIDERS, provider_of_model
+    fields = {_PROVIDERS[provider_of_model(m)][1] for m in (TEXT_MODEL, VISION_MODEL)}
+    return {f for f in fields if f}
 
 
 def _relevant_fields(names: list[str], existing: dict[str, str]) -> list[str]:
-    """Drops groq_api_key when cloud acceleration is off, and drops any other
+    """Keeps only the API keys the chosen models need, and drops any other
     field whose Settings default is None.
 
-    groq_api_key mirrors the conditional requirement already enforced in
-    Settings' validator (kept even though its own default is None, since it's
-    conditionally required, not a pure override), so an Ollama-only setup is
-    never asked for a Groq key it doesn't need. For every other field, a None
-    default (e.g. model_name, vision_model_name) means "optional override,
-    resolved elsewhere if absent" (see src/llm/factory.py) - never worth
+    A key is asked for only if one of the active models runs on its provider,
+    so nobody is asked for a key they don't need. For every other field, a
+    None default means "optional, resolved elsewhere if absent" - never worth
     forcing the user to type a value just because .env doesn't mention it yet.
     """
-    cloud_on = _cloud_acceleration_enabled(existing)
+    needed_keys = _needed_key_fields()
     relevant = []
     for name in names:
-        if name == "groq_api_key":
-            if cloud_on:
+        if name in _KEY_FIELDS:
+            if name in needed_keys:
                 relevant.append(name)
             continue
         if Settings.model_fields[name].default is None:
