@@ -201,3 +201,8 @@ class MedicalState(BaseModel):
     # affrontato (anche per negarlo), non dato clinico -> non sta su PatientCard.
     allergies_addressed: bool = False
     previous_conditions_addressed: bool = False
+    # intake_node: la scheda anagrafica e' gia' stata mostrata all'operatore (il
+    # primo passaggio, appena arrivati da read_db, non chiama il modello), e la
+    # scheda completa e' stata confermata (solo allora si passa ai sintomi).
+    intake_card_shown: bool = False
+    card_confirmed: bool = False

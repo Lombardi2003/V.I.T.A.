@@ -46,7 +46,14 @@ def generate_graph():
 
     # Archi attivi
     workflow.add_edge(START, "read_db")
-    workflow.add_edge("read_db", "user")
+    # Codice fiscale valido (paziente nuovo o gia' registrato): subito intake,
+    # senza pausa, che mostra la scheda. Non valido: pausa, poi read_db lo
+    # richiede (ciclo tramite "user", sotto).
+    workflow.add_conditional_edges(
+        "read_db",
+        lambda state: "intake" if state.next_step == "intake" else "user",
+        {"intake": "intake", "user": "user"},
+    )
     workflow.add_edge("intake", "user")
     workflow.add_edge("reviewer", "user")
     workflow.add_edge("photography", "user")

@@ -53,6 +53,8 @@ ARGOMENTI GIA' AFFRONTATI IN PRECEDENZA (true = non richiederlo di nuovo se non 
 - Allergie: {allergies_addressed}
 - Patologie pregresse: {previous_conditions_addressed}
 
+SCHEDA IN ATTESA DI CONFERMA DELL'OPERATORE: {awaiting_confirmation}
+
 ULTIMO MESSAGGIO:
 "{user_input}"
 
@@ -62,14 +64,16 @@ ISTRUZIONI:
 3. REGOLA FERREA per 'allergies_addressed': se era già true, resta true. Se era false, resta false A MENO CHE il messaggio non contenga una parola/frase che riguarda ESPLICITAMENTE le allergie (es. "allergico a...", "nessuna allergia", "non ho allergie"). L'assenza di qualunque riferimento alle allergie nel messaggio NON conta come averle affrontate: se l'utente parla solo di nome/età/altro e non nomina le allergie, il flag resta esattamente com'era (di solito false).
 4. REGOLA FERREA per 'previous_conditions_addressed': stessa identica logica del punto 3, ma per patologie/interventi/storia clinica pregressa (es. "ho il diabete", "nessuna patologia pregressa", "non ho mai avuto problemi di salute").
 5. In 'message_to_user' metti una conferma neutra di cosa hai capito, senza fare domande.
+6. RIMOZIONI: se il messaggio dice che un'allergia o una patologia GIA' presente nella scheda e' sbagliata o non c'e' (es. "non e' allergico alla penicillina, era un errore"), NON metterla in 'updated_card': scrivila, uguale a come compare nella scheda, in 'allergies_to_remove' o 'previous_conditions_to_remove'. Altrimenti lascia queste due liste vuote.
+7. CONFERMA: se "SCHEDA IN ATTESA DI CONFERMA DELL'OPERATORE" e' true e il messaggio conferma che i dati sono corretti SENZA chiedere modifiche (es. "si'", "confermo", "tutto giusto", "ok"), metti "conferma": true. Se il messaggio chiede anche una sola modifica (es. "si' ma l'eta' e' 45"), o se la scheda non e' in attesa di conferma, metti "conferma": false.
 
 ESEMPIO 1 — messaggio che NON tocca ne' allergie ne' patologie pregresse (i due flag devono restare quelli di partenza, di solito false, NON diventare true):
 Messaggio: "Mi chiamo Luca Bianchi, ho 30 anni"
-Output atteso: {{"updated_card": {{"first_name": "Luca", "last_name": "Bianchi", "age": "30", "sex": "", "allergies": [], "previous_conditions": []}}, "allergies_addressed": false, "previous_conditions_addressed": false, "message_to_user": "Ho capito che ti chiami Luca Bianchi e hai 30 anni"}}
+Output atteso: {{"updated_card": {{"first_name": "Luca", "last_name": "Bianchi", "age": "30", "sex": "", "allergies": [], "previous_conditions": []}}, "allergies_to_remove": [], "previous_conditions_to_remove": [], "allergies_addressed": false, "previous_conditions_addressed": false, "conferma": false, "message_to_user": "Ho capito che ti chiami Luca Bianchi e hai 30 anni"}}
 
 ESEMPIO 2 — messaggio che nega esplicitamente entrambe (i due flag DEVONO diventare true, anche se le liste restano vuote):
 Messaggio: "Sono un uomo, non ho allergie e non ho patologie pregresse"
-Output atteso: {{"updated_card": {{"first_name": "", "last_name": "", "age": "", "sex": "uomo", "allergies": [], "previous_conditions": []}}, "allergies_addressed": true, "previous_conditions_addressed": true, "message_to_user": "Ho capito che sei un uomo, senza allergie ne' patologie pregresse"}}
+Output atteso: {{"updated_card": {{"first_name": "", "last_name": "", "age": "", "sex": "uomo", "allergies": [], "previous_conditions": []}}, "allergies_to_remove": [], "previous_conditions_to_remove": [], "allergies_addressed": true, "previous_conditions_addressed": true, "conferma": false, "message_to_user": "Ho capito che sei un uomo, senza allergie ne' patologie pregresse"}}
 
 RISPONDI ESCLUSIVAMENTE CON QUESTO JSON:
 {{
@@ -81,8 +85,11 @@ RISPONDI ESCLUSIVAMENTE CON QUESTO JSON:
         "allergies": [],
         "previous_conditions": []
     }},
+    "allergies_to_remove": [],
+    "previous_conditions_to_remove": [],
     "allergies_addressed": false,
     "previous_conditions_addressed": false,
+    "conferma": false,
     "message_to_user": "Ho capito che..."
 }}
 """

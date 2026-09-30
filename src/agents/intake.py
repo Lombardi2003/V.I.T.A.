@@ -22,6 +22,70 @@ def _mentions(text: str, keywords: list[str]) -> bool:
     return any(kw in lowered for kw in keywords)
 
 
+def _format_card(card: PatientCard, allergies_addressed: bool, previous_conditions_addressed: bool) -> str:
+    """Scheda anagrafica compatta da mostrare all'operatore a ogni turno di
+    intake_node: nella prima riga solo i dati gia' presenti (quelli mancanti li
+    elenca la riga "Mancano"). Niente elenco puntato: in chat ogni voce
+    prendeva molto spazio. Una lista vuota si legge "nessuna" solo se
+    l'argomento e' stato affrontato, altrimenti "da indicare"."""
+    def _list(items: list[str], addressed: bool) -> str:
+        if items:
+            return ", ".join(items)
+        return "nessuna" if addressed else "da indicare"
+
+    name = f"{card.first_name.strip()} {card.last_name.strip()}".strip()
+    age = card.age.strip()
+    if age and age.isdigit():
+        age = f"{age} anni"
+    parts = [f"**CF** {card.fiscal_code.strip() or '—'}"]
+    if name:
+        parts.append(f"**Paziente** {name}")
+    if age:
+        parts.append(f"**Età** {age}")
+    if card.sex.strip():
+        parts.append(f"**Sesso** {card.sex.strip()}")
+
+    lines = ["**Scheda paziente**", " · ".join(parts)]
+    # Paziente appena creato: niente "da indicare", lo dice gia' la riga "Mancano".
+    if card.allergies or allergies_addressed or card.previous_conditions or previous_conditions_addressed \
+            or len(parts) > 1:
+        lines.append(
+            f"**Allergie** {_list(card.allergies, allergies_addressed)} · "
+            f"**Patologie pregresse** {_list(card.previous_conditions, previous_conditions_addressed)}"
+        )
+    return "\n".join(lines)
+
+
+_SEX_VALUES = {
+    "uomo": {"m", "maschio", "uomo", "maschile", "male"},
+    "donna": {"f", "femmina", "donna", "femminile", "female"},
+}
+
+
+def _capitalize_name(text: str) -> str:
+    """Iniziale maiuscola per ogni parte del nome ("de luca" -> "De Luca",
+    "d'angelo" -> "D'Angelo"). Le parti gia' scritte con maiuscole e minuscole
+    miste (es. "McKenzie") restano come sono."""
+    def _part(p: str) -> str:
+        return p.capitalize() if p.islower() or p.isupper() else p
+    return re.sub(r"[^\s'\-]+", lambda m: _part(m.group(0)), text.strip())
+
+
+def _normalize_card(card: PatientCard) -> PatientCard:
+    """Dati uniformi nella scheda stessa (non solo nella stampa), cosi' anche
+    nel database finiscono uguali: sesso "uomo"/"donna" (se non riconosciuto resta com'e'),
+    nome e cognome con l'iniziale maiuscola."""
+    sex = card.sex.strip()
+    for code, words in _SEX_VALUES.items():
+        if sex.lower() in words:
+            sex = code
+    return card.model_copy(update={
+        "sex": sex,
+        "first_name": _capitalize_name(card.first_name),
+        "last_name": _capitalize_name(card.last_name),
+    })
+
+
 # Nodo per la gestione del messaggio dell'utente
 async def user_node(state: MedicalState):
     """Nodo di passaggio: il messaggio e' gia' nello stato (aggiunto da app.py
@@ -57,9 +121,9 @@ async def intake_node(state: MedicalState):
         if not card.sex.strip():
             missing.append("sesso")
         if not allergies_addressed:
-            missing.append("allergie (anche 'nessuna' se non ne hai)")
+            missing.append("allergie")
         if not previous_conditions_addressed:
-            missing.append("patologie pregresse (anche 'nessuna' se non ne hai)")
+            missing.append("patologie pregresse")
         return missing
 
     def _merge(base: dict, update: dict) -> dict:
@@ -100,8 +164,41 @@ async def intake_node(state: MedicalState):
     ALLERGY_KEYWORDS = ["allerg"]  # allergia/allergie/allergico/allergica
     CONDITION_KEYWORDS = ["patolog", "pregress", "malatt"]  # patologia/e, pregressa/e, malattia/e
 
-    # 1. Stato attuale
-    current_card: PatientCard = state.patient_card
+    CONFIRM_REQUEST = "Confermi i dati? Altrimenti indicare cosa correggere."
+
+    def _reply_for(card: PatientCard, allergies_addressed: bool, previous_conditions_addressed: bool) -> str:
+        """Scheda aggiornata + cosa manca, oppure la richiesta di conferma se e' completa."""
+        missing = _missing_fields(card, allergies_addressed, previous_conditions_addressed)
+        scheda = _format_card(card, allergies_addressed, previous_conditions_addressed)
+        if missing:
+            return f"{scheda}\n\nMancano: {', '.join(missing)}."
+        return f"{scheda}\n\n{CONFIRM_REQUEST}"
+
+    # 1. Stato attuale (normalizzata anche la scheda che arriva dal database)
+    current_card: PatientCard = _normalize_card(state.patient_card)
+
+    # Primo passaggio, appena arrivati da read_db (senza pausa, vedi graph.py):
+    # l'operatore non ha ancora scritto nulla dopo il codice fiscale, quindi
+    # nessuna chiamata al modello - si mostra la scheda (vuota per un paziente
+    # nuovo, quella del database per uno gia' registrato) e cosa manca, oppure
+    # si chiede subito la conferma se e' gia' completa.
+    if not state.intake_card_shown:
+        reply = _reply_for(current_card, state.allergies_addressed, state.previous_conditions_addressed)
+        print("🪪 INTAKE → scheda mostrata (primo passaggio, nessuna chiamata al modello)")
+        await cl.Message(content=reply, author=Authors.INTAKE).send()
+        return {
+            "patient_card":      current_card.model_dump(),
+            "triage_history":    [AIMessage(content=reply)],
+            "general_history":   [AIMessage(content=reply)],
+            "intake_card_shown": True,
+            "next_step":         "intake",
+        }
+
+    # La scheda era gia' completa al turno prima: l'operatore ha davanti la
+    # richiesta di conferma, e questo messaggio e' la sua risposta.
+    awaiting_confirmation = not _missing_fields(
+        current_card, state.allergies_addressed, state.previous_conditions_addressed
+    )
     user_msg = state.triage_history[-1].content if state.triage_history else ""
     allergies_mentioned = _mentions(user_msg, ALLERGY_KEYWORDS)
     previous_conditions_mentioned = _mentions(user_msg, CONDITION_KEYWORDS)
@@ -111,6 +208,7 @@ async def intake_node(state: MedicalState):
         patient_card=current_card.model_dump_json(),
         allergies_addressed=state.allergies_addressed,
         previous_conditions_addressed=state.previous_conditions_addressed,
+        awaiting_confirmation=awaiting_confirmation,
         user_input=user_msg,
     )
     async with cl.Step(name="Analisi dati anagrafici", type="tool", default_open=False, show_input="text") as step:
@@ -139,11 +237,19 @@ async def intake_node(state: MedicalState):
         # la parola chiave e' presente nel messaggio ma l'LLM non l'ha colta.
         allergies_addressed = state.allergies_addressed or bool(data.get("allergies_addressed", False)) or allergies_mentioned
         previous_conditions_addressed = state.previous_conditions_addressed or bool(data.get("previous_conditions_addressed", False)) or previous_conditions_mentioned
+        # "conferma" conta solo se era davvero stata chiesta (vedi sopra).
+        confirmed_by_llm = awaiting_confirmation and data.get("conferma") is True
+        to_remove = {
+            "allergies": _sanitize_string_list(data.get("allergies_to_remove") or []),
+            "previous_conditions": _sanitize_string_list(data.get("previous_conditions_to_remove") or []),
+        }
     except json.JSONDecodeError:
         extracted = {}
         llm_reply = ""
         allergies_addressed = state.allergies_addressed or allergies_mentioned
         previous_conditions_addressed = state.previous_conditions_addressed or previous_conditions_mentioned
+        confirmed_by_llm = False
+        to_remove = {"allergies": [], "previous_conditions": []}
 
     # Le liste si accumulano tra turni invece di sostituirsi (a differenza dei campi
     # scalari come l'eta', dove l'ultimo valore detto e' la correzione giusta): se
@@ -156,8 +262,17 @@ async def intake_node(state: MedicalState):
             extracted[list_field] = existing_items + [x for x in new_items if x not in existing_items]
 
     merged_dict = _merge(current_card.model_dump(), extracted)
+
+    # Rimozioni esplicite (correzione dell'operatore, es. "non e' allergico alla
+    # penicillina, era un errore"): le liste si accumulano tra i turni, quindi
+    # senza questo una voce sbagliata non si poteva piu' togliere. Confronto
+    # senza maiuscole/spazi ai lati.
+    for list_field, items in to_remove.items():
+        remove = {str(x).strip().lower() for x in items if str(x).strip()}
+        if remove and isinstance(merged_dict.get(list_field), list):
+            merged_dict[list_field] = [x for x in merged_dict[list_field] if str(x).strip().lower() not in remove]
     try:
-        merged_card = PatientCard(**merged_dict)
+        merged_card = _normalize_card(PatientCard(**merged_dict))
     except Exception as e:
         # Ultima rete di sicurezza: se l'LLM ha restituito qualcosa che non rispetta
         # comunque lo schema (nonostante la normalizzazione sopra), non facciamo
@@ -168,22 +283,26 @@ async def intake_node(state: MedicalState):
     # 4. Validazione Python
     missing = _missing_fields(merged_card, allergies_addressed, previous_conditions_addressed)
     intake_complete = len(missing) == 0
+    # Una conferma vale solo se in questo stesso messaggio non e' cambiato nulla:
+    # "si' ma l'eta' e' 45" e' una correzione anche se il modello dice
+    # "conferma" - la scheda va ristampata e riconfermata.
+    card_changed = merged_card.model_dump() != current_card.model_dump()
+    card_confirmed = intake_complete and confirmed_by_llm and not card_changed
 
-    if intake_complete:
-        # Come per reviewer_node: mostriamo sempre sia la conferma di quanto
-        # capito sia un segnale esplicito che si passa alla fase successiva,
-        # dicendo all'utente cosa scrivere ora invece di lasciarlo indovinare.
-        conferma = llm_reply or "Informazioni acquisite."
-        reply = (
-            f"{conferma}\n\nRaccolta dei dati anagrafici completata. Si prosegue ora con la "
-            "descrizione del sintomo: natura del disturbo, intensità e durata."
-        )
+    if card_confirmed:
+        # Cosa scrivere dopo lo dira' il revisore (stessa scheda + conferma,
+        # da fare nel suo nodo).
+        reply = "Dati anagrafici confermati."
     else:
-        elenco = "\n".join(f"  • {campo}" for campo in missing)
-        reply = f"Per completare la scheda anagrafica sono necessarie le seguenti informazioni:\n{elenco}"
+        # La scheda stampata mostra gia' cosa e' stato capito: la frase del
+        # modello ("Ho capito che...", llm_reply) la ripeteva, allungando il
+        # messaggio - resta solo nel log del terminale.
+        reply = _reply_for(merged_card, allergies_addressed, previous_conditions_addressed)
+        if llm_reply:
+            print(f"   INTAKE (modello): {llm_reply}")
 
     # 5. Log + output
-    print(f"🪪 INTAKE → completo={intake_complete} | mancanti={missing}")
+    print(f"🪪 INTAKE → completo={intake_complete} | confermata={card_confirmed} | mancanti={missing}")
     print(f"   Card: {merged_card.model_dump_json()}")
     await cl.Message(content=reply, author=Authors.INTAKE).send()
 
@@ -193,7 +312,8 @@ async def intake_node(state: MedicalState):
         "general_history": [AIMessage(content=reply)],
         "allergies_addressed": allergies_addressed,
         "previous_conditions_addressed": previous_conditions_addressed,
-        "next_step": "reviewer" if intake_complete else "intake",
+        "card_confirmed": card_confirmed,
+        "next_step": "reviewer" if card_confirmed else "intake",
     }
 
 

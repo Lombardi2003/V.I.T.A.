@@ -115,7 +115,7 @@ async def read_db_node(state: MedicalState):
             # restava senza codice fiscale (e cosi' sarebbe finita nel database).
             "patient_card":    {"fiscal_code": raw},
             "patient_exists":  False,
-            "next_step":       "intake",  # user → intake (raccolta anagrafica)
+            "next_step":       "intake",  # subito intake (vedi graph.py): mostra la scheda e cosa manca
             "general_history": [AIMessage(content=msg)],
         }
 
@@ -143,21 +143,18 @@ async def read_db_node(state: MedicalState):
             # allergia confermata" da "non ancora chiesto"), quindi si richiede.
             "allergies_addressed":            bool(loaded_allergies),
             "previous_conditions_addressed":  bool(loaded_conditions),
-            "next_step":      "intake",  # user → intake (raccolta/riconferma anagrafica)
+            "next_step":      "intake",  # subito intake: mostra la scheda e chiede conferma
             "general_history": [AIMessage(content=msg)],
         }
 
-    msg = (
-        "Codice Fiscale non presente nel sistema: verrà creata una nuova scheda clinica.\n\n"
-        "Si prega di fornire i seguenti dati anagrafici: nome, cognome, età, sesso, "
-        "allergie e patologie pregresse."
-    )
+    # I dati da chiedere li elenca subito dopo intake_node, insieme alla scheda.
+    msg = "Codice Fiscale non presente nel sistema: verrà creata una nuova scheda clinica."
     await cl.Message(content=msg, author=Authors.SYSTEM).send()
     print(f"READ_DB | Nuovo paziente: {raw}")
     return {
         "patient_card":    {"fiscal_code": raw},
         "patient_exists":  False,
-        "next_step":       "intake",  # user → intake (raccolta anagrafica)
+        "next_step":       "intake",  # subito intake (vedi graph.py): mostra la scheda e cosa manca
         "general_history": [AIMessage(content=msg)],
     }
 
