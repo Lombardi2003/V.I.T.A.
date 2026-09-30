@@ -60,8 +60,12 @@ reaction_on_message_received = false
     # 3. Per estensioni di file specifiche:
     #    accept = { "application/octet-stream" = [".xyz", ".pdb"] }
     # Nota: L'uso di "*/*" non è raccomandato in quanto potrebbe causare avvisi del browser
-    accept = ["*/*"]
-    max_files = 20
+    # V.I.T.A. usa solo la foto della lesione (una sola, vedi app.py): altri
+    # tipi di file verrebbero ignorati senza avvisare.
+    accept = ["image/*"]
+    max_files = 1
+    # Da rivedere con il nodo della foto: la foto va al modello in base64
+    # (Groq accetta immagini base64 fino a circa 4 MB).
     max_size_mb = 500
 
 [features.audio]

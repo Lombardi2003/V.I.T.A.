@@ -10,9 +10,49 @@ from .common import mdb
 from .authors import Authors
 
 
-def is_valid_fiscal_code(raw: str) -> bool:
-    """Validazione minima del Codice Fiscale: 16 alfanumerici, con bypass di test '1234'."""
-    return bool(re.fullmatch(r'[A-Z0-9]{16}', raw)) or raw == "1234"
+# Formato del Codice Fiscale: cognome (3 lettere), nome (3), anno (2 cifre),
+# mese (lettera), giorno e sesso (2 cifre), comune (lettera + 3 cifre),
+# carattere di controllo. Nelle posizioni delle cifre possono comparire le
+# lettere LMNPQRSTUV al posto di 0-9 (omocodia: codici altrimenti uguali).
+_CF_FORMAT = re.compile(
+    r"[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]"
+)
+# Valori per il carattere di controllo: i caratteri in posizione dispari (1a,
+# 3a, ...) usano questa tabella, quelli in posizione pari valgono 0-9 per le
+# cifre e 0-25 per le lettere (A=0 ... Z=25).
+_CF_ODD_VALUES = dict(zip(
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    [1, 0, 5, 7, 9, 13, 15, 17, 19, 21,
+     1, 0, 5, 7, 9, 13, 15, 17, 19, 21, 2, 4, 18, 20, 11, 3, 6, 8, 12, 14, 16, 10, 22, 25, 24, 23],
+))
+
+
+def _cf_even_value(char: str) -> int:
+    return int(char) if char.isdigit() else ord(char) - ord("A")
+
+
+def normalize_fiscal_code(raw: str) -> str:
+    """Maiuscolo e senza spazi, anche in mezzo ("rss mra 80a01 h501u" -> "RSSMRA80A01H501U")."""
+    return re.sub(r"\s+", "", raw or "").upper()
+
+
+def is_valid_fiscal_code(cf: str) -> bool:
+    """Codice Fiscale gia' normalizzato: formato e carattere di controllo
+    corretti, oppure il codice di test '1234' (per le prove in sviluppo).
+
+    Il carattere di controllo scopre gli errori di battitura: senza, una
+    lettera sbagliata su un paziente gia' registrato dava comunque un codice
+    "valido", il paziente non veniva trovato e gli si apriva una seconda scheda.
+    """
+    if cf == "1234":
+        return True
+    if not _CF_FORMAT.fullmatch(cf):
+        return False
+    total = sum(
+        _CF_ODD_VALUES[c] if i % 2 == 0 else _cf_even_value(c)
+        for i, c in enumerate(cf[:15])
+    )
+    return cf[15] == chr(ord("A") + total % 26)
 
 
 # Nodo per la lettura del database
@@ -28,17 +68,18 @@ async def read_db_node(state: MedicalState):
 
     # 1. Estrazione input
     try:
-        raw = state.general_history[-1].content.strip().upper()
+        raw = normalize_fiscal_code(state.general_history[-1].content)
     except (IndexError, AttributeError):
         msg = "Inserire il proprio Codice Fiscale per procedere."
         await cl.Message(content=msg, author=Authors.SYSTEM).send()
         return {"next_step": "read_db", "general_history": [AIMessage(content=msg)]}
 
-    # 2. Validazione minima: 16 caratteri alfanumerici
+    # 2. Validazione: formato e carattere di controllo
     if not is_valid_fiscal_code(raw):
         msg = (
             "Il valore inserito non costituisce un Codice Fiscale valido.\n"
-            "Deve essere composto da 16 caratteri alfanumerici. Si prega di reinserirlo."
+            "Deve essere composto da 16 caratteri (formato e carattere di controllo corretti). "
+            "Si prega di reinserirlo."
         )
         await cl.Message(content=msg, author=Authors.SYSTEM).send()
         return {
@@ -70,6 +111,10 @@ async def read_db_node(state: MedicalState):
         await cl.Message(content=msg, author=Authors.SYSTEM).send()
         print(f"READ_DB | Errore DB: {db_error}")
         return {
+            # Il CF e' gia' validato: senza scriverlo qui la nuova scheda
+            # restava senza codice fiscale (e cosi' sarebbe finita nel database).
+            "patient_card":    {"fiscal_code": raw},
+            "patient_exists":  False,
             "next_step":       "intake",  # user → intake (raccolta anagrafica)
             "general_history": [AIMessage(content=msg)],
         }
