@@ -1,4 +1,5 @@
 import chainlit as cl
+import traceback
 import uuid
 from chainlit.input_widget import Select
 from langchain_core.messages import HumanMessage
@@ -80,19 +81,16 @@ async def main(message: cl.Message):
 
     app.update_state(config, update)
 
+    # Un errore in un nodo interrompe il grafo e arriva qui come eccezione
+    # (astream_events non emette un evento dedicato agli errori dei nodi):
+    # il traceback va nel terminale, in chat solo il messaggio breve.
     try:
-        async for event in app.astream_events(None, config=config, version="v2"):
-            kind = event["event"]
-
-            if kind == "on_chain_error":
-                node_name = event.get("metadata", {}).get("langgraph_node", "")
-                error = event.get("data", {}).get("error", "")
-                print(f"❌ ERRORE in {node_name}: {error}")  # ← aggiungi error
-                import traceback
-                traceback.print_exc()
-                await cl.Message(content=f"❌ Errore durante l'elaborazione: {error}").send()
+        async for _ in app.astream_events(None, config=config, version="v2"):
+            pass
 
     except Exception as e:
+        print(f"❌ ERRORE durante l'elaborazione: {e}")
+        traceback.print_exc()
         await cl.Message(
             content=f"❌ Errore durante l'elaborazione: {str(e)}"
         ).send()
