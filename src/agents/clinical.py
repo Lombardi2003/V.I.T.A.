@@ -245,13 +245,26 @@ async def supervisor_node(state: MedicalState):
     }
 
 
+# Lunghezza massima di un intervento nella trascrizione letta dai colleghi
+# (non in chat, dove resta intero). Rete di sicurezza oltre alla regola
+# BREVITA' del prompt: un solo intervento arrivava a ~850 token e, con la
+# discussione che cresce, il prompt superava il limite di token al minuto di
+# Groq (errore 413, turni persi). Un intervento rivolto proprio a chi parla
+# arriva comunque intero, nel blocco "consulto_pendente" (specialist_node).
+MAX_ENTRY_CHARS_IN_TRANSCRIPT = 1200
+
+
 def _format_round_table(entries: list[RoundTableEntry]) -> str:
     """Rende leggibile la discussione finora per il prompt dello specialista
-    di turno - ognuno vede l'intera trascrizione, non solo l'ultimo scambio."""
+    di turno - ognuno vede l'intera trascrizione, non solo l'ultimo scambio
+    (ogni intervento accorciato a MAX_ENTRY_CHARS_IN_TRANSCRIPT)."""
     if not entries:
         return "Nessun intervento precedente - sei il primo a parlare."
     righe = []
     for e in entries:
+        content = e.content
+        if len(content) > MAX_ENTRY_CHARS_IN_TRANSCRIPT:
+            content = content[:MAX_ENTRY_CHARS_IN_TRANSCRIPT].rsplit(" ", 1)[0] + " […]"
         chi_parla = SPECIALIST_DISPLAY_NAMES.get(e.author, e.author)
         destinatario = SPECIALIST_DISPLAY_NAMES.get(e.to, e.to) if e.to else "tutti"
         tag = ", ".join(t for t in (
@@ -260,7 +273,7 @@ def _format_round_table(entries: list[RoundTableEntry]) -> str:
             f"urgenza {e.urgency}" if e.urgency else "",
         ) if t)
         azione_tag = f" [{tag}]" if tag else ""
-        righe.append(f"{chi_parla} (a {destinatario}){azione_tag}: {e.content}")
+        righe.append(f"{chi_parla} (a {destinatario}){azione_tag}: {content}")
     return "\n".join(righe)
 
 
