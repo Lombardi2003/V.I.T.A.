@@ -1,7 +1,9 @@
 # --- CONFIGURAZIONE PROMPTS ---
 
 # IL SUPERVISORE
-# Il suo compito è SOLO di smistamento. È cruciale che risponda con le parole chiave esatte degli specialisti o "FINISH", altrimenti il grafo non sa dove andare
+# Il suo compito è SOLO di smistamento: sceglie quali specialisti siedono al
+# tavolo (il codice accetta anche i nomi italiani e tiene al massimo
+# MAX_SELECTED_SPECIALISTS, vedi supervisor_node in clinical.py).
 SUPERVISOR_PROMPT = """
 Sei il Supervisore Medico. Analizza i dati del paziente e la foto (se presente).
 Indirizza il paziente ESCLUSIVAMENTE agli specialisti pertinenti tra quelli disponibili.

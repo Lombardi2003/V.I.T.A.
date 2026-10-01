@@ -135,6 +135,63 @@ def _parse_urgency(value) -> str | None:
     return text if text in URGENCY_LEVELS else None
 
 
+# Tetto agli specialisti scelti dal supervisore: con 5-6 al tavolo la
+# discussione diventa lunghissima (e costosa in token) e, con il freno di
+# MAX_TOTAL_TURNS, ognuno avrebbe solo un paio di interventi.
+MAX_SELECTED_SPECIALISTS = 3
+
+
+def _roles_from(value) -> list[str]:
+    """Ruoli validi da una lista del modello, in ordine e senza doppioni.
+    Accetta anche un testo singolo, elementi scritti come oggetto
+    ({"name": "orthopedist"}) e i nomi italiani ("Ortopedia", "il
+    dermatologo") - prima un null o un oggetto mandavano in errore il nodo, e
+    un nome italiano veniva scartato (verificato con una prova)."""
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list):
+        return []
+    roles = []
+    for item in value:
+        if isinstance(item, dict):
+            item = item.get("name") or item.get("role") or item.get("specialist") or next(iter(item.values()), "")
+        role = _role_from_name(item)
+        if role and role not in roles:
+            roles.append(role)
+    return roles
+
+
+def _select_specialists(data: dict) -> list[str]:
+    """Specialisti da mettere al tavolo, dalla risposta del supervisore.
+
+    La lista finale e' l'UNIONE della lista del modello e di quelli indicati
+    sintomo per sintomo: il prompt la chiede gia', ma prima nessuno la
+    controllava (verificato: con "per_symptom_analysis" che indicava anche il
+    dermatologo per l'eruzione e una lista finale con il solo ortopedico, il
+    dermatologo andava perso). Oltre il tetto, prima uno specialista per ogni
+    sintomo (nessun sintomo resta scoperto), poi gli altri in ordine."""
+    final = _roles_from(data.get("specialists"))
+    per_symptom = data.get("per_symptom_analysis")
+    per_symptom = per_symptom if isinstance(per_symptom, list) else []
+    per_symptom_roles = [_roles_from(item.get("specialists")) for item in per_symptom if isinstance(item, dict)]
+
+    candidates = list(final)
+    for roles in per_symptom_roles:
+        candidates += [r for r in roles if r not in candidates]
+    if len(candidates) <= MAX_SELECTED_SPECIALISTS:
+        return candidates
+
+    selected = []
+    for roles in per_symptom_roles:
+        first = next((r for r in roles if r in final), roles[0] if roles else None)
+        if first and first not in selected:
+            selected.append(first)
+    selected = selected[:MAX_SELECTED_SPECIALISTS]
+    selected += [r for r in candidates if r not in selected][:MAX_SELECTED_SPECIALISTS - len(selected)]
+    print(f"🚦 SUPERVISOR: {len(candidates)} specialisti proposti, tenuti {MAX_SELECTED_SPECIALISTS}: {selected}")
+    return selected
+
+
 # Nodo del supervisore
 async def supervisor_node(state: MedicalState):
     """Legge la cartella clinica (e la foto, se presente) e decide quali
@@ -162,9 +219,7 @@ async def supervisor_node(state: MedicalState):
     try:
         data = extract_json(content)
 
-        specs = data.get("specialists", [])
-        clean_specs = [s.lower() for s in specs if s.lower() in ALL_SPECIALISTS]
-
+        clean_specs = _select_specialists(data)
         if clean_specs:
             selected_specialists = clean_specs
 
