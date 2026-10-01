@@ -328,13 +328,16 @@ def router(state: MedicalState):
         )
 
     if not needed or (not pending and not reopen_role and not open_consult):
+        # Solo per il registro nel terminale: chi e' passato oltre NON ha
+        # confermato, e prima la riga diceva comunque "confermata da tutti".
+        esito = f"confermata da tutti tranne chi e' passato oltre ({', '.join(passed)})" if passed else "confermata da tutti"
         # Giro di verifica finale (vedi docstring): parte la prima volta che
         # tutti hanno confermato, poi un turno a testa nell'ordine del tavolo.
         queue = list(state.verification_queue)
         if needed and not state.verification_started:
             queue = list(needed.keys())
             update["verification_started"] = True
-            print("🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale")
+            print(f"🔀 ROUTER: ipotesi {esito} -> giro di verifica finale")
         # Chi ha gia' esaurito i turni falliti ammessi non fa il giro di verifica.
         queue = [r for r in queue if state.failed_turns.get(r, 0) < MAX_FAILED_TURNS]
         if needed and queue:
@@ -348,7 +351,7 @@ def router(state: MedicalState):
                 "verification_queue": queue,
                 "total_turns": total_turns,
             }
-        print("🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario")
+        print(f"🔀 ROUTER: ipotesi di gruppo {esito} -> primario")
         return {**update, "next_step": "chief_physician", "verifying_role": ""}
 
     recruited_count = state.recruited_specialists_count

@@ -199,6 +199,10 @@ class MedicalState(BaseModel):
     # separato da group_hypothesis.confirmed_by, cosi' il primario non legge
     # un consenso che non c'e' stato.
     passed_without_confirming: list[str] = Field(default_factory=list)
+    # Chi il supervisore ha aggiunto al tavolo per un SECONDO PARERE (oggi il
+    # medico generico, quando era stato scelto un solo specialista): il suo
+    # prompt riceve un'istruzione dedicata (specialist_node). "" = nessuno.
+    second_opinion_role: str = ""
 
     verification_started: bool = False
     verification_queue: list[str] = Field(default_factory=list)

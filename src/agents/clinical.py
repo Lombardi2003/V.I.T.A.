@@ -140,6 +140,11 @@ def _parse_urgency(value) -> str | None:
 # MAX_TOTAL_TURNS, ognuno avrebbe solo un paio di interventi.
 MAX_SELECTED_SPECIALISTS = 3
 
+# Chi si aggiunge al tavolo per un secondo parere quando il supervisore ha
+# scelto un solo specialista (vedi supervisor_node): il medico generico, il
+# ruolo pensato per la visione d'insieme del paziente.
+SECOND_OPINION_ROLE = "general_practitioner"
+
 
 def _roles_from(value) -> list[str]:
     """Ruoli validi da una lista del modello, in ordine e senza doppioni.
@@ -232,6 +237,20 @@ async def supervisor_node(state: MedicalState):
     plurale = len(selected_specialists) > 1
     verbo = "Verranno coinvolti in consulto" if plurale else "Verrà coinvolto in consulto"
     msg = f"{verbo}: **{nomi}**."
+
+    # Un solo specialista = un monologo: propone e poi, nel giro di verifica,
+    # rilegge se stesso, senza che nessuno controlli (osservato nella prova di
+    # riferimento sul dolore toracico). Si aggiunge il medico generico per un
+    # SECONDO PARERE - regola fissa, nessuna chiamata in piu' al modello - e lo
+    # si dichiara nel messaggio, perche' non e' una scelta clinica del
+    # supervisore. Se l'unico scelto e' gia' il medico generico, resta da solo.
+    second_opinion_role = ""
+    if len(selected_specialists) == 1 and selected_specialists[0] != SECOND_OPINION_ROLE:
+        second_opinion_role = SECOND_OPINION_ROLE
+        selected_specialists = selected_specialists + [SECOND_OPINION_ROLE]
+        print(f"🚦 SUPERVISOR: un solo specialista, aggiunto {SECOND_OPINION_ROLE} per un secondo parere")
+        msg = (f"Verrà coinvolto in consulto: **{nomi}**, con "
+               f"**{SPECIALIST_DISPLAY_NAMES[SECOND_OPINION_ROLE]}** per un secondo parere.")
     await cl.Message(content=msg, author=Authors.SUPERVISOR).send()
 
     # Il valore booleano non porta piu' informazione propria (vedi commento su
@@ -241,6 +260,7 @@ async def supervisor_node(state: MedicalState):
     print(f"   Checklist: {checklist}")
     return {
         "needed_specialists": checklist,
+        "second_opinion_role": second_opinion_role,
         "general_history": [AIMessage(content=msg)],
     }
 
@@ -421,6 +441,21 @@ async def specialist_node(state: MedicalState, role: str):
             "che sei d'accordo."
         )
 
+    # Medico generico aggiunto dal supervisore per un secondo parere (vedi
+    # supervisor_node): gli si dice perche' e' al tavolo, invece di farlo
+    # comportare come uno specialista qualunque.
+    istruzione_secondo_parere = ""
+    if role == state.second_opinion_role:
+        collega = ", ".join(SPECIALIST_DISPLAY_NAMES.get(r, r) for r in state.needed_specialists if r != role)
+        istruzione_secondo_parere = (
+            f"SECONDO PARERE: sei al tavolo per un secondo parere, perche' per questo caso era stato "
+            f"scelto un solo specialista ({collega}). Rileggi il caso nel suo insieme (eta', patologie "
+            "pregresse, tutti i sintomi) e controlla che l'ipotesi del collega sia sostenuta dai DATI "
+            "PAZIENTE: se lo e', confermala spiegando perche'; se no (un dato non riferito dato per "
+            "acquisito, un codice di urgenza non giustificato, una spiegazione piu' semplice trascurata), "
+            "usa \"rivedi\"."
+        )
+
     # Recupero RAG (src/rag/): SEMPRE eseguito, un turno = una ricerca - non e'
     # una scelta del modello (vedi discussione: lasciare al modello "se
     # cercare" ha lo stesso rischio gia' visto oggi con consulto_utile e
@@ -472,7 +507,7 @@ async def specialist_node(state: MedicalState, role: str):
         card=card_str,
         round_table=table_text,
         hypothesis=hypothesis_text,
-        consulto_pendente="\n\n".join(t for t in (consulto_pendente, istruzione_verifica) if t),
+        consulto_pendente="\n\n".join(t for t in (consulto_pendente, istruzione_secondo_parere, istruzione_verifica) if t),
         linee_guida=linee_guida_text,
     )
 
@@ -828,6 +863,37 @@ async def general_practitioner_node(state):
     return await specialist_node(state, "general_practitioner")
 
 
+# Codice usato solo se il tavolo non ha un'ipotesi E il primario non risponde
+# (caso estremo): prudente, perche' per un errore tecnico il codice piu' basso
+# (BIANCO, quello di prima) e' la scelta peggiore. Deciso dall'utente.
+FALLBACK_URGENCY = "ARANCIONE"
+
+
+def _fallback_final_diagnosis(gh: GroupHypothesis | None, coinvolti: list[str]) -> FinalDiagnosis:
+    """Diagnosi finale quando la sintesi del primario non e' disponibile:
+    l'ipotesi di gruppo del tavolo, dichiarata come tale."""
+    if gh is None:
+        return FinalDiagnosis(
+            diagnosis="Diagnosi non determinata per un errore tecnico.",
+            urgency_level=FALLBACK_URGENCY,
+            specialists_involved=coinvolti,
+            operational_guidance="Valutazione medica diretta necessaria.",
+            recommendations=(f"Ne' il tavolo degli specialisti ne' il primario hanno prodotto una valutazione: "
+                             f"codice {FALLBACK_URGENCY} assegnato in via cautelativa."),
+        )
+    confermata = ", ".join(SPECIALIST_DISPLAY_NAMES.get(r, r) for r in gh.confirmed_by) or "nessuno"
+    esami = ", ".join(gh.recommended_exams)
+    return FinalDiagnosis(
+        diagnosis=gh.diagnosis,
+        urgency_level=gh.urgency_level,
+        specialists_involved=coinvolti,
+        operational_guidance=f"Esami consigliati dal tavolo: {esami}." if esami else "Valutazione medica diretta.",
+        recommendations=(f"Sintesi del primario non disponibile per un errore tecnico: si riporta l'ipotesi "
+                         f"condivisa dal tavolo degli specialisti (confermata da: {confermata})."
+                         + (f" {gh.details}" if gh.details else "")),
+    )
+
+
 # Nodo del primario
 async def primary_node(state: MedicalState):
     """Legge la scheda del paziente e l'ipotesi di gruppo a cui il tavolo degli
@@ -882,11 +948,16 @@ async def primary_node(state: MedicalState):
     urgency_floor = gh.urgency_level if gh is not None else None
     if urgency_floor:
         piu_alti = URGENCY_LEVELS[:URGENCY_LEVELS.index(urgency_floor)]
+        # Di norma si CONFERMA: alzarlo e' un'eccezione da motivare, non un
+        # passaggio di routine (indicazione esplicita dell'utente: il primario
+        # segue il codice del tavolo e lo alza solo se davvero sicuro).
         urgency_rule = (
-            f"il tavolo ha deciso il codice {urgency_floor}. Puoi solo confermarlo"
-            + (f" oppure ALZARLO ({' / '.join(reversed(piu_alti))})" if piu_alti else "")
-            + ", MAI abbassarlo. Se lo alzi, spiega in \"recommendations\" quale elemento della "
-            "discussione o del quadro clinico lo giustifica."
+            f"il tavolo ha deciso il codice {urgency_floor}. Di norma CONFERMALO: e' la decisione degli "
+            "specialisti."
+            + (f" Alzalo ({' / '.join(reversed(piu_alti))}) SOLO se un dato preciso dei DATI DEL "
+               "PAZIENTE o della discussione lo richiede chiaramente, e spiega quale in \"recommendations\" - "
+               "non alzarlo per semplice prudenza." if piu_alti else "")
+            + " MAI abbassarlo."
         )
     else:
         urgency_rule = "il tavolo non e' arrivato a un'ipotesi condivisa: decidi tu il codice, motivandolo."
@@ -901,11 +972,21 @@ async def primary_node(state: MedicalState):
 
     async with cl.Step(name="Sintesi finale", type="tool", default_open=False, show_input="text") as step:
         step.input = hypothesis_text
-        # asyncio.to_thread: vedi commento su supervisor_node piu' sopra.
-        content = await asyncio.to_thread(stream_response, prompt)
+        try:
+            # asyncio.to_thread: vedi commento su supervisor_node piu' sopra.
+            content = await asyncio.to_thread(stream_response, prompt)
+        except Exception as e:
+            # Chiamata fallita anche dopo i nuovi tentativi (quota finita,
+            # servizio sovraccarico, rete): prima il nodo andava in errore e la
+            # diagnosi finale non arrivava mai, buttando il lavoro del tavolo
+            # (osservato in prova reale con Gemini). Si ripiega sotto.
+            print(f"⚠️ PRIMARIO: chiamata al modello fallita ({e})")
+            content = ""
         step.output = content
 
     try:
+        if not content:
+            raise ValueError("nessuna risposta dal modello")
         report_data = extract_json(content)
         final = FinalDiagnosis(
             diagnosis=report_data.get("diagnosis", "Diagnosi non determinata"),
@@ -917,17 +998,12 @@ async def primary_node(state: MedicalState):
             recommendations=report_data.get("recommendations", ""),
         )
     except Exception as e:
-        # Stessa rete di sicurezza degli altri nodi: JSON malformato o fuori
-        # schema non deve crashare il grafo - ripieghiamo su una diagnosi
-        # segnaposto, ma con il codice deciso dal tavolo: prima era BIANCO, il
-        # codice piu' basso, che per un errore tecnico e' la scelta peggiore.
-        print(f"⚠️ PRIMARIO: risposta non valida dall'LLM, fallback ({e})")
-        final = FinalDiagnosis(
-            diagnosis="Diagnosi non determinata per un errore tecnico.",
-            urgency_level=urgency_floor or "BIANCO",
-            specialists_involved=coinvolti,
-            recommendations="Si consiglia una valutazione medica diretta.",
-        )
+        # Nessuna risposta o risposta non valida: la diagnosi finale diventa
+        # l'ipotesi di gruppo, dichiarata come tale - e' gia' il risultato del
+        # tavolo, buttarlo per un errore tecnico non ha senso. Prima era
+        # "Diagnosi non determinata" con il solo codice del tavolo.
+        print(f"⚠️ PRIMARIO: sintesi non disponibile, si riporta l'ipotesi di gruppo ({e})")
+        final = _fallback_final_diagnosis(gh, coinvolti)
 
     # Regola del minimo, applicata meccanicamente (vedi commento su urgency_floor).
     nota_urgenza = ""
