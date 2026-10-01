@@ -58,7 +58,7 @@ def _write_env(values: dict[str, str]) -> None:
 
 
 # Settings fields that hold a provider's API key (asked for only when needed).
-_KEY_FIELDS = {"groq_api_key", "gemini_api_key", "gemini_fra_key"}
+_KEY_FIELDS = {"groq_api_key", "groq_api_key_2", "gemini_api_key", "gemini_fra_key"}
 
 
 def _needed_key_fields() -> set[str]:
