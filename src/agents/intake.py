@@ -22,6 +22,25 @@ def _mentions(text: str, keywords: list[str]) -> bool:
     return any(kw in lowered for kw in keywords)
 
 
+def _as_list(value) -> list:
+    """Una lista dal modello, anche se l'ha scritta come testo singolo
+    ("penicillina" invece di ["penicillina"]) - senza, un testo veniva letto
+    lettera per lettera."""
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str) and value.strip():
+        return [value]
+    return []
+
+
+def _is_yes(value) -> bool:
+    """Il campo "conferma" del modello: true, anche se scritto come testo
+    ("true", "si'") invece che come valore booleano."""
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"true", "si", "sì", "si'", "yes"}
+
+
 def _format_card(card: PatientCard, allergies_addressed: bool, previous_conditions_addressed: bool) -> str:
     """Scheda anagrafica compatta da mostrare all'operatore a ogni turno di
     intake_node: nella prima riga solo i dati gia' presenti (quelli mancanti li
@@ -54,6 +73,25 @@ def _format_card(card: PatientCard, allergies_addressed: bool, previous_conditio
             f"**Patologie pregresse** {_list(card.previous_conditions, previous_conditions_addressed)}"
         )
     return "\n".join(lines)
+
+
+def _format_symptoms(card: PatientCard) -> str:
+    """Sintomi da mostrare all'operatore a ogni turno di reviewer_node: uno per
+    blocco, "Sintomo N" e sotto descrizione - intensita' - durata (e
+    caratteristiche e circostanze, facoltative, solo se indicate)."""
+    blocks = []
+    for i, s in enumerate(card.symptom.symptoms, start=1):
+        parts = [
+            s.description.strip() or "—",
+            f"**Intensità** {s.intensity.strip() or 'da indicare'}",
+            f"**Durata** {s.duration.strip() or 'da indicare'}",
+        ]
+        if s.characteristics.strip():
+            parts.append(f"**Caratteristiche** {s.characteristics.strip()}")
+        if s.trigger.strip():
+            parts.append(f"**Circostanze** {s.trigger.strip()}")
+        blocks.append(f"**Sintomo {i}**\n" + " - ".join(parts))
+    return "\n".join(blocks)
 
 
 _SEX_VALUES = {
@@ -223,13 +261,25 @@ async def intake_node(state: MedicalState):
         step.output = content
 
     # 3. Parsing + merge
+    # Campi che il modello puo' aggiornare qui: SOLO l'anagrafica. Il codice
+    # fiscale (validato da read_db) e i sintomi (del revisore) restano fuori -
+    # prima qualunque chiave restituita finiva nella scheda (verificato con una
+    # prova: un codice fiscale scritto dal modello sostituiva quello vero).
+    EDITABLE_FIELDS = ("first_name", "last_name", "age", "sex", "allergies", "previous_conditions")
+
     try:
         data = extract_json(content)
-        extracted: dict = data.get("updated_card", {})
+        extracted = data.get("updated_card")
+        # JSON valido ma con "updated_card" nullo o scritto come testo: come
+        # una risposta illeggibile (nessun aggiornamento), invece di mandare
+        # in errore il nodo (verificato con una prova).
+        if not isinstance(extracted, dict):
+            extracted = {}
+        extracted = {k: v for k, v in extracted.items() if k in EDITABLE_FIELDS}
         if "allergies" in extracted:
-            extracted["allergies"] = _sanitize_string_list(extracted["allergies"])
+            extracted["allergies"] = _sanitize_string_list(_as_list(extracted["allergies"]))
         if "previous_conditions" in extracted:
-            extracted["previous_conditions"] = _sanitize_string_list(extracted["previous_conditions"])
+            extracted["previous_conditions"] = _sanitize_string_list(_as_list(extracted["previous_conditions"]))
         llm_reply: str = data.get("message_to_user", "")
         # L'LLM a volte "dimentica" lo stato gia' true quando il messaggio corrente
         # non tocca l'argomento (osservato in test reale) - una volta true, Python
@@ -238,10 +288,10 @@ async def intake_node(state: MedicalState):
         allergies_addressed = state.allergies_addressed or bool(data.get("allergies_addressed", False)) or allergies_mentioned
         previous_conditions_addressed = state.previous_conditions_addressed or bool(data.get("previous_conditions_addressed", False)) or previous_conditions_mentioned
         # "conferma" conta solo se era davvero stata chiesta (vedi sopra).
-        confirmed_by_llm = awaiting_confirmation and data.get("conferma") is True
+        confirmed_by_llm = awaiting_confirmation and _is_yes(data.get("conferma"))
         to_remove = {
-            "allergies": _sanitize_string_list(data.get("allergies_to_remove") or []),
-            "previous_conditions": _sanitize_string_list(data.get("previous_conditions_to_remove") or []),
+            "allergies": _sanitize_string_list(_as_list(data.get("allergies_to_remove"))),
+            "previous_conditions": _sanitize_string_list(_as_list(data.get("previous_conditions_to_remove"))),
         }
     except json.JSONDecodeError:
         extracted = {}
@@ -259,7 +309,16 @@ async def intake_node(state: MedicalState):
         new_items = extracted.get(list_field)
         if isinstance(new_items, list) and new_items:
             existing_items = getattr(current_card, list_field)
-            extracted[list_field] = existing_items + [x for x in new_items if x not in existing_items]
+            # Senza maiuscole/spazi ai lati: "Penicillina" e "penicillina" sono
+            # la stessa voce, non due.
+            seen = {str(x).strip().lower() for x in existing_items}
+            added = []
+            for x in new_items:
+                key = str(x).strip().lower()
+                if key not in seen:
+                    seen.add(key)
+                    added.append(x)
+            extracted[list_field] = existing_items + added
 
     merged_dict = _merge(current_card.model_dump(), extracted)
 
@@ -328,7 +387,9 @@ async def reviewer_node(state: MedicalState):
     lo garantiamo anche lato codice ignorando qualunque altra chiave restituita.
     """
 
-    VALID_INTENSITY_VALUES = {"lieve", "moderata", "forte", "insopportabile"}
+    # Lista (non insieme): l'ordine serve nel messaggio all'operatore, e con un
+    # insieme cambiava a ogni avvio.
+    VALID_INTENSITY_VALUES = ["lieve", "moderata", "forte", "insopportabile"]
 
     # Rete di sicurezza indipendente dal prompt: osservato in test reale che con
     # un messaggio breve tipo "Ho mal di testa" (senza intensita'/durata) l'LLM
@@ -338,7 +399,17 @@ async def reviewer_node(state: MedicalState):
     # nessuna parola plausibilmente legata a intensita'/durata, scartiamo il
     # valore estratto invece di fidarcene.
     INTENSITY_KEYWORDS = ["liev", "legger", "modest", "moderat", "fort", "intens", "insopportabil", "grave", "acut"]
-    DURATION_KEYWORDS = ["giorn", "settiman", "minut", "mese", "mesi", " ore", " ora", "stanotte", "ieri", "oggi", "adesso", "da quando"]
+    # Espressione regolare a parole intere (non sottostringhe): prima era una
+    # lista di pezzi di parola senza "stamattina", "stasera", "anno" e con
+    # " ora" preceduto da uno spazio, quindi "da stamattina" o "da un'ora"
+    # (proprio gli esempi B ed F di REVIEWER_PROMPT) venivano scartati e il
+    # sistema richiedeva una durata gia' data (verificato con una prova).
+    DURATION_PATTERN = re.compile(
+        r"\b(giorn\w*|settiman\w*|minut\w*|mes[ei]|or[ae]|ann[oi]|\d+\s*h|"
+        r"stanotte|stamattina|stamani|stasera|stamane|ieri|oggi|adesso|poco|"
+        r"mattina|pomeriggio|sera|notte|da quando)\b",
+        re.IGNORECASE,
+    )
 
     def _is_complete(s: dict) -> bool:
         return s["intensity"].strip().lower() in VALID_INTENSITY_VALUES and bool(s["duration"].strip())
@@ -359,28 +430,59 @@ async def reviewer_node(state: MedicalState):
             return True  # descrizione troppo corta per un controllo affidabile
         return any(w in text_lower for w in words)
 
+    # Solo i sintomi: nome ed eta' li garantisce gia' intake_node (confermati).
     def _missing_fields(card: PatientCard) -> list[str]:
         missing = []
-        if not card.first_name.strip():
-            missing.append("nome")
-        if not card.age.strip():
-            missing.append("età")
         if not card.symptom.symptoms:
             missing.append("almeno un sintomo")
         for s in card.symptom.symptoms:
             if s.intensity.strip().lower() not in VALID_INTENSITY_VALUES:
-                missing.append(f"intensità di '{s.description}' (valori: {', '.join(VALID_INTENSITY_VALUES)})")
+                missing.append(f'intensità di "{s.description}"')
             if not s.duration.strip():
-                missing.append(f"durata di '{s.description}'")
+                missing.append(f'durata di "{s.description}"')
         return missing
+
+    CONFIRM_REQUEST = "Confermi i dati? Altrimenti indicare cosa correggere."
+
+    def _reply_for(card: PatientCard) -> str:
+        """Sintomi aggiornati + cosa manca, oppure la richiesta di conferma."""
+        missing = _missing_fields(card)
+        if not card.symptom.symptoms:
+            return "Descrivere i sintomi: natura del disturbo, intensità e durata."
+        sintomi = _format_symptoms(card)
+        if missing:
+            reply = f"{sintomi}\n\nMancano: {', '.join(missing)}."
+            if any(m.startswith("intensità") for m in missing):
+                reply += f"\nIntensità: {', '.join(VALID_INTENSITY_VALUES[:-1])} o {VALID_INTENSITY_VALUES[-1]}."
+            return reply
+        return f"{sintomi}\n\n{CONFIRM_REQUEST}"
 
     # 1. Stato attuale
     current_card: PatientCard = state.patient_card
+
+    # Primo passaggio, appena confermata l'anagrafica (senza pausa, vedi
+    # graph.py): l'operatore non ha ancora scritto nulla, quindi nessuna
+    # chiamata al modello - si chiedono i sintomi.
+    if not state.reviewer_card_shown:
+        reply = _reply_for(current_card)
+        print("🧐 REVIEWER → richiesta sintomi (primo passaggio, nessuna chiamata al modello)")
+        await cl.Message(content=reply, author=Authors.REVIEWER).send()
+        return {
+            "triage_history":      [AIMessage(content=reply)],
+            "general_history":     [AIMessage(content=reply)],
+            "reviewer_card_shown": True,
+            "next_step":           "reviewer",
+        }
+
+    # Sintomi gia' completi al turno prima: l'operatore ha davanti la richiesta
+    # di conferma, e questo messaggio e' la sua risposta.
+    awaiting_confirmation = not _missing_fields(current_card)
     user_msg = state.triage_history[-1].content if state.triage_history else ""
 
     # 2. Chiamata LLM (Step collassato "sto pensando...", stesso pattern di read_db/intake)
     prompt = REVIEWER_PROMPT.format(
         patient_card=current_card.model_dump_json(indent=2),
+        awaiting_confirmation=awaiting_confirmation,
         user_input=user_msg
     )
     async with cl.Step(name="Analisi sintomi", type="tool", default_open=False, show_input="text") as step:
@@ -393,13 +495,22 @@ async def reviewer_node(state: MedicalState):
     # 3. Parsing (solo il sintomo: l'anagrafica resta di competenza di intake_node)
     try:
         data = extract_json(content)
-        extracted_list = data.get("updated_card", {}).get("symptom", {}).get("symptoms", [])
+        # Ogni livello puo' arrivare nullo o come testo invece che come oggetto:
+        # nessun aggiornamento, invece di mandare in errore il nodo (verificato).
+        updated_card = data.get("updated_card")
+        symptom = updated_card.get("symptom") if isinstance(updated_card, dict) else None
+        extracted_list = symptom.get("symptoms") if isinstance(symptom, dict) else None
         if not isinstance(extracted_list, list):
             extracted_list = []
         llm_reply: str = data.get("message_to_user", "")
+        # "conferma" conta solo se era davvero stata chiesta (vedi sopra).
+        confirmed_by_llm = awaiting_confirmation and _is_yes(data.get("conferma"))
+        to_remove = _as_list(data.get("symptoms_to_remove"))
     except json.JSONDecodeError:
         extracted_list = []
         llm_reply = ""
+        confirmed_by_llm = False
+        to_remove = []
 
     # 4. Merge sintomo-per-sintomo: un elemento estratto aggiorna un sintomo
     # esistente se la sua "description" coincide (case-insensitive) con uno già
@@ -427,6 +538,8 @@ async def reviewer_node(state: MedicalState):
         # regola 9) senza un doppio controllo lato Python, come gia' avviene per
         # 'description'.
         trigger = str(item.get("trigger", "")).strip()
+        # Stessa logica di 'trigger' (testo libero, regola anti-invenzione nel prompt).
+        characteristics = str(item.get("characteristics", "")).strip()
 
         # Stessa normalizzazione/rete di sicurezza di prima, applicata per sintomo.
         if intensity.lower() == "moderato":
@@ -434,7 +547,7 @@ async def reviewer_node(state: MedicalState):
         if intensity and not _mentions(user_msg, INTENSITY_KEYWORDS):
             print(f"⚠️ REVIEWER: 'intensity' scartata per '{desc}', nessun riscontro nel messaggio: {intensity!r}")
             intensity = ""
-        if duration and not _mentions(user_msg, DURATION_KEYWORDS):
+        if duration and not DURATION_PATTERN.search(user_msg):
             print(f"⚠️ REVIEWER: 'duration' scartata per '{desc}', nessun riscontro nel messaggio: {duration!r}")
             duration = ""
 
@@ -444,8 +557,12 @@ async def reviewer_node(state: MedicalState):
             # ancora incompleto in scheda (nessun'altra ambiguita' possibile) -
             # altrimenti pretendiamo che il messaggio nomini davvero questo
             # sintomo, per non rischiare di aggiornare quello sbagliato.
+            # Vale anche quando in scheda c'e' UN SOLO sintomo: durante la
+            # conferma i sintomi sono tutti completi, e prima una correzione
+            # come "no, e' moderata" veniva scartata in silenzio (verificato).
             is_only_incomplete = incomplete_before == [desc.lower()]
-            if not is_only_incomplete and not _symptom_mentioned(desc, user_msg_lower):
+            is_only_symptom = len(current_card.symptom.symptoms) == 1
+            if not (is_only_incomplete or is_only_symptom) and not _symptom_mentioned(desc, user_msg_lower):
                 print(f"⚠️ REVIEWER: aggiornamento per '{desc}' scartato, il messaggio non lo nomina e ci sono altri sintomi in scheda")
                 continue
             if intensity:
@@ -454,8 +571,24 @@ async def reviewer_node(state: MedicalState):
                 existing["duration"] = duration
             if trigger:
                 existing["trigger"] = trigger
+            if characteristics:
+                existing["characteristics"] = characteristics
         else:
-            symptoms.append({"description": desc, "intensity": intensity, "duration": duration, "trigger": trigger})
+            symptoms.append({"description": desc, "intensity": intensity, "duration": duration,
+                             "trigger": trigger, "characteristics": characteristics})
+
+    # Rimozioni esplicite (correzione dell'operatore, es. "la nausea no, era un
+    # errore"): senza, un sintomo sbagliato non si poteva piu' togliere.
+    # Il modello a volte scrive la voce come oggetto ({"description": "nausea"})
+    # invece che come testo (osservato in prova reale): si prende il testo.
+    remove = set()
+    for x in to_remove:
+        if isinstance(x, dict):
+            x = x.get("description") or next(iter(x.values()), "")
+        if str(x).strip():
+            remove.add(str(x).strip().lower())
+    if remove:
+        symptoms = [s for s in symptoms if s["description"].strip().lower() not in remove]
 
     merged_dict = current_card.model_dump()
     merged_dict["symptom"]["symptoms"] = symptoms
@@ -469,21 +602,22 @@ async def reviewer_node(state: MedicalState):
 
     # 5. Validazione Python
     missing = _missing_fields(merged_card)
-    triage_complete = len(missing) == 0
+    # Come in intake_node: una conferma vale solo se in questo stesso messaggio
+    # non e' cambiato nulla ("si' ma la febbre e' da ieri" e' una correzione).
+    symptoms_changed = merged_card.symptom.symptoms != current_card.symptom.symptoms
+    triage_complete = not missing and confirmed_by_llm and not symptoms_changed
 
     if triage_complete:
-        # Mostriamo sempre sia la conferma di quanto capito sia un segnale
-        # esplicito di completamento - "llm_reply or ..." da solo non bastava,
-        # perche' llm_reply e' quasi sempre presente e il messaggio esplicito
-        # di completamento non si vedeva mai.
-        conferma = llm_reply or "Informazioni acquisite."
-        reply = f"{conferma}\n\nRaccolta dei dati clinici completata."
+        reply = "Dati clinici confermati."
     else:
-        elenco = "\n".join(f"  • {campo}" for campo in missing)
-        reply = f"Per completare la scheda clinica sono necessarie le seguenti informazioni:\n{elenco}"
+        # I sintomi stampati mostrano gia' cosa e' stato capito: la frase del
+        # modello ("Ho capito che...") resta solo nel log del terminale.
+        reply = _reply_for(merged_card)
+        if llm_reply:
+            print(f"   REVIEWER (modello): {llm_reply}")
 
     # 6. Log + output
-    print(f"🧐 REVIEWER → completo={triage_complete} | mancanti={missing}")
+    print(f"🧐 REVIEWER → confermato={triage_complete} | mancanti={missing}")
     print(f"   Card: {merged_card.model_dump_json()}")
     await cl.Message(content=reply, author=Authors.REVIEWER).send()
 
@@ -492,6 +626,7 @@ async def reviewer_node(state: MedicalState):
         "triage_history":  [AIMessage(content=reply)],
         "general_history": [AIMessage(content=reply)],
         "triage_complete": triage_complete,
+        "symptoms_confirmed": triage_complete,
         "next_step": "photography" if triage_complete else "reviewer",
     }
 

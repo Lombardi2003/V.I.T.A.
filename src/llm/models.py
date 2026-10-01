@@ -56,4 +56,4 @@ class Models:
         # reale) - Google indica esplicitamente gemini-3.6-flash come sostituto
         # nello stesso messaggio di errore. E' un modello "thinking" e
         # nativamente multimodale: va bene anche per la foto.
-        TEXT_FLASH = "gemini-3.6-flash"
+        TEXT_FLASH = "gemini-3.8-flash"

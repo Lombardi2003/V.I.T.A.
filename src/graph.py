@@ -54,7 +54,13 @@ def generate_graph():
         lambda state: "intake" if state.next_step == "intake" else "user",
         {"intake": "intake", "user": "user"},
     )
-    workflow.add_edge("intake", "user")
+    # Anagrafica confermata: subito il revisore, senza pausa, che chiede i
+    # sintomi. Altrimenti pausa e intake riprende al prossimo messaggio.
+    workflow.add_conditional_edges(
+        "intake",
+        lambda state: "reviewer" if state.next_step == "reviewer" else "user",
+        {"reviewer": "reviewer", "user": "user"},
+    )
     workflow.add_edge("reviewer", "user")
     workflow.add_edge("photography", "user")
 

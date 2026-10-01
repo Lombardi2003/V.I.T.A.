@@ -1,4 +1,5 @@
 import chainlit as cl
+import openai
 import traceback
 import uuid
 from chainlit.input_widget import Select
@@ -91,6 +92,18 @@ async def main(message: cl.Message):
     except Exception as e:
         print(f"❌ ERRORE durante l'elaborazione: {e}")
         traceback.print_exc()
-        await cl.Message(
-            content=f"❌ Errore durante l'elaborazione: {str(e)}"
-        ).send()
+        await cl.Message(content=_operator_error_message(e)).send()
+
+
+def _operator_error_message(error: Exception) -> str:
+    """Messaggio d'errore per l'operatore: breve e comprensibile. Il dettaglio
+    tecnico (codici dell'API, identificativo dell'account del provider) resta
+    solo nel terminale - prima finiva in chat cosi' com'era."""
+    if isinstance(error, openai.RateLimitError):
+        return ("❌ Il servizio del modello ha raggiunto il limite di utilizzo. "
+                "Riprovare tra qualche minuto inviando di nuovo l'ultimo messaggio.")
+    if isinstance(error, (openai.APIConnectionError, openai.InternalServerError)):
+        return ("❌ Il servizio del modello non è raggiungibile al momento. "
+                "Riprovare inviando di nuovo l'ultimo messaggio.")
+    return ("❌ Si è verificato un errore durante l'elaborazione. "
+            "Riprovare inviando di nuovo l'ultimo messaggio.")

@@ -101,6 +101,8 @@ REVIEWER_PROMPT = """Sei un estrattore di dati medici. Rispondi SOLO con JSON va
 SCHEDA PAZIENTE ATTUALE:
 {patient_card}
 
+SINTOMI IN ATTESA DI CONFERMA DELL'OPERATORE: {awaiting_confirmation}
+
 ULTIMO MESSAGGIO UTENTE:
 "{user_input}"
 
@@ -115,37 +117,45 @@ ISTRUZIONI:
 6. 'description' per un sintomo NUOVO deve essere clinicamente specifica (es. "dolore toracico acuto", NON generica come "mi fa male" o il solo "dolore"). Lascia fuori dalla lista un sintomo se il messaggio usa solo un termine generico ("dolore", "male", "fastidio" senza dire dove/di cosa) e la SCHEDA PAZIENTE ATTUALE ha già un sintomo più specifico a cui potrebbe riferirsi - in quel caso tratta il messaggio come punto 3/4 (aggiornamento), non come sintomo nuovo generico.
 6bis. ATTENZIONE alle frasi che rinominano/rienfatizzano lo STESSO sintomo appena nominato nella STESSA frase con un termine generico (es. "un forte mal di testa, dolore molto intenso" - "dolore molto intenso" qui NON e' un secondo sintomo, e' solo l'intensita' di "mal di testa" ripetuta con altre parole): NON creare un elemento separato per questa ripetizione, usala solo per determinare 'intensity' del sintomo specifico a cui si riferisce. Crea un elemento nuovo SOLO se il termine indica davvero una parte del corpo/sistema diverso da quello già nominato nella stessa frase.
 7. 'intensity' deve essere una di: "lieve", "moderata", "forte", "insopportabile". Normalizza espressioni simili al valore più vicino.
-8. 'duration' deve essere specifica: es. "2 giorni", "3 ore". Se l'utente NON ha specificato da quanto tempo ha QUEL sintomo, lascia il campo vuoto ("") - NON scrivere "non specificato" o simili, verrà richiesto esplicitamente in un turno successivo.
+8. 'duration' deve essere specifica: es. "2 giorni", "3 ore". Se l'utente NON ha specificato da quanto tempo ha QUEL sintomo, lascia il campo vuoto ("") - NON scrivere "non specificato" o simili, verrà richiesto esplicitamente in un turno successivo. ATTENZIONE: intensità e durata valgono SOLO per il sintomo a cui il messaggio le riferisce - NON copiarle su un altro sintomo nominato nella stessa frase (es. "mal di gola forte da 3 giorni e tosse" -> la tosse resta con intensità e durata vuote, verranno chieste).
 8bis. 'trigger' cattura CIRCOSTANZE che scatenano/aggravano/alleviano il sintomo - es. "peggiora quando si alza in piedi", "migliora sdraiato", "compare dopo i pasti", "peggiora con la luce". E' un campo DIVERSO da 'description' (quello e' COSA e' il sintomo, questo e' QUANDO/COME cambia) - NON fonderli insieme. Facoltativo: se l'utente non menziona nessuna circostanza del genere, lascia "" - non indovinare, non dedurne una da 'description' o dal quadro generale.
-9. REGOLA ANTI-INVENZIONE per 'intensity', 'duration' e 'trigger' (NON per 'description', che segue solo le regole 6/3-4 sopra): valorizzali SOLO con informazioni presenti nel messaggio dell'utente qui sopra. Se non sono scritte in quel messaggio, il campo resta vuoto (""), punto - non indovinare, non dedurre, non riusare un valore da un turno precedente o da un esempio.
+8ter. 'characteristics' cattura COME e' fatto il sintomo: sede precisa, qualità, irradiazione - es. "irradiato al braccio sinistro", "a fitte", "bruciante", "ginocchio gonfio e caldo", "con puntini bianchi in gola". E' un campo DIVERSO da 'description' (COSA e') e da 'trigger' (QUANDO cambia): tienilo separato, NON perderlo e NON fonderlo nella descrizione. Facoltativo: se il messaggio non descrive caratteristiche, lascia "". ATTENZIONE: un ALTRO disturbo nominato nello stesso messaggio (es. sudorazione, nausea, affanno, febbre) e' un sintomo a se', con il suo elemento nella lista "symptoms" (regola 1) - NON metterlo nelle caratteristiche di un altro sintomo.
+9. REGOLA ANTI-INVENZIONE per 'intensity', 'duration', 'trigger' e 'characteristics' (NON per 'description', che segue solo le regole 6/3-4 sopra): valorizzali SOLO con informazioni presenti nel messaggio dell'utente qui sopra. Se non sono scritte in quel messaggio, il campo resta vuoto (""), punto - non indovinare, non dedurre, non riusare un valore da un turno precedente o da un esempio.
 10. In 'message_to_user' metti una conferma neutra di cosa hai capito, senza fare domande.
+11. RIMOZIONI: se il messaggio dice che un sintomo GIA' presente nella scheda e' sbagliato o non c'e' (es. "la nausea no, era un errore"), NON metterlo in "symptoms": scrivi la sua "description", uguale a come compare nella scheda, in 'symptoms_to_remove'. Altrimenti lascia la lista vuota.
+12. CONFERMA: se "SINTOMI IN ATTESA DI CONFERMA DELL'OPERATORE" e' true e il messaggio conferma che i sintomi sono corretti SENZA chiedere modifiche (es. "si'", "confermo", "tutto giusto", "ok"), metti "conferma": true e lascia "symptoms" vuota. Se il messaggio chiede anche una sola modifica, o se i sintomi non sono in attesa di conferma, metti "conferma": false.
 
 GLI ESEMPI SOTTO SONO SOLO UNO SCHEMA DI FORMATO. Il messaggio vero dell'utente parlerà quasi certamente di sintomi/tempi diversi da quelli qui sotto - va benissimo, anzi atteso: estrai SEMPRE le parole vere del messaggio reale.
 
 ESEMPIO A (schema) — un solo sintomo, nominato con intensità+durata insieme:
-messaggio: "Ho un forte mal di testa da 3 ore" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "3 ore", "trigger": ""}}]
+messaggio: "Ho un forte mal di testa da 3 ore" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "3 ore", "trigger": "", "characteristics": ""}}]
 
 ESEMPIO B (schema) — due sintomi diversi nello stesso messaggio, con durate diverse:
-messaggio: "Ho un forte mal di testa da 2 giorni e da stamattina vedo anche sfocato" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "2 giorni", "trigger": ""}}, {{"description": "vista sfocata", "intensity": "", "duration": "da stamattina", "trigger": ""}}]
+messaggio: "Ho un forte mal di testa da 2 giorni e da stamattina vedo anche sfocato" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "2 giorni", "trigger": "", "characteristics": ""}}, {{"description": "vista sfocata", "intensity": "", "duration": "da stamattina", "trigger": "", "characteristics": ""}}]
 
 ESEMPIO C (schema) — la scheda ha già "mal di testa" (senza intensità/durata) e "vista sfocata" (completo); il messaggio aggiorna solo il primo:
-messaggio: "è un dolore forte, ce l'ho da 2 giorni" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "2 giorni", "trigger": ""}}]
+messaggio: "è un dolore forte, ce l'ho da 2 giorni" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "2 giorni", "trigger": "", "characteristics": ""}}]
 
 ESEMPIO D (schema) — "dolore molto intenso" NON e' un terzo sintomo, e' la stessa intensità di "mal di testa" ripetuta con altre parole (vedi regola 6bis) - SOLO due sintomi nel risultato, non tre:
-messaggio: "Ho un forte mal di testa da 2 giorni, dolore molto intenso, e da stamattina vedo anche sfocato" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "2 giorni", "trigger": ""}}, {{"description": "vista sfocata", "intensity": "", "duration": "da stamattina", "trigger": ""}}]
+messaggio: "Ho un forte mal di testa da 2 giorni, dolore molto intenso, e da stamattina vedo anche sfocato" -> "symptoms": [{{"description": "mal di testa", "intensity": "forte", "duration": "2 giorni", "trigger": "", "characteristics": ""}}, {{"description": "vista sfocata", "intensity": "", "duration": "da stamattina", "trigger": "", "characteristics": ""}}]
 
-ESEMPIO E (schema) — il messaggio menziona una circostanza che scatena/aggrava il sintomo (regola 8bis):
-messaggio: "Ho vertigini forti da un'ora, soprattutto quando mi alzo in piedi" -> "symptoms": [{{"description": "vertigini", "intensity": "forte", "duration": "un'ora", "trigger": "peggiora quando si alza in piedi"}}]
+ESEMPIO E (schema) — il messaggio descrive COME e' fatto il sintomo (regola 8ter), la caratteristica NON va persa:
+messaggio: "Dolore al ginocchio sinistro moderato da 2 giorni, e' gonfio e caldo" -> "symptoms": [{{"description": "dolore al ginocchio sinistro", "intensity": "moderata", "duration": "2 giorni", "trigger": "", "characteristics": "ginocchio gonfio e caldo"}}]
+
+ESEMPIO F (schema) — il messaggio menziona una circostanza che scatena/aggrava il sintomo (regola 8bis):
+messaggio: "Ho vertigini forti da un'ora, soprattutto quando mi alzo in piedi" -> "symptoms": [{{"description": "vertigini", "intensity": "forte", "duration": "un'ora", "trigger": "peggiora quando si alza in piedi", "characteristics": ""}}]
 
 RISPONDI ESCLUSIVAMENTE CON QUESTO JSON:
 {{
     "updated_card": {{
         "symptom": {{
             "symptoms": [
-                {{"description": "", "intensity": "", "duration": "", "trigger": ""}}
+                {{"description": "", "intensity": "", "duration": "", "trigger": "", "characteristics": ""}}
             ]
         }}
     }},
+    "symptoms_to_remove": [],
+    "conferma": false,
     "message_to_user": "Ho capito che..."
 }}
 """

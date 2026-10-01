@@ -29,6 +29,13 @@ class Symptom(BaseModel):
     # test reale: "vertigini quando mi alzo in piedi" arrivava al tavolo come
     # semplice "vertigini", perdendo l'indizio posturale/cardiovascolare).
     trigger: str = ""
+    # Caratteristiche del sintomo: sede precisa, qualita', irradiazione, segni
+    # associati (es. "irradiato al braccio sinistro", "a fitte", "ginocchio
+    # gonfio e caldo") - diverso da 'description' (COSA e') e da 'trigger'
+    # (QUANDO cambia). Prima non c'era dove metterle e sparivano (osservato in
+    # prova reale: "dolore al petto che va verso il braccio sinistro" arrivava
+    # agli specialisti come semplice "dolore toracico").
+    characteristics: str = ""
 
 # Classe BaseModel per il profilo dei sintomi del paziente
 class SymptomProfile(BaseModel):
@@ -206,3 +213,7 @@ class MedicalState(BaseModel):
     # scheda completa e' stata confermata (solo allora si passa ai sintomi).
     intake_card_shown: bool = False
     card_confirmed: bool = False
+    # reviewer_node: stessa cosa per i sintomi (il primo passaggio, appena
+    # confermata l'anagrafica, chiede i sintomi senza chiamare il modello).
+    reviewer_card_shown: bool = False
+    symptoms_confirmed: bool = False
