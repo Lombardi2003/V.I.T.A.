@@ -112,7 +112,7 @@ def extract_json(text: str) -> dict:
     """Oggetto JSON contenuto nella risposta di un modello.
 
     I modelli non restituiscono sempre JSON "puro": alcuni ("thinking", es.
-    qwen/qwen3.6-27b) antepongono un blocco <think>...</think> di
+    qwen/qwen3.8-27b) antepongono un blocco <think>...</think> di
     ragionamento, altri racchiudono il JSON in ```json ... ``` o aggiungono una
     frase prima/dopo (tutti casi osservati in test reale). Prima questa pulizia
     c'era solo per specialisti e foto - supervisore, intake, revisore e primario

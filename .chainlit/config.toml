@@ -64,9 +64,10 @@ reaction_on_message_received = false
     # tipi di file verrebbero ignorati senza avvisare.
     accept = ["image/*"]
     max_files = 1
-    # Da rivedere con il nodo della foto: la foto va al modello in base64
-    # (Groq accetta immagini base64 fino a circa 4 MB).
-    max_size_mb = 500
+    # Le foto oltre il limite del modello di visione (Groq: circa 4 MB in
+    # base64) vengono ridotte in automatico prima dell'invio (vedi
+    # photography_node): qui basta escludere i file enormi.
+    max_size_mb = 20
 
 [features.audio]
     # Abilita le funzionalità audio

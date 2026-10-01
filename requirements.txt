@@ -8,6 +8,9 @@ langgraph==1.2.9
 # importato anche direttamente in src/llm/calls.py per riconoscere gli errori
 # temporanei dell'API (nuovi tentativi).
 openai==2.48.0
+# Riduzione della foto per il modello di visione (photography_node in
+# src/agents/intake.py), solo quando supera il limite del provider.
+pillow==11.1.0
 pydantic==2.11.7
 pydantic-settings==2.10.1
 SQLAlchemy==2.0.43

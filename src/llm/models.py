@@ -23,7 +23,7 @@ class Models:
         # Lo stesso modello di VISION_QWEN, usato per il testo: e' un modello
         # "thinking", antepone un blocco <think>...</think> al JSON (gestito da
         # extract_json in calls.py).
-        TEXT_QWEN_27B = "qwen/qwen3.6-27b"
+        TEXT_QWEN_27B = "qwen/qwen3.8-27b"
         # Sistema "agentic" di Groq (non un modello di testo "nudo"): puo'
         # decidere da solo di usare strumenti esterni (es. ricerca web).
         # PROVATO E SCARTATO come soluzione al limite di token/minuto: i 70K
@@ -36,9 +36,13 @@ class Models:
         # riprovarlo in futuro pensando che risolva il problema.
         TEXT_COMPOUND_MINI = "groq/compound-mini"
         # meta-llama/llama-4-maverick-17b-128e-instruct: non piu' accessibile su
-        # questo account (404 model_not_found, verificato con chiamata reale) -
-        # qwen/qwen3.6-27b e' l'unico modello vision confermato raggiungibile.
-        VISION_QWEN = "qwen/qwen3.6-27b"
+        # questo account (404 model_not_found, verificato con chiamata reale).
+        # Lo stesso e' poi successo a qwen/qwen3.6-27b (2026-10-01: ogni foto
+        # dava 404 e l'analisi non avveniva mai): sostituito da qwen3.8-27b,
+        # l'unico modello vision nell'elenco di Groq per questo account,
+        # provato su foto reali (abrasione riconosciuta, "NON VALUTABILE" su
+        # un'immagine vuota).
+        VISION_QWEN = "qwen/qwen3.8-27b"
 
     class Ollama:
         # In locale, nessun limite al minuto. NB: Ollama usa di default un
@@ -53,7 +57,7 @@ class Models:
         # Google AI Studio (piano gratuito, limite di 20 richieste/GIORNO).
         # gemini-2.5-flash (la prima scelta) e' risultato NON PIU' DISPONIBILE
         # per nuovi utenti (404 model_not_found, verificato con una chiamata
-        # reale) - Google indica esplicitamente gemini-3.6-flash come sostituto
-        # nello stesso messaggio di errore. E' un modello "thinking" e
+        # reale) - Google indicava gemini-3.6-flash come sostituto, poi a sua
+        # volta sostituito da gemini-3.8-flash. E' un modello "thinking" e
         # nativamente multimodale: va bene anche per la foto.
         TEXT_FLASH = "gemini-3.8-flash"

@@ -19,7 +19,7 @@ from .models import Models
 # (models.py), es. Models.Ollama.TEXT_LLAMA3 per lavorare in locale. I modelli
 # davvero in uso vengono stampati all'avvio e mostrati nel pannello dell'app.
 # ============================================================================
-TEXT_MODEL = Models.Groq.TEXT_120B     # tutti i nodi di testo (anagrafica, sintomi, supervisore, specialisti, primario)
+TEXT_MODEL = Models.Groq.TEXT_20B      # tutti i nodi di testo (anagrafica, sintomi, supervisore, specialisti, primario)
 # Quanto "ragiona" in silenzio il modello del testo prima di rispondere
 # ("low"/"medium"/"high"), solo per i modelli di ragionamento che lo
 # supportano (es. openai/gpt-oss-*); None = parametro non inviato (da usare con

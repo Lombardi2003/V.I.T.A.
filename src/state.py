@@ -217,3 +217,6 @@ class MedicalState(BaseModel):
     # confermata l'anagrafica, chiede i sintomi senza chiamare il modello).
     reviewer_card_shown: bool = False
     symptoms_confirmed: bool = False
+    # photography_node: la richiesta della foto e' gia' stata fatta (il primo
+    # passaggio, appena confermati i sintomi, chiede la foto senza aspettare).
+    photo_request_shown: bool = False

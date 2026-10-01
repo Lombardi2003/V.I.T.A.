@@ -61,8 +61,20 @@ def generate_graph():
         lambda state: "reviewer" if state.next_step == "reviewer" else "user",
         {"reviewer": "reviewer", "user": "user"},
     )
-    workflow.add_edge("reviewer", "user")
-    workflow.add_edge("photography", "user")
+    # Sintomi confermati: subito photography, senza pausa, che chiede la foto.
+    workflow.add_conditional_edges(
+        "reviewer",
+        lambda state: "photography" if state.next_step == "photography" else "user",
+        {"photography": "photography", "user": "user"},
+    )
+    # Foto analizzata o rifiutata: subito il supervisore, senza pausa (prima
+    # l'arco era fisso verso "user" e dopo "procedo senza foto" l'app si
+    # fermava di nuovo ad aspettare un messaggio - verificato con una prova).
+    workflow.add_conditional_edges(
+        "photography",
+        lambda state: "supervisor" if state.next_step == "supervisor" else "user",
+        {"supervisor": "supervisor", "user": "user"},
+    )
 
     # user -> routing dinamico tramite next_step.
     # "read_db" permette il ciclo "CF non valido -> richiedilo di nuovo".
