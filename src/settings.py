@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     # (se ne manca una necessaria, l'errore arriva alla creazione del client,
     # vedi _api_key_for in src/llm/factory.py).
     groq_api_key: Optional[str] = None
+    # Seconda chiave Groq, da un altro account (limiti giornalieri separati):
+    # quale delle due usare si sceglie in cima a src/llm/factory.py (GROQ_KEY).
+    groq_api_key_2: Optional[str] = None
     # Chiave per l'API di Gemini (Google AI Studio, piano gratuito).
     gemini_api_key: Optional[str] = None
     # Seconda chiave Gemini, da un account/progetto Google Cloud diverso da

@@ -23,7 +23,12 @@ from .factory import tokens_per_minute_limit
 # conversazione - e negli specialisti il turno veniva solo saltato e ritentato
 # subito dal router, senza pause, cioe' quasi sempre di nuovo oltre il limite.
 MAX_LLM_RETRIES = 2
-MAX_RETRY_WAIT_SECONDS = 30  # oltre, meglio arrendersi che bloccare la chat
+# Oltre, meglio arrendersi che bloccare la chat. 65 s e non meno: il limite di
+# token al MINUTO di Groq si libera sempre entro un minuto, quindi aspettando
+# il turno riesce (con 30 s falliva, e il nuovo tentativo interno del client
+# - ora disattivato, vedi factory.py - lo copriva in silenzio). Il limite
+# GIORNALIERO chiede attese di minuti o ore: si fallisce subito.
+MAX_RETRY_WAIT_SECONDS = 65
 DEFAULT_RETRY_WAIT_SECONDS = 5
 _TRANSIENT_ERRORS = (
     openai.RateLimitError,

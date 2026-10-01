@@ -9,7 +9,7 @@ import chainlit as cl
 
 from src.state import MedicalState, RoundTableEntry, GroupHypothesis, FinalDiagnosis
 from .prompts import SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, ALL_SPECIALISTS
-from .common import extract_json, stream_response
+from .common import extract_json, stream_response, as_list, as_text, is_no, is_yes
 from .authors import Authors
 from src.rag.retriever import build_queries, retrieve
 
@@ -307,6 +307,49 @@ def _format_group_hypothesis(gh: GroupHypothesis | None) -> str:
     )
 
 
+_SPECIALIST_TEXT_FIELDS = (
+    "azione", "diagnosi", "dettagli", "motivazione", "message", "valutazione_indipendente",
+    "ipotesi_alternativa_scartata", "motivo_scarto", "domanda_per_il_collega", "fonti_consultate", "urgenza",
+)
+
+
+def _one_name(value) -> str:
+    """Un solo nome (destinatario/collega), anche se scritto come lista
+    (["cardiologist"]) o come oggetto ({"name": "pulmonologist"})."""
+    if isinstance(value, list):
+        value = value[0] if value else ""
+    if isinstance(value, dict):
+        value = value.get("name") or value.get("role") or value.get("specialist") or next(iter(value.values()), "")
+    return as_text(value)
+
+
+def _normalize_specialist_answer(data: dict) -> dict:
+    """Risposta dello specialista riportata alla forma che il resto del nodo
+    si aspetta. Prima, con risposte finte in forme diverse, il nodo non andava
+    in errore ma in 6 casi su 11 capiva male in silenzio: "coincide_con_gruppo":
+    false (vero/falso invece di "no") faceva saltare la protezione contro
+    l'ancoraggio, "consulto_utile": true o "sì" (accentato) il consulto, un
+    destinatario scritto come oggetto finiva "a tutti", testi scritti come
+    liste arrivavano in chat come "['a', 'b']"."""
+    data = dict(data)
+    for field in _SPECIALIST_TEXT_FIELDS:
+        if field in data:
+            data[field] = as_text(data[field])
+    for field in ("consulto_utile", "coincide_con_gruppo"):
+        if field in data:
+            value = data[field]
+            data[field] = "si" if is_yes(value) else "no" if is_no(value) else as_text(value).lower()
+    for field in ("to", "collega_da_consultare"):
+        if field in data:
+            data[field] = _one_name(data[field]) or None
+    if "esami_consigliati" in data:
+        exams = data["esami_consigliati"]
+        if isinstance(exams, dict):
+            exams = list(exams.values())
+        data["esami_consigliati"] = [t for t in (as_text(e) for e in as_list(exams)) if t]
+    return data
+
+
 async def specialist_node(state: MedicalState, role: str):
     """Un turno di uno specialista al tavolo: legge cartella clinica e
     l'ipotesi di gruppo condivisa (con l'intera discussione come contesto),
@@ -443,7 +486,7 @@ async def specialist_node(state: MedicalState, role: str):
     try:
         # extract_json gestisce anche i modelli che antepongono al JSON un
         # blocco <think>...</think> o testo libero (vedi src/llm/calls.py).
-        data = extract_json(content)
+        data = _normalize_specialist_answer(extract_json(content))
         azione = str(data.get("azione", "")).lower().strip()
     except json.JSONDecodeError:
         # Un JSON malformato/troncato (osservato in test reale: la risposta

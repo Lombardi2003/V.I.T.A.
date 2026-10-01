@@ -19,7 +19,7 @@ from .models import Models
 # (models.py), es. Models.Ollama.TEXT_LLAMA3 per lavorare in locale. I modelli
 # davvero in uso vengono stampati all'avvio e mostrati nel pannello dell'app.
 # ============================================================================
-TEXT_MODEL = Models.Groq.TEXT_20B      # tutti i nodi di testo (anagrafica, sintomi, supervisore, specialisti, primario)
+TEXT_MODEL = Models.Groq.TEXT_120B     # tutti i nodi di testo (anagrafica, sintomi, supervisore, specialisti, primario)
 # Quanto "ragiona" in silenzio il modello del testo prima di rispondere
 # ("low"/"medium"/"high"), solo per i modelli di ragionamento che lo
 # supportano (es. openai/gpt-oss-*); None = parametro non inviato (da usare con
@@ -30,11 +30,15 @@ TEXT_MODEL = Models.Groq.TEXT_20B      # tutti i nodi di testo (anagrafica, sint
 # una prova, 9 volte di fila). Con "low" lo stesso turno ne usa ~600.
 TEXT_REASONING = "low"
 VISION_MODEL = Models.Groq.VISION_QWEN  # analisi della foto
+# Quale chiave Groq usare (nome del campo in settings.py): "groq_api_key" o
+# "groq_api_key_2" (secondo account, con limiti giornalieri separati - utile
+# quando il primo ha esaurito i 200K token al giorno di un modello).
+GROQ_KEY = "groq_api_key_2"
 
 # Provider: indirizzo del server e nome della chiave in settings.py (None =
 # nessuna chiave: Ollama in locale non la verifica, basta un valore qualsiasi).
 _PROVIDERS = {
-    "groq": ("https://api.groq.com/openai/v1", "groq_api_key"),
+    "groq": ("https://api.groq.com/openai/v1", GROQ_KEY),
     "ollama": ("http://127.0.0.1:11434/v1", None),
     "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini_api_key"),
 }
@@ -48,6 +52,15 @@ _PROVIDERS = {
 # calls.py per come viene rispettato.
 TOKENS_PER_MINUTE = {
     "groq": 8000,
+}
+
+# Durata massima di UNA richiesta, in secondi, per provider (assente = nessun
+# limite: Ollama gira in locale e una risposta lunga puo' durare anche piu'
+# di qualche minuto). Senza, valeva il default del client: 10 minuti di chat
+# ferma per una richiesta bloccata verso un servizio in cloud.
+REQUEST_TIMEOUT_SECONDS = {
+    "groq": 120,
+    "gemini": 120,
 }
 
 
@@ -86,6 +99,13 @@ def build_llm(model_name: str, reasoning_effort: Optional[str] = None) -> ChatOp
         # massimo; calls.py lo riduce a ogni chiamata se serve per stare nel
         # limite di token al minuto del provider.
         max_tokens=4096,
+        # Nessun nuovo tentativo dentro il client: li gestisce SOLO
+        # call_with_retry (calls.py), che legge l'attesa suggerita dal
+        # provider. Prima i due meccanismi si sommavano (fino a 9 tentativi,
+        # attese in silenzio di 40+ secondi non controllate dal nostro tetto -
+        # osservato in prova reale: "Retrying request ... in 44 seconds").
+        max_retries=0,
+        timeout=REQUEST_TIMEOUT_SECONDS.get(provider),
     )
 
 

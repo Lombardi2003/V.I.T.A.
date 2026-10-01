@@ -13,7 +13,7 @@ from PIL import Image, ImageOps
 
 from src.state import MedicalState, PatientCard, PhotoAnalysis
 from .prompts import INTAKE_PROMPT, REVIEWER_PROMPT, PHOTO_PROMPT
-from .common import stream_response, call_with_retry, extract_json, llm_vision
+from .common import stream_response, call_with_retry, extract_json, llm_vision, as_list, is_yes
 from .authors import Authors
 
 
@@ -23,25 +23,6 @@ def _mentions(text: str, keywords: list[str]) -> bool:
     ci si puo' fidare al 100% di quello che l'LLM dichiara di aver estratto."""
     lowered = text.lower()
     return any(kw in lowered for kw in keywords)
-
-
-def _as_list(value) -> list:
-    """Una lista dal modello, anche se l'ha scritta come testo singolo
-    ("penicillina" invece di ["penicillina"]) - senza, un testo veniva letto
-    lettera per lettera."""
-    if isinstance(value, list):
-        return value
-    if isinstance(value, str) and value.strip():
-        return [value]
-    return []
-
-
-def _is_yes(value) -> bool:
-    """Il campo "conferma" del modello: true, anche se scritto come testo
-    ("true", "si'") invece che come valore booleano."""
-    if isinstance(value, bool):
-        return value
-    return str(value).strip().lower() in {"true", "si", "sì", "si'", "yes"}
 
 
 def _format_card(card: PatientCard, allergies_addressed: bool, previous_conditions_addressed: bool) -> str:
@@ -280,9 +261,9 @@ async def intake_node(state: MedicalState):
             extracted = {}
         extracted = {k: v for k, v in extracted.items() if k in EDITABLE_FIELDS}
         if "allergies" in extracted:
-            extracted["allergies"] = _sanitize_string_list(_as_list(extracted["allergies"]))
+            extracted["allergies"] = _sanitize_string_list(as_list(extracted["allergies"]))
         if "previous_conditions" in extracted:
-            extracted["previous_conditions"] = _sanitize_string_list(_as_list(extracted["previous_conditions"]))
+            extracted["previous_conditions"] = _sanitize_string_list(as_list(extracted["previous_conditions"]))
         llm_reply: str = data.get("message_to_user", "")
         # L'LLM a volte "dimentica" lo stato gia' true quando il messaggio corrente
         # non tocca l'argomento (osservato in test reale) - una volta true, Python
@@ -291,10 +272,10 @@ async def intake_node(state: MedicalState):
         allergies_addressed = state.allergies_addressed or bool(data.get("allergies_addressed", False)) or allergies_mentioned
         previous_conditions_addressed = state.previous_conditions_addressed or bool(data.get("previous_conditions_addressed", False)) or previous_conditions_mentioned
         # "conferma" conta solo se era davvero stata chiesta (vedi sopra).
-        confirmed_by_llm = awaiting_confirmation and _is_yes(data.get("conferma"))
+        confirmed_by_llm = awaiting_confirmation and is_yes(data.get("conferma"))
         to_remove = {
-            "allergies": _sanitize_string_list(_as_list(data.get("allergies_to_remove"))),
-            "previous_conditions": _sanitize_string_list(_as_list(data.get("previous_conditions_to_remove"))),
+            "allergies": _sanitize_string_list(as_list(data.get("allergies_to_remove"))),
+            "previous_conditions": _sanitize_string_list(as_list(data.get("previous_conditions_to_remove"))),
         }
     except json.JSONDecodeError:
         extracted = {}
@@ -507,8 +488,8 @@ async def reviewer_node(state: MedicalState):
             extracted_list = []
         llm_reply: str = data.get("message_to_user", "")
         # "conferma" conta solo se era davvero stata chiesta (vedi sopra).
-        confirmed_by_llm = awaiting_confirmation and _is_yes(data.get("conferma"))
-        to_remove = _as_list(data.get("symptoms_to_remove"))
+        confirmed_by_llm = awaiting_confirmation and is_yes(data.get("conferma"))
+        to_remove = as_list(data.get("symptoms_to_remove"))
     except json.JSONDecodeError:
         extracted_list = []
         llm_reply = ""
