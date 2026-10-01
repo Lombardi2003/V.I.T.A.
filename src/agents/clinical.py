@@ -892,11 +892,11 @@ FALLBACK_URGENCY = "ARANCIONE"
 
 
 def _fallback_final_diagnosis(gh: GroupHypothesis | None, coinvolti: list[str]) -> FinalDiagnosis:
-    """Diagnosi finale quando la sintesi del primario non e' disponibile:
+    """Report di sintesi quando la sintesi del primario non e' disponibile:
     l'ipotesi di gruppo del tavolo, dichiarata come tale."""
     if gh is None:
         return FinalDiagnosis(
-            diagnosis="Diagnosi non determinata per un errore tecnico.",
+            diagnosis="Ipotesi diagnostica non determinata per un errore tecnico.",
             urgency_level=FALLBACK_URGENCY,
             specialists_involved=coinvolti,
             operational_guidance="Valutazione medica diretta necessaria.",
@@ -904,16 +904,48 @@ def _fallback_final_diagnosis(gh: GroupHypothesis | None, coinvolti: list[str]) 
                              f"codice {FALLBACK_URGENCY} assegnato in via cautelativa."),
         )
     confermata = ", ".join(SPECIALIST_DISPLAY_NAMES.get(r, r) for r in gh.confirmed_by) or "nessuno"
-    esami = ", ".join(gh.recommended_exams)
     return FinalDiagnosis(
         diagnosis=gh.diagnosis,
         urgency_level=gh.urgency_level,
         specialists_involved=coinvolti,
-        operational_guidance=f"Esami consigliati dal tavolo: {esami}." if esami else "Valutazione medica diretta.",
+        recommended_exams=list(gh.recommended_exams),
+        operational_guidance=("Valutazione medica diretta; avviare gli esami indicati dal tavolo."
+                              if gh.recommended_exams else "Valutazione medica diretta."),
         recommendations=(f"Sintesi del primario non disponibile per un errore tecnico: si riporta l'ipotesi "
                          f"condivisa dal tavolo degli specialisti (confermata da: {confermata})."
                          + (f" {gh.details}" if gh.details else "")),
     )
+
+
+def _format_report(final: FinalDiagnosis, gh: GroupHypothesis | None, second_opinion_role: str) -> str:
+    """Report di sintesi in chat, nello stile delle schede di anagrafica e
+    sintomi: il codice in cima (la cosa piu' importante per il triage), poi le
+    sezioni con un titolo ciascuna. Il contenuto NON viene tagliato ne'
+    riassunto: cambiano solo ordine e titoli (indicazione dell'utente). Prima
+    era "Diagnosi finale" con la motivazione senza titolo e il codice in fondo;
+    la terminologia segue la tesi (report di sintesi / ipotesi diagnostica
+    preliminare)."""
+    def _nome(role: str) -> str:
+        nome = SPECIALIST_DISPLAY_NAMES.get(role, role)
+        return f"{nome} (secondo parere)" if role == second_opinion_role else nome
+
+    specialisti = ", ".join(_nome(r) for r in final.specialists_involved) or "nessuno"
+    righe = [
+        "**Report di sintesi**",
+        f"**Codice** {final.urgency_level} · **Ipotesi diagnostica preliminare** {final.diagnosis}",
+        f"**Specialisti coinvolti** {specialisti}"
+        + (f" · **Hanno confermato** {', '.join(SPECIALIST_DISPLAY_NAMES.get(r, r) for r in gh.confirmed_by)}"
+           if gh and gh.confirmed_by else ""),
+    ]
+    if final.recommended_exams:
+        righe.append(f"**Esami e accertamenti** {'; '.join(final.recommended_exams)}")
+    if final.to_verify:
+        righe.append(f"**Da verificare** {'; '.join(final.to_verify)}")
+    if final.operational_guidance:
+        righe.append(f"**Indicazioni operative** {final.operational_guidance}")
+    if final.recommendations:
+        righe.append(f"**Motivazione** {final.recommendations}")
+    return "\n\n".join(righe[:1]) + "\n" + "\n\n".join(righe[1:])
 
 
 # Nodo del primario
@@ -1012,14 +1044,18 @@ async def primary_node(state: MedicalState):
         if not content:
             raise ValueError("nessuna risposta dal modello")
         report_data = extract_json(content)
+        exams = [t for t in (as_text(e) for e in as_list(report_data.get("recommended_exams"))) if t]
         final = FinalDiagnosis(
-            diagnosis=report_data.get("diagnosis", "Diagnosi non determinata"),
+            diagnosis=as_text(report_data.get("diagnosis")) or "Ipotesi diagnostica non determinata",
             # Codice mancante o non riconoscibile: si parte dal codice del
             # tavolo invece che dal piu' basso (BIANCO).
             urgency_level=_parse_urgency(report_data.get("urgency_level")) or urgency_floor or "BIANCO",
             specialists_involved=coinvolti,
-            operational_guidance=report_data.get("operational_guidance", ""),
-            recommendations=report_data.get("recommendations", ""),
+            # Se il primario non li elenca, quelli concordati dal tavolo.
+            recommended_exams=exams or (list(gh.recommended_exams) if gh else []),
+            to_verify=[t for t in (as_text(v) for v in as_list(report_data.get("to_verify"))) if t],
+            operational_guidance=as_text(report_data.get("operational_guidance")),
+            recommendations=as_text(report_data.get("recommendations")),
         )
     except Exception as e:
         # Nessuna risposta o risposta non valida: la diagnosi finale diventa
@@ -1041,13 +1077,7 @@ async def primary_node(state: MedicalState):
 
     print(f"👨‍⚕️ PRIMARIO → diagnosi={final.diagnosis!r} | urgenza={final.urgency_level}")
 
-    msg = (
-        f"**Diagnosi finale:** {final.diagnosis}\n\n"
-        f"{final.recommendations}\n\n"
-        f"**Indicazioni operative:** {final.operational_guidance}\n\n"
-        f"**Livello di urgenza:** {final.urgency_level}"
-        f"{nota_urgenza}"
-    )
+    msg = _format_report(final, gh, state.second_opinion_role) + nota_urgenza
     await cl.Message(content=msg, author=Authors.PRIMARY_PHYSICIAN).send()
 
     return {

@@ -123,9 +123,16 @@ class RoundTableEntry(BaseModel):
 # rifiutato qui dalla validazione Pydantic (mai girato prima, trovato leggendo
 # il codice mentre si ricollegava il primario al grafo).
 class FinalDiagnosis(BaseModel):
+    """Report di sintesi del primario. "diagnosis" e' l'IPOTESI DIAGNOSTICA
+    PRELIMINARE (terminologia della tesi: non una diagnosi definitiva)."""
     diagnosis: str = ""
     urgency_level: Literal["ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO"] = "BIANCO"
     specialists_involved: List[str] = Field(default_factory=list)
+    # Esami/accertamenti da avviare e dati NON riferiti da verificare: prima
+    # finivano (se ci finivano) mescolati nel testo delle indicazioni.
+    recommended_exams: List[str] = Field(default_factory=list)
+    to_verify: List[str] = Field(default_factory=list)
+    # Indicazioni per il PERSONALE del pronto soccorso (non per il paziente).
     operational_guidance: str = ""
     recommendations: str = ""
 

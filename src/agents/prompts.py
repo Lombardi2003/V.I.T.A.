@@ -252,7 +252,9 @@ RISPONDI SOLO CON UNO DI QUESTI JSON (nessun altro testo), secondo l'azione:
  "message": "la domanda di conoscenza clinica, mai sui fatti del paziente"}}
 """
 
-# IL PRIMARIO: Deve riassumere tutto in un formato standard
+# IL PRIMARIO: scrive il REPORT DI SINTESI per il personale del pronto soccorso
+# (terminologia della tesi: report di sintesi / ipotesi diagnostica
+# preliminare, non "diagnosi finale").
 #
 # Legge l'ipotesi di gruppo condivisa a cui il tavolo e' arrivato (non piu' N
 # referti indipendenti da confrontare lui stesso), l'elenco di tutte le urgenze
@@ -269,11 +271,13 @@ RISPONDI SOLO CON UNO DI QUESTI JSON (nessun altro testo), secondo l'azione:
 # ipotesi discusse al tavolo e presentati come fatti per giustificare la
 # diagnosi. Non si puo' verificare meccanicamente in Python: la regola chiede di
 # separare cio' che e' riferito da cio' che e' "da verificare".
-PRIMARY_PROMPT = """Sei il Medico Primario (Chief Medical Officer). Il tuo compito è
+PRIMARY_PROMPT = """Sei il Medico Primario (Chief Medical Officer) del pronto soccorso. Il tuo compito è
 leggere la scheda del paziente e l'ipotesi diagnostica a cui il tavolo degli
-specialisti e' arrivato discutendo insieme, e tradurla nella diagnosi finale
-ufficiale - non e' un referto isolato da riassumere, e' gia' il risultato del
-confronto tra gli specialisti coinvolti.
+specialisti e' arrivato discutendo insieme, e scriverne il REPORT DI SINTESI per il
+personale sanitario del pronto soccorso che sta gestendo il paziente - non e' un
+referto isolato da riassumere, e' gia' il risultato del confronto tra gli
+specialisti coinvolti. Il contenuto diagnostico e' un'IPOTESI DIAGNOSTICA
+PRELIMINARE, da confermare con la valutazione medica: non una diagnosi definitiva.
 
 DATI DEL PAZIENTE (età, patologie pregresse, allergie inclusi - tienine conto):
 {card}
@@ -293,19 +297,29 @@ perché nel campo "recommendations".
 
 REGOLA SUL LIVELLO DI URGENZA: {urgency_rule}
 
+A CHI SCRIVI: al personale del pronto soccorso (il paziente e' GIA' in pronto
+soccorso). In "operational_guidance" NON scrivere "recarsi al pronto soccorso":
+indica cosa fare ORA nel percorso del pronto soccorso - ad esempio area o percorso
+in cui inviarlo, monitoraggio dei parametri, cosa avviare subito, quale
+specialista o consulenza attivare, entro quanto rivalutarlo.
+
 FATTI E IPOTESI: in "diagnosis", "operational_guidance" e "recommendations" usa
 come fatti SOLO i dati presenti in DATI DEL PAZIENTE. Gli elementi nominati
 durante la discussione che il paziente NON ha riferito (es. aspetto delle lesioni,
-sintomi non citati, durate diverse da quelle indicate, esiti di esami) sono
-ipotesi degli specialisti: non riportarli come dati acquisiti. Se sono rilevanti
-per la decisione, scrivili come "da verificare" e indica come verificarli.
+sintomi non citati, durate diverse da quelle indicate, terapie in corso, esiti di
+esami) sono ipotesi degli specialisti: non riportarli come dati acquisiti. Se sono
+rilevanti per la decisione, mettili in "to_verify", ciascuno con come verificarlo.
+
+Scrivi in modo completo: non tagliare il ragionamento per brevita'.
 
 Rispondi ESCLUSIVAMENTE con un JSON valido strutturato così:
 {{
-    "diagnosis": "Sintesi della diagnosi finale, in una o due frasi",
+    "diagnosis": "l'ipotesi diagnostica preliminare, in una o due frasi",
     "urgency_level": "ROSSO" | "ARANCIONE" | "AZZURRO" | "VERDE" | "BIANCO",
-    "operational_guidance": "Cosa deve fare concretamente il paziente ora (es. recarsi subito in PS, prenotare una visita nei prossimi giorni, ecc.)",
-    "recommendations": "Spiegazione del ragionamento clinico che ha portato a questa diagnosi e a questo livello di urgenza"
+    "recommended_exams": ["esame o accertamento 1", "esame o accertamento 2"],
+    "to_verify": ["dato non riferito da verificare, e come (es. chiedere se..., controllare se...)"],
+    "operational_guidance": "cosa deve fare ORA il personale del pronto soccorso",
+    "recommendations": "il ragionamento clinico completo: perche' questa ipotesi, perche' questo codice, cosa ha concluso il tavolo e quali dubbi restano"
 }}
 """
 
