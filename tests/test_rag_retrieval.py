@@ -88,6 +88,8 @@ CASES = [
     ("dermatologist", ["macchie rosse pruriginose sulla pelle"]),
     ("dermatologist", ["chiazza desquamante tra le dita dei piedi"]),
     ("dermatologist", ["ustione alla mano"]),
+    ("dermatologist", ["pomfi pruriginosi", "gonfiore delle labbra"]),
+    ("dermatologist", ["gamba arrossata, calda e dolente", "febbre"]),
     ("orthopedist", ["dolore all'anca dopo una caduta"]),
     ("orthopedist", ["dolore alla gamba dopo incidente stradale"]),
     ("orthopedist", ["distorsione alla caviglia", "gonfiore alla caviglia"]),

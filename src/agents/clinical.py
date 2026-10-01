@@ -7,7 +7,7 @@ import re
 from langchain_core.messages import AIMessage
 import chainlit as cl
 
-from src.state import MedicalState, RoundTableEntry, GroupHypothesis, FinalDiagnosis
+from src.state import MedicalState, PatientCard, RoundTableEntry, GroupHypothesis, FinalDiagnosis
 from .prompts import SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, ALL_SPECIALISTS
 from .common import extract_json, stream_response, as_list, as_text, is_no, is_yes
 from .authors import Authors
@@ -507,7 +507,8 @@ async def specialist_node(state: MedicalState, role: str):
         card=card_str,
         round_table=table_text,
         hypothesis=hypothesis_text,
-        consulto_pendente="\n\n".join(t for t in (consulto_pendente, istruzione_secondo_parere, istruzione_verifica) if t),
+        consulto_pendente="\n\n".join(t for t in (_pediatric_note(state.patient_card), consulto_pendente,
+                                                    istruzione_secondo_parere, istruzione_verifica) if t),
         linee_guida=linee_guida_text,
     )
 
@@ -863,6 +864,27 @@ async def general_practitioner_node(state):
     return await specialist_node(state, "general_practitioner")
 
 
+def _pediatric_note(card: PatientCard) -> str:
+    """Nota per specialisti e primario se il paziente e' minorenne, "" altrimenti
+    (anche se l'eta' non si legge). Le linee guida del RAG sono per adulti
+    (es. il manuale di triage FVG "adulto") e nessuno lo segnalava: nella prova
+    del ginocchio di un quattordicenne si ragionava come per un adulto. Nessun
+    nodo nuovo: solo una frase in piu' nel prompt, come per il giro di verifica."""
+    age = card.age.strip().lower()
+    match = re.match(r"(\d{1,3})", age)
+    if not match:
+        return ""
+    in_mesi_o_giorni = any(u in age for u in ("mes", "giorn", "settiman"))
+    if not in_mesi_o_giorni and int(match.group(1)) >= 18:
+        return ""
+    eta = age if in_mesi_o_giorni else f"{match.group(1)} anni"
+    return (
+        f"PAZIENTE PEDIATRICO ({eta}): le linee guida recuperate sono pensate per adulti. Tienine conto: "
+        "criteri di gravita', esami, dosaggi e codici di urgenza possono essere diversi in eta' pediatrica; "
+        "segnala quando serve una valutazione pediatrica."
+    )
+
+
 # Codice usato solo se il tavolo non ha un'ipotesi E il primario non risponde
 # (caso estremo): prudente, perche' per un errore tecnico il codice piu' basso
 # (BIANCO, quello di prima) e' la scelta peggiore. Deciso dall'utente.
@@ -962,8 +984,10 @@ async def primary_node(state: MedicalState):
     else:
         urgency_rule = "il tavolo non e' arrivato a un'ipotesi condivisa: decidi tu il codice, motivandolo."
 
+    nota_pediatrica = _pediatric_note(card)
     prompt = PRIMARY_PROMPT.format(
-        card=card_str,
+        # La nota (paziente minorenne) va subito dopo i dati del paziente.
+        card=f"{card_str}\n\n{nota_pediatrica}" if nota_pediatrica else card_str,
         hypothesis_text=hypothesis_text,
         urgencies_text=urgencies_text,
         round_table_text=round_table_text,
