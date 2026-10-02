@@ -218,9 +218,18 @@ async def supervisor_node(state: MedicalState):
         # secondi), ma con un modello locale lento (Ollama) l'app sembra
         # completamente ferma (osservato in test reale). asyncio.to_thread la
         # sposta su un thread separato senza bloccare il resto.
-        content = await asyncio.to_thread(stream_response, prompt)
+        try:
+            content = await asyncio.to_thread(stream_response, prompt)
+        except Exception as e:
+            # Chiamata fallita anche dopo i nuovi tentativi (quota finita,
+            # servizio sovraccarico, rete): prima il nodo andava in errore e la
+            # conversazione si fermava (osservato in prova reale con la quota
+            # giornaliera esaurita). Stesso ripiego della risposta illeggibile.
+            print(f"🚦 SUPERVISOR: chiamata al modello fallita ({e}), ripiego sul medico generico")
+            content = ""
         step.output = content
 
+    smistamento_fallito = False
     try:
         data = extract_json(content)
 
@@ -231,12 +240,16 @@ async def supervisor_node(state: MedicalState):
         print(f"🚦 SUPERVISOR → {selected_specialists}")
 
     except json.JSONDecodeError:
-        print("🚦 SUPERVISOR: errore lettura JSON, fallback su medico generale")
+        smistamento_fallito = True
+        print("🚦 SUPERVISOR: risposta assente o illeggibile, fallback su medico generale")
 
     nomi = ", ".join(SPECIALIST_DISPLAY_NAMES.get(s, s) for s in selected_specialists)
     plurale = len(selected_specialists) > 1
     verbo = "Verranno coinvolti in consulto" if plurale else "Verrà coinvolto in consulto"
     msg = f"{verbo}: **{nomi}**."
+    if smistamento_fallito:
+        # Si dice che non e' una scelta clinica, ma un ripiego per errore tecnico.
+        msg = f"Smistamento automatico non disponibile per un errore tecnico: {verbo.lower()} **{nomi}**."
 
     # Un solo specialista = un monologo: propone e poi, nel giro di verifica,
     # rilegge se stesso, senza che nessuno controlli (osservato nella prova di

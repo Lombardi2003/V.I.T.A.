@@ -57,7 +57,7 @@ def load_embeddings() -> HuggingFaceEmbeddings:
 # clinico: intestazioni/pie' di pagina ripetuti su ogni pagina, numeri di
 # pagina, sommari con i puntini, bibliografie, dichiarazioni di conflitto di
 # interessi. Indicizzati cosi' com'erano, questi pezzi finivano tra i risultati
-# anche per query che non c'entravano (misurato con tests/test_rag_retrieval.py:
+# anche per query che non c'entravano (misurato con tests/benchmarks/rag_retrieval.py:
 # pezzi di solo numero di pagina, pezzi con parole incollate recuperati per
 # epistassi/febbre/colica). Qui il testo viene prima ripulito pagina per pagina,
 # poi i pezzi che restano comunque inutili vengono scartati prima di finire
@@ -80,7 +80,7 @@ _DOT_LEADER = re.compile(r"(\.\s?){5,}")          # "Metodologia ........ 4" dei
 _PAGE_NUMBER_LINE = re.compile(r"\s*\d{1,4}\s*")
 
 # Materiale di contorno dei PDTA/linee guida, individuato guardando i pezzi
-# recuperati nella prova reale del tavolo rotondo (tests/test_round_table.py) -
+# recuperati nella prova reale del tavolo rotondo (tests/live/round_table.py) -
 # per il gastroenterologo arrivavano elenco degli autori, glossario delle sigle
 # e schede di indicatori statistici invece del contenuto clinico. Ogni regola e'
 # stata verificata controllando a mano TUTTI i pezzi che scarta: provata e
@@ -103,7 +103,7 @@ _SENTENCE_END = re.compile(r"[a-zà-ù][.;:]\s")
 # Pagine escluse a mano dall'indice, con il motivo. Sono elenchi di soli titoli
 # o nomi di patologie, senza contenuto clinico: proprio perche' nominano un po'
 # di tutto, risultavano "simili" a quasi ogni query e uscivano in quasi tutti i
-# turni del tavolo (misurato con tests/test_rag_retrieval.py e osservato nella
+# turni del tavolo (misurato con tests/benchmarks/rag_retrieval.py e osservato nella
 # prova reale, dove uno specialista li ha citati come se contenessero criteri
 # clinici). Esclusi per pagina invece che con una regola automatica perche' le
 # regole generiche sugli elenchi provate scartavano anche tabelle cliniche vere

@@ -34,13 +34,16 @@ VISION_MODEL = Models.Groq.VISION_QWEN  # analisi della foto
 # "groq_api_key_2" (secondo account, con limiti giornalieri separati - utile
 # quando il primo ha esaurito i 200K token al giorno di un modello).
 GROQ_KEY = "groq_api_key_2"
+# Stessa cosa per Gemini: "gemini_api_key" o "gemini_fra_key" (secondo
+# account Google, quota giornaliera separata).
+GEMINI_KEY = "gemini_fra_key"
 
 # Provider: indirizzo del server e nome della chiave in settings.py (None =
 # nessuna chiave: Ollama in locale non la verifica, basta un valore qualsiasi).
 _PROVIDERS = {
     "groq": ("https://api.groq.com/openai/v1", GROQ_KEY),
     "ollama": ("http://127.0.0.1:11434/v1", None),
-    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini_api_key"),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", GEMINI_KEY),
 }
 
 # Limite di token al MINUTO dell'account, per provider (assente = nessun

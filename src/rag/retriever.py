@@ -71,7 +71,7 @@ def build_queries(display_name: str, symptoms: list[str], extra: str = "") -> li
     di ambiti diversi (es. dolore addominale + eruzione cutanea), quelli fuori
     dall'ambito dello specialista "sporcavano" la ricerca - nella prova reale il
     gastroenterologo riceveva pagine di contorno invece del documento sul
-    dolore addominale (misurato con tests/test_rag_retrieval.py, casi misti).
+    dolore addominale (misurato con tests/benchmarks/rag_retrieval.py, casi misti).
     Con una query per sintomo nessuno decide a priori quale sintomo riguardi
     quale specialista: vince il sintomo le cui ricerche trovano i passaggi piu'
     simili (vedi retrieve() sotto) - lo specialista continua comunque a vedere
@@ -127,7 +127,7 @@ def retrieve(queries: str | list[str], role: str | None = None, k: int = 3) -> l
     documenti generali - in particolare il manuale di triage FVG, che ha una
     scheda per quasi ogni sintomo - occupavano da soli le prime posizioni per
     neurologia/ortopedia/pneumologia, lasciando lo specialista senza le linee
-    guida del proprio ambito (misurato con tests/test_rag_retrieval.py: con il
+    guida del proprio ambito (misurato con tests/benchmarks/rag_retrieval.py: con il
     solo filtro "specialita' + generali", 57 pezzi su 90 della specialita'
     giusta; con questa ripartizione, 63 su 90 e almeno uno in tutti i 30 casi).
     Il pezzo generale resta utile: di solito e' la scheda di triage del sintomo,

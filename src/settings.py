@@ -33,8 +33,8 @@ class Settings(BaseSettings):
     gemini_api_key: Optional[str] = None
     # Seconda chiave Gemini, da un account/progetto Google Cloud diverso da
     # quello di gemini_api_key (la quota gratuita di 20 richieste/giorno e'
-    # per-progetto). Attualmente non usata da src/llm/factory.py: basta
-    # metterla al posto di GEMINI_API_KEY quando la prima si esaurisce.
+    # per-progetto). Quale delle due usare si sceglie in cima a
+    # src/llm/factory.py (GEMINI_KEY).
     gemini_fra_key: Optional[str] = None
 
     temperature: float = 0.0
