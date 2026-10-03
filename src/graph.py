@@ -5,18 +5,14 @@ from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 # Import dei moduli locali
 from src.state import MedicalState
-from src.agents import reviewer_node, user_node, read_db_node, intake_node, save_db_node, modify_db_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node, MAX_TOTAL_TURNS, MAX_RECRUITED_SPECIALISTS, MAX_SPEAKS_PER_SPECIALIST, MAX_FAILED_TURNS
+from src.agents import reviewer_node, user_node, read_db_node, intake_node, save_db_node, supervisor_node, cardiologist_node, neurologist_node, primary_node, photography_node, orthopedic_node, gastroenterologist_node, dermatologist_node, pneumologist_node, ent_node, ophthalmologist_node, urologist_node, general_practitioner_node, MAX_TOTAL_TURNS, MAX_RECRUITED_SPECIALISTS, MAX_SPEAKS_PER_SPECIALIST, MAX_FAILED_TURNS
 
 # Funzione per la creazione del grafo di stato
 #
-# STATO DI LAVORO: stiamo rivedendo il grafo un nodo alla volta. Per ora sono
-# attivi "read_db", "intake", "reviewer", "photography", "supervisor", "router",
-# i 10 specialisti e "chief_physician" (+ "user" come punto di interruzione).
-# Quando il primario ha sintetizzato la diagnosi finale, il grafo termina su
-# END - il salvataggio su DB (save_db/modify_db) NON e' ancora ricollegato
-# (deciso cosi' per poter provare il flusso completo senza toccare il
-# database) - e' un punto di osservazione temporaneo. Il resto e' commentato
-# e verra' riattivato in seguito - NON e' stato rimosso, solo disattivato.
+# Nodi: "read_db", "intake", "reviewer", "photography", "supervisor", "router",
+# i 10 specialisti, "chief_physician" e "save_db" (+ "user" come punto di
+# interruzione). Dopo il report del primario, save_db salva la scheda nel
+# database e il grafo termina.
 def generate_graph():
     workflow = StateGraph(MedicalState)
 
@@ -39,10 +35,7 @@ def generate_graph():
     workflow.add_node("urologist", urologist_node)
     workflow.add_node("general_practitioner", general_practitioner_node)
     workflow.add_node("chief_physician", primary_node)
-
-    # Nodi non ancora riattivati
-    # workflow.add_node("save_db", save_db_node)
-    # workflow.add_node("modify_db", modify_db_node)
+    workflow.add_node("save_db", save_db_node)
 
     # Archi attivi
     workflow.add_edge(START, "read_db")
@@ -127,10 +120,10 @@ def generate_graph():
     workflow.add_edge("urologist", "router")
     workflow.add_edge("general_practitioner", "router")
 
-    # Il primario chiude il grafo su END - il salvataggio su DB (save_db/modify_db,
-    # sotto in "archi non ancora riattivati") non e' ancora collegato di proposito,
-    # per poter testare l'intero flusso di diagnosi senza toccare il database.
-    workflow.add_edge("chief_physician", END)
+    # Dopo il report del primario si salva la scheda (un nodo solo: crea il
+    # paziente o lo aggiorna, vedi save_db_node in persistence.py), poi fine.
+    workflow.add_edge("chief_physician", "save_db")
+    workflow.add_edge("save_db", END)
 
     # Archi non ancora riattivati
     # workflow.add_conditional_edges(
@@ -150,18 +143,6 @@ def generate_graph():
     #         "supervisor":  "supervisor",
     #     }
     # )
-    #
-    # workflow.add_conditional_edges(
-    #     "chief_physician",
-    #     patient_exists,
-    #     {
-    #         True: "modify_db",
-    #         False: "save_db",
-    #     }
-    # )
-    #
-    # workflow.add_edge("save_db", END) # Nodo finale (Exit Point)
-    # workflow.add_edge("modify_db", END) # Nodo finale (Exit Point)
 
     # GroupHypothesis e RoundTableEntry vivono annidati dentro un campo/lista
     # (group_hypothesis, round_table) - il serializzatore di default di
@@ -181,6 +162,23 @@ def generate_graph():
         checkpointer=memory,
         interrupt_before=["user"]
     )
+
+
+# Limite di passi di una singola ripresa del grafo. Il default di LangGraph (25)
+# non basta: una discussione che arriva a MAX_TOTAL_TURNS fa due passi a battuta
+# (router + specialista), poi router, primario e save_db - con 12 battute sono
+# 27 passi, e il grafo andava in errore proprio nei casi piu' discussi (trovato
+# dai test dopo aver aggiunto save_db). Calcolato dal tetto delle battute, con
+# margine per i nodi prima e dopo il tavolo.
+RECURSION_LIMIT = 2 * MAX_TOTAL_TURNS + 20
+
+
+def thread_config(thread_id: str) -> dict:
+    """Configurazione con cui usare il grafo per una conversazione: il suo
+    identificativo e il limite di passi. Va usata ovunque si chiama il grafo
+    (app.py, test, script): impostare il limite sul grafo compilato non basta,
+    astream_events riparte dal default."""
+    return {"configurable": {"thread_id": thread_id}, "recursion_limit": RECURSION_LIMIT}
 # Funzioni di routing
 def _turns_spoken(round_table, role: str) -> int:
     """Quanti TURNI ha avuto uno specialista (non quante righe ha scritto nella
@@ -413,12 +411,6 @@ def photo_next(state: MedicalState):
 
 def triage_complete(state: MedicalState):
     return state.triage_complete
-
-def patient_exists(state: MedicalState):
-    print("\n\n\n\n")
-    print("Verifica esistenza paziente, stato attuale:", state.get("patient_exists"))
-    print("\n\n\n\n")
-    return state.get("patient_exists")
 
 # Funzione di routing da user
 def user_next(state: MedicalState):

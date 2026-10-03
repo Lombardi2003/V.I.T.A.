@@ -54,7 +54,7 @@ class TestOnMessage(helpers.VitaTestCase):
         self.module = _app_module()
         self.graph = helpers.graph.generate_graph()
         self.thread = str(uuid.uuid4())
-        self.config = {"configurable": {"thread_id": self.thread}}
+        self.config = helpers.graph.thread_config(self.thread)
         self.graph.update_state(self.config, MedicalState().model_dump())
         session = types.SimpleNamespace(get=lambda key, default=None: self.thread if key == "thread_id" else default)
         for target, name, value in ((self.module, "app", self.graph), (self.module.cl, "user_session", session)):

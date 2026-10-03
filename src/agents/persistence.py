@@ -1,6 +1,7 @@
 # Nodi che leggono o scrivono sul database dei pazienti: read_db (lettura in
-# ingresso), save_db/modify_db (scrittura in uscita, a fine triage).
+# ingresso), save_db (scrittura in uscita, a fine triage).
 import re
+from datetime import datetime
 
 from langchain_core.messages import AIMessage
 import chainlit as cl
@@ -27,6 +28,13 @@ _CF_ODD_VALUES = dict(zip(
 ))
 
 
+# Codice di prova per lo sviluppo: sempre "paziente nuovo", mai salvato.
+TEST_FISCAL_CODE = "1234"
+# Inizio della diagnosi scritta quando ne' il tavolo ne' il primario hanno
+# prodotto un'ipotesi (vedi _fallback_final_diagnosis in clinical.py).
+UNDETERMINED_DIAGNOSIS_PREFIX = "Ipotesi diagnostica non determinata"
+
+
 def _cf_even_value(char: str) -> int:
     return int(char) if char.isdigit() else ord(char) - ord("A")
 
@@ -44,7 +52,7 @@ def is_valid_fiscal_code(cf: str) -> bool:
     lettera sbagliata su un paziente gia' registrato dava comunque un codice
     "valido", il paziente non veniva trovato e gli si apriva una seconda scheda.
     """
-    if cf == "1234":
+    if cf == TEST_FISCAL_CODE:
         return True
     if not _CF_FORMAT.fullmatch(cf):
         return False
@@ -159,52 +167,68 @@ async def read_db_node(state: MedicalState):
     }
 
 
-# Nodo per il salvataggio nel database
+# Nodo per il salvataggio nel database (ultimo nodo del grafo, dopo il primario)
 async def save_db_node(state: MedicalState):
-    """ Salva o aggiorna i dati del paziente nel database. """
-    print("💾 SAVE_DB: Avvio salvataggio...")
+    """Salva la scheda del paziente a fine triage: lo crea se il Codice Fiscale
+    e' nuovo, altrimenti lo aggiorna (cosi' restano anche le correzioni fatte
+    in anagrafica). Un nodo solo: prima erano due (save_db/modify_db), mai
+    ricollegati al grafo dopo la revisione, che salvavano solo una parte della
+    scheda e aggiungevano l'ipotesi del primario alle patologie pregresse come
+    se fosse una diagnosi accertata.
 
-    card = state.get("patient_card", {})
+    L'ipotesi del primario viene comunque salvata tra le patologie pregresse -
+    cosi' alla visita successiva la leggono gia' tutti i nodi, senza toccare
+    stato e prompt - ma scritta per quello che e': con la data, il codice e
+    "non confermata". Al ritorno del paziente la scheda viene mostrata per la
+    conferma, e l'operatore puo' toglierla. Un errore del database non deve
+    far perdere il report gia' mostrato: si avvisa e basta.
+    """
+    card = state.patient_card.model_dump()
+    cf = card.get("fiscal_code", "").strip()
 
-    # 1. Controllo di sicurezza sul codice fiscale (Ottimo che tu lo abbia già messo!)
-    if "fiscal_code" not in card or not card["fiscal_code"]:
+    if cf == TEST_FISCAL_CODE:
+        msg = "Codice di prova: nessun salvataggio nel database."
+        print("💾 SAVE_DB: codice di prova, nessun salvataggio")
+        await cl.Message(content=msg, author=Authors.SYSTEM).send()
+        return {"general_history": [AIMessage(content=msg)]}
+    if not cf:
         print("❌ SAVE_DB: Codice fiscale mancante, impossibile salvare.")
         return {}
 
-    # 2. IL FIX: Assicuriamoci che 'previous_conditions' esista e sia una vera Lista!
-    if "previous_conditions" not in card or not isinstance(card["previous_conditions"], list):
-        card["previous_conditions"] = []
+    entry = _triage_entry(state)
+    conditions = list(card.get("previous_conditions") or [])
+    if entry and entry.lower() not in {str(c).strip().lower() for c in conditions}:
+        conditions.append(entry)
+    card["previous_conditions"] = conditions
+    # La foto non si salva (il file e' temporaneo) e i sintomi sono di questo
+    # accesso: nel database va solo l'anagrafica (vedi PatientRecord).
 
-    # 3. Estrazione sicura della diagnosi
-    diagnosi_obj = state.get("report")
-    testo_diagnosi = diagnosi_obj["final_diagnosis"] if diagnosi_obj else "Nessuna diagnosi specifica"
+    try:
+        created = mdb.upsert_patient(card)
+    except Exception as e:
+        msg = ("Salvataggio non riuscito per un errore del database: "
+               "la scheda e l'ipotesi di questo accesso non sono state registrate.")
+        print(f"❌ SAVE_DB: errore del database: {e}")
+        await cl.Message(content=msg, author=Authors.SYSTEM).send()
+        return {"general_history": [AIMessage(content=msg)]}
 
-    # 4. Ora possiamo fare l'append in totale sicurezza
-    card["previous_conditions"].append(testo_diagnosi)
-
-    # 5. Invio al database
-    mdb.save_patient(card)
-    print("✅ SAVE_DB: Dati salvati con successo.")
-    await cl.Message(content=f"✅ I tuoi dati sono stati salvati con la diagnosi: {testo_diagnosi}").send()
-
-    # Restituiamo la card aggiornata allo stato del grafo
-    return {"patient_card": card}
+    msg = "Scheda paziente salvata." if created else "Scheda paziente aggiornata."
+    if entry:
+        msg += " Ipotesi di questo accesso registrata tra le patologie pregresse come non confermata."
+    print(f"✅ SAVE_DB: {'creato' if created else 'aggiornato'} {cf} | voce: {entry or '(nessuna)'}")
+    await cl.Message(content=msg, author=Authors.SYSTEM).send()
+    return {"patient_card": card, "patient_exists": True, "general_history": [AIMessage(content=msg)]}
 
 
-# Nodo per modificare un paziente esistente nel database
-async def modify_db_node(state: MedicalState):
-    """ Modifica i dati di un paziente esistente nel database. """
-    print("🔄 MODIFY_DB: Avvio modifica dati...")
-
-    card = state.get("patient_card", {})
-
-    if "fiscal_code" not in card or not card["fiscal_code"]:
-        print("❌ MODIFY_DB: Codice fiscale mancante, impossibile modificare.")
-        return {}
-
-    nuova_patologia = state.get("report", {}).get("final_diagnosis", "Nessuna diagnosi specifica")
-
-    mdb.update_patient_conditions(card, nuova_patologia)
-    print("✅ MODIFY_DB: Dati modificati con successo.")
-    await cl.Message(content=f"✅ I tuoi dati sono stati aggiornati con la nuova diagnosi: {nuova_patologia}").send()
-    return {"patient_card": card}
+def _triage_entry(state: MedicalState) -> str:
+    """Voce da aggiungere alle patologie pregresse per questo accesso, es.
+    "Ipotesi al triage del 03/10/2026: uveite anteriore acuta (codice
+    ARANCIONE, non confermata)". Vuota se il triage non ha prodotto nessuna
+    ipotesi (errore tecnico di tavolo e primario insieme: non c'e' nulla di
+    clinico da ricordare)."""
+    final = state.final_diagnosis
+    diagnosis = final.diagnosis.strip().rstrip(".").strip()
+    if not diagnosis or diagnosis.startswith(UNDETERMINED_DIAGNOSIS_PREFIX):
+        return ""
+    today = datetime.now().strftime("%d/%m/%Y")
+    return f"Ipotesi al triage del {today}: {diagnosis} (codice {final.urgency_level}, non confermata)"

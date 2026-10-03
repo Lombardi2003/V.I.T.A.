@@ -7,7 +7,7 @@ import uuid
 # proxy instead of the submodule. Importing the function by name avoids it.
 from chainlit.context import init_http_context
 
-from src.graph import generate_graph
+from src.graph import generate_graph, thread_config
 from src.state import MedicalState
 
 ALL_SPECIALIST_NODES = (
@@ -23,7 +23,7 @@ async def run_table(card, seated, extra_state=None):
     # init_http_context() creates one whose emitter is a no-op test stub.
     init_http_context()
     app = generate_graph()
-    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+    config = thread_config(str(uuid.uuid4()))
     app.update_state(config, MedicalState(patient_card=card).model_dump())
     # The ONLY thing skipped is the supervisor's choice: router, specialists
     # and primary are the real production code.

@@ -4,7 +4,7 @@
 # con cui il progetto si presenta, usando la definizione ampia di agente
 # (percepisce, decide, agisce) e non quella ristretta "solo se usa un LLM".
 #   common.py       - client LLM, connessione DB, utility condivise
-#   persistence.py  - read_db, save_db, modify_db (lettura/scrittura sul DB pazienti)
+#   persistence.py  - read_db, save_db (lettura/scrittura sul DB pazienti)
 #   intake.py       - user, intake, reviewer, photography (raccolta dati dal paziente)
 #   clinical.py     - supervisor, specialisti, primario (valutazione clinica)
 #
@@ -26,7 +26,6 @@ from .persistence import (
     is_valid_fiscal_code,
     read_db_node,
     save_db_node,
-    modify_db_node,
 )
 from .intake import (
     user_node,

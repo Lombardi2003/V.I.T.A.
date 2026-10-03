@@ -28,7 +28,7 @@ import chainlit as cl  # noqa: E402
 from chainlit.context import init_http_context  # noqa: E402
 
 import src.agents.common as common  # noqa: E402
-from src.graph import generate_graph  # noqa: E402
+from src.graph import generate_graph, thread_config  # noqa: E402
 from src.llm import describe_llm, factory  # noqa: E402
 from src.llm.models import Models  # noqa: E402
 from src.state import MedicalState, PatientCard, PhotoAnalysis, Symptom, SymptomProfile  # noqa: E402
@@ -103,7 +103,7 @@ async def run_case(number):
     title, card = CASES[number]
     RecordedMessage.sent.clear()
     app = generate_graph()
-    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+    config = thread_config(str(uuid.uuid4()))
     # Personal data and symptoms already confirmed: start from "photo done -> supervisor".
     app.update_state(config, MedicalState(patient_card=card, intake_card_shown=True, card_confirmed=True,
                                           allergies_addressed=True, previous_conditions_addressed=True,
@@ -126,7 +126,8 @@ async def run_case(number):
     print("\nGROUP HYPOTHESIS:", gh and {k: gh[k] for k in ("diagnosis", "urgency_level", "recommended_exams", "confirmed_by")})
     print("passed without confirming:", s.get("passed_without_confirming"), "| failed turns:", s.get("failed_turns"),
           "| turns:", s.get("total_turns"))
-    print("\nREPORT SHOWN IN THE CHAT:\n" + (RecordedMessage.sent[-1][1] if RecordedMessage.sent else "(none)"))
+    report = next((text for _, text in reversed(RecordedMessage.sent) if "Report di sintesi" in text), "(none)")
+    print("\nREPORT SHOWN IN THE CHAT:\n" + report)
 
 
 def main():

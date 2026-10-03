@@ -42,9 +42,10 @@ class TestEndToEnd(helpers.VitaTestCase):
         self.assertEqual(conv.paused_before, ())          # the graph reached END
         final = helpers.as_dict(conv.values["final_diagnosis"])
         self.assertEqual((final["diagnosis"], final["urgency_level"]), ("Bronchite acuta", "VERDE"))
-        report = self.last_message()
+        report = self.messages_from("Primario")[-1]
         self.assertIn("**Report di sintesi**", report)
         self.assertIn("**Specialisti coinvolti** Pneumologia, Medicina", report)
+        self.assertIn("Codice di prova: nessun salvataggio", self.last_message())   # 1234 is never saved
 
     def test_error_mid_flow_keeps_the_state_and_resumes(self):
         """TEST end to end: a model error during symptoms leaves the card intact and the same message can be sent again."""

@@ -9,7 +9,7 @@ from scripts.setup_env import ensure_env
 ensure_env()  # completa .env con eventuali valori mancanti prima di importare i moduli che ne dipendono
 
 from src.state import MedicalState, PatientCard, PhotoAnalysis
-from src.graph import generate_graph
+from src.graph import generate_graph, thread_config
 from src.llm import describe_llm
 from src.agents import llm, llm_vision
 from src.rag.retriever import warm_up
@@ -27,7 +27,7 @@ async def start():
     """ Inizializzazione della sessione utente. """
     thread_id = str(uuid.uuid4())
     cl.user_session.set("thread_id", thread_id)
-    config = {"configurable": {"thread_id": thread_id}}
+    config = thread_config(thread_id)
 
     # Prepariamo lo stato iniziale
     initial_state = MedicalState()
@@ -53,7 +53,7 @@ async def start():
 @cl.on_message
 async def main(message: cl.Message):
     thread_id = cl.user_session.get("thread_id")
-    config = {"configurable": {"thread_id": thread_id}}
+    config = thread_config(thread_id)
 
     image_path = None
 

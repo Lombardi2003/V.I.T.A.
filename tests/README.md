@@ -46,6 +46,7 @@ chat, temporary database, conversation on the real graph) are in
 | `test_specialist.py` | reading the specialist's answer, consults, prompt notes |
 | `test_router.py` | the router's rules and whole discussions at the table |
 | `test_primary.py` | urgency code, fallbacks, summary report |
+| `test_save_db.py` | saving the card after the report, hypothesis stored as "not confirmed", returning patient |
 | `test_llm.py` | retries, token limits, JSON reading, clients, needed keys |
 | `test_rag.py` | specialty / general split of the retrieval, index cleaning |
 | `test_app.py` | operator error messages, photo attachment, resume after an error |

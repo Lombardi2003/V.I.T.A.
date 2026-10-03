@@ -11,6 +11,7 @@ from src.state import MedicalState, PatientCard, RoundTableEntry, GroupHypothesi
 from .prompts import SUPERVISOR_PROMPT, SPECIALIST_PROMPT, PRIMARY_PROMPT, ALL_SPECIALISTS
 from .common import extract_json, stream_response, as_list, as_text, is_no, is_yes
 from .authors import Authors
+from .persistence import UNDETERMINED_DIAGNOSIS_PREFIX
 from src.rag.retriever import build_queries, retrieve
 
 # Tetto assoluto di battute nell'intera discussione al tavolo - non e' un
@@ -923,7 +924,7 @@ def _fallback_final_diagnosis(gh: GroupHypothesis | None, coinvolti: list[str]) 
     l'ipotesi di gruppo del tavolo, dichiarata come tale."""
     if gh is None:
         return FinalDiagnosis(
-            diagnosis="Ipotesi diagnostica non determinata per un errore tecnico.",
+            diagnosis=f"{UNDETERMINED_DIAGNOSIS_PREFIX} per un errore tecnico.",
             urgency_level=FALLBACK_URGENCY,
             specialists_involved=coinvolti,
             operational_guidance="Valutazione medica diretta necessaria.",
@@ -982,9 +983,7 @@ async def primary_node(state: MedicalState):
     da confrontare lui stesso), e la traduce nella diagnosi finale ufficiale
     (FinalDiagnosis).
 
-    NOTA: per ora chief_physician->END e' un punto di osservazione temporaneo
-    (vedi graph.py) - il salvataggio su DB (save_db/modify_db) non e' ancora
-    ricollegato, verra' fatto in un passo successivo.
+    Subito dopo, save_db (persistence.py) salva la scheda nel database.
     """
     card = state.patient_card
     gh = state.group_hypothesis

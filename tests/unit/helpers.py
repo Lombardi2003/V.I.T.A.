@@ -136,7 +136,7 @@ class Conversation:
     def __init__(self, test: VitaTestCase, app=None):
         self.test = test
         self.app = app or graph.generate_graph()
-        self.config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+        self.config = graph.thread_config(str(uuid.uuid4()))
         self.app.update_state(self.config, MedicalState().model_dump())
 
     def send(self, text, answers=(), photo=None, vision=()):

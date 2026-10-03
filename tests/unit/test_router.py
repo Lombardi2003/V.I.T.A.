@@ -117,7 +117,7 @@ class TestRoundTable(helpers.VitaTestCase):
         script = Script(answers)
         with helpers.mock.patch.object(clinical, "stream_response", script):
             app = helpers.graph.generate_graph()
-            config = {"configurable": {"thread_id": "t"}}
+            config = helpers.graph.thread_config("t")
             card = PatientCard(first_name="X", age="34", sex="donna", symptom=SymptomProfile(symptoms=[
                 Symptom(description="dolore addominale", intensity="forte", duration="6 ore")]))
             app.update_state(config, MedicalState(patient_card=card).model_dump())

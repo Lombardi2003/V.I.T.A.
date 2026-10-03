@@ -3,7 +3,6 @@ from typing import List
 from sqlmodel import Field, Session, SQLModel, create_engine
 from sqlalchemy import Column, JSON
 from sqlalchemy.exc import SQLAlchemyError
-from src.state import PatientCard
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -42,41 +41,32 @@ class MedicalDatabase:
 
         print(f"✅ Database connection ready, tables verified! ({db_path})")
 
-    def save_patient(self, patient_card):
-        """Saves the extracted data to the database."""
-
-        # We use .get() everywhere. If a field is missing, we set an empty string "" or an empty list []
-        new_record = PatientRecord(
-            fiscal_code=patient_card.get("fiscal_code", "TO_BE_REQUESTED"),
-            first_name=patient_card.get("first_name", ""),
-            last_name=patient_card.get("last_name", ""),
-            age=patient_card.get("age", ""),
-            # This is the magic line that fixes the error: if missing, sets an empty list []
-            previous_conditions=patient_card.get("previous_conditions", [])
-        )
-
+    def upsert_patient(self, patient_card: dict) -> bool:
+        """Saves the whole patient card: creates the patient if the fiscal code is
+        new, otherwise updates every field (so corrections made during intake are
+        kept). Returns True if the patient was created, False if updated."""
+        fields = {
+            "first_name": patient_card.get("first_name", ""),
+            "last_name": patient_card.get("last_name", ""),
+            "age": patient_card.get("age", ""),
+            "sex": patient_card.get("sex", ""),
+            # New lists (not the caller's): SQLAlchemy only stores a JSON column
+            # again when the attribute is reassigned.
+            "allergies": list(patient_card.get("allergies") or []),
+            "previous_conditions": list(patient_card.get("previous_conditions") or []),
+        }
         with Session(self.engine) as session:
-            session.add(new_record)
+            record = session.get(PatientRecord, patient_card["fiscal_code"])
+            created = record is None
+            if created:
+                record = PatientRecord(fiscal_code=patient_card["fiscal_code"], **fields)
+            else:
+                for name, value in fields.items():
+                    setattr(record, name, value)
+            session.add(record)
             session.commit()
-            print(f"💾 Save completed for: {new_record.first_name} {new_record.last_name}")
-
-    def update_patient_conditions(self, patient: PatientCard, new_condition: str):
-        """Updates the condition history of an existing patient."""
-        with Session(self.engine) as session:
-            patient_record = session.get(PatientRecord, patient["fiscal_code"])
-
-            if not patient_record:
-                print(f"❌ No patient found with tax ID: {patient['fiscal_code']}")
-                return
-
-            # Copy the list, append the new item, and reassign it
-            updated_list = patient_record.previous_conditions.copy()
-            updated_list.append(new_condition)
-            patient_record.previous_conditions = updated_list
-
-            session.add(patient_record)
-            session.commit()
-            print(f"✅ Condition '{new_condition}' successfully added to {patient_record.first_name}")
+            print(f"💾 Patient {'created' if created else 'updated'}: {record.first_name} {record.last_name}")
+        return created
 
     def read_patient(self, cf: str) -> PatientRecord | None:
         """Retrieves the patient from the database."""
