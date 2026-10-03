@@ -109,6 +109,14 @@ class TestIndexCleaning(unittest.TestCase):
         """TEST discard_reason: an ordinary clinical paragraph is kept."""
         self.assertIsNone(discard_reason(PROSE))
 
+    def test_excluded_pages_point_to_real_documents(self):
+        """TEST EXCLUDED_PAGES: every excluded page belongs to a PDF that exists in data/guidelines, with a reason."""
+        from src.rag.build_index import EXCLUDED_PAGES, GUIDELINES_DIR
+        for name, pages in EXCLUDED_PAGES.items():
+            with self.subTest(document=name):
+                self.assertTrue((GUIDELINES_DIR / name).exists())
+                self.assertTrue(all(isinstance(n, int) and n >= 1 and reason.strip() for n, reason in pages.items()))
+
     def test_specialty_from_file_name(self):
         """TEST specialty_from_filename: the specialty is the file name prefix before the first underscore."""
         self.assertEqual(specialty_from_filename("cardio_fvg_pdta_stemi_2022.pdf"), "cardio")

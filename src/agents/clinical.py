@@ -574,6 +574,10 @@ async def specialist_node(state: MedicalState, role: str):
     # dichiarare esplicitamente ad ogni turno cambia il comportamento molto
     # piu' della sola prosa che "permette" un'opzione tra tante (osservato in
     # test reale: la sola prosa non bastava mai a far scegliere "consulta").
+    # Nome scritto dallo specialista quando chiede un collega che non esiste
+    # (es. "ematologo"): il consulto va al medico generico, e in chat si dice
+    # per chi era la richiesta (vedi _send_consult).
+    requested_for = ""
     consulto_utile = str(data.get("consulto_utile", "")).strip().lower() == "si"
     raw_collega = str(data.get("collega_da_consultare") or "").strip().lower()
     collega = _role_from_name(raw_collega)
@@ -591,6 +595,8 @@ async def specialist_node(state: MedicalState, role: str):
         # standard (vedi SUPERVISOR_PROMPT, "SINTOMI MISTI/NON CHIARI").
         print(f"🔀 {role}: consulto_utile=si verso '{raw_collega}' (non nel roster) -> reindirizzato a general_practitioner")
         collega = "general_practitioner" if role != "general_practitioner" else None
+        if collega:
+            requested_for = str(data.get("collega_da_consultare") or "").strip()
     # Il mini-consulto forzato si AGGIUNGE all'azione scelta dallo specialista,
     # non la sostituisce: prima si registra la sua proposta/revisione/conferma
     # dell'ipotesi di gruppo, poi parte il consulto (vedi fondo del nodo).
@@ -621,6 +627,7 @@ async def specialist_node(state: MedicalState, role: str):
             if raw_to and role != "general_practitioner":
                 print(f"🔀 {role}: 'consulta' verso '{raw_to}' (non nel roster) -> reindirizzato a general_practitioner")
                 data = {**data, "to": "general_practitioner"}
+                requested_for = raw_to
             else:
                 azione = "conferma" if state.group_hypothesis is not None else "proponi"
                 print(f"🔀 {role}: 'consulta' senza destinatario possibile -> la risposta vale come '{azione}'")
@@ -698,7 +705,8 @@ async def specialist_node(state: MedicalState, role: str):
             print(f"⚠️ {role}: 'consulta' senza destinatario valido, ignorato - turno fallito")
             return _failed_turn(state, role)
         entry, msg_text = await _send_consult(
-            role, display_name, author, target, message or motivazione or "(nessuna domanda specificata)"
+            role, display_name, author, target, message or motivazione or "(nessuna domanda specificata)",
+            requested_for,
         )
         return {
             "round_table": [entry],
@@ -814,7 +822,8 @@ async def specialist_node(state: MedicalState, role: str):
         # Il consulto va per ULTIMO nella discussione: il router fa parlare
         # subito il destinatario dell'ultimo intervento (vedi router in graph.py).
         domanda = str(data.get("domanda_per_il_collega") or "").strip() or "(nessuna domanda specificata)"
-        consult_entry, consult_text = await _send_consult(role, display_name, author, forced_consult_to, domanda)
+        consult_entry, consult_text = await _send_consult(role, display_name, author, forced_consult_to, domanda,
+                                                            requested_for)
         entries.append(consult_entry)
         messages.append(AIMessage(content=consult_text))
 
@@ -825,11 +834,16 @@ async def specialist_node(state: MedicalState, role: str):
     }
 
 
-async def _send_consult(role: str, display_name: str, author: str, target: str, domanda: str):
-    """Registra e mostra in chat un mini-consulto verso un collega."""
+async def _send_consult(role: str, display_name: str, author: str, target: str, domanda: str,
+                        requested_for: str = ""):
+    """Registra e mostra in chat un mini-consulto verso un collega. Se la
+    richiesta era per uno specialista che il sistema non ha (requested_for),
+    la chat lo dice: prima compariva solo "Medicina", e il nome inventato
+    restava soltanto nel testo dello specialista."""
     entry = RoundTableEntry(author=role, to=target, azione="consulta", content=domanda)
     destinatario = SPECIALIST_DISPLAY_NAMES.get(target, target)
-    msg_text = f"**{display_name}** chiede un mini-consulto a **{destinatario}**: {domanda}"
+    nota = f" (richiesta per \"{requested_for}\", specialista non disponibile)" if requested_for else ""
+    msg_text = f"**{display_name}** chiede un mini-consulto a **{destinatario}**{nota}: {domanda}"
     await cl.Message(content=msg_text, author=author).send()
     return entry, msg_text
 

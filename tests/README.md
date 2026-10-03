@@ -66,6 +66,7 @@ index.
 
 | Script | What it tries |
 |---|---|
+| `reference_cases.py` | the 4 fixed reference cases, supervisor to report (`1 2 3 4`, `--groq-key FIELD`, `--gemini [FIELD]`) |
 | `round_table.py` | discussion between two specialists |
 | `mini_consult.py` | mini-consult towards an absent colleague |
 | `correction.py` | correction of a wrong hypothesis injected on purpose |

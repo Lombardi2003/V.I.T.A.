@@ -25,6 +25,14 @@ class TestNormalization(unittest.TestCase):
                 c = _normalize_card(PatientCard(first_name=fn, last_name=ln, sex=sex))
                 self.assertEqual((c.first_name, c.last_name, c.sex), expected)
 
+    def test_minors_are_maschio_femmina(self):
+        """TEST intake normalization: under 18 (or age in months) sex is maschio/femmina, and goes back to uomo/donna for adults."""
+        cases = [("10", "m", "maschio"), ("8 mesi", "donna", "femmina"), ("17", "uomo", "maschio"),
+                 ("18", "maschio", "uomo"), ("45", "femmina", "donna"), ("", "maschio", "uomo")]
+        for age, sex, expected in cases:
+            with self.subTest(age=age, sex=sex):
+                self.assertEqual(_normalize_card(PatientCard(age=age, sex=sex)).sex, expected)
+
     def test_compact_card(self):
         """TEST intake card: compact bold layout; a brand-new patient shows only the fiscal code."""
         text = _format_card(PatientCard(fiscal_code="1234", first_name="Giulia", last_name="Verdi", age="52", sex="donna",

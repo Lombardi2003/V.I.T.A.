@@ -90,6 +90,17 @@ class TestSpecialist(helpers.VitaTestCase):
         _, actions = self.turn(CONFIRM | {"azione": "consulta", "to": "allergologo", "message": "domanda?"}, role="pulmonologist")
         self.assertEqual(actions, [("consulta", "general_practitioner")])
 
+    def test_redirected_consult_says_who_was_asked_for(self):
+        """TEST specialist: a consult redirected to the GP says in the chat which missing specialist was asked for."""
+        self.turn(CONFIRM | {"consulto_utile": "si", "collega_da_consultare": "ematologo",
+                             "domanda_per_il_collega": "servono test della coagulazione?"}, role="pulmonologist")
+        self.assertIn('a **Medicina** (richiesta per "ematologo", specialista non disponibile)', self.last_message())
+        self.turn(CONFIRM | {"azione": "consulta", "to": "pediatra", "message": "dosi?"}, role="pulmonologist")
+        self.assertIn('(richiesta per "pediatra", specialista non disponibile)', self.last_message())
+        self.turn(CONFIRM | {"consulto_utile": "si", "collega_da_consultare": "cardiologist",
+                             "domanda_per_il_collega": "domanda?"}, role="pulmonologist")
+        self.assertNotIn("richiesta per", self.last_message())
+
     def test_general_practitioner_cannot_consult_itself(self):
         """TEST specialist: the GP asking a missing role cannot be redirected to itself, so it counts as a confirmation."""
         _, actions = self.turn(CONFIRM | {"azione": "consulta", "to": "allergologo", "consulto_utile": "si",
@@ -159,11 +170,26 @@ class TestCompactPrompt(unittest.TestCase):
                                  linee_guida="l", consulto_pendente="p")
         for field in ("consulto_utile", "collega_da_consultare", "domanda_per_il_collega", "valutazione_indipendente",
                       "coincide_con_gruppo", "ipotesi_alternativa_scartata", "motivo_scarto", "fonti_consultate",
-                      "esami_consigliati", "BREVITA'", "FATTI E IPOTESI"):
+                      "esami_consigliati", "BREVITA'", "FATTI E IPOTESI", "COLLEGHI DISPONIBILI"):
             with self.subTest(field=field):
                 self.assertIn(field, SPECIALIST_PROMPT)
         # the vasculitis examples (almost the answer to one test case) are gone
         self.assertNotIn("porpora palpabile", SPECIALIST_PROMPT)
+
+    def test_not_reported_is_not_absent_rule(self):
+        """TEST prompts: specialists and primary are told that a sign not reported is unknown, not absent."""
+        from src.agents.prompts import PRIMARY_PROMPT, SPECIALIST_PROMPT
+        self.assertIn("un segno non riferito NON e' assente", SPECIALIST_PROMPT)
+        self.assertIn("X non riferito, da verificare", SPECIALIST_PROMPT)
+        self.assertIn("NON e' assente", PRIMARY_PROMPT)
+
+    def test_available_colleagues_list_every_role(self):
+        """TEST specialist prompt: the list of available colleagues names all 10 roles of the system."""
+        from src.agents.prompts import ALL_SPECIALISTS, SPECIALIST_PROMPT
+        colleagues = SPECIALIST_PROMPT.split("COLLEGHI DISPONIBILI")[1].split("\n")[0]
+        for role in ALL_SPECIALISTS:
+            with self.subTest(role=role):
+                self.assertIn(f"{role} ({clinical.SPECIALIST_DISPLAY_NAMES[role]})", colleagues)
 
 
 if __name__ == "__main__":

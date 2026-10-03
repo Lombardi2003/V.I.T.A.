@@ -110,6 +110,13 @@ _SENTENCE_END = re.compile(r"[a-zà-ù][.;:]\s")
 # (vedi commento su _INDICATOR). Prima di aggiungere una pagina qui, verificare
 # che NON contenga anche testo utile: es. p. 18 e 47 del manuale FVG iniziano
 # con un elenco di schede ma poi contengono le note d'uso, e vanno tenute.
+#
+# Escluse anche le pagine di soli autori, firme e ringraziamenti che la regola
+# "autori" di discard_reason non riconosce (elenchi con affiliazioni lunghe o
+# frasi): nella prova reale dell'app all'oculista arrivavano due pezzi di
+# SOI p. 6 ("COORDINATORE ... AUTORI ...") come linee guida. Trovate cercando
+# nell'indice i pezzi con molti nomi/enti e righe corte, e controllate pagina
+# per pagina (2026-10-02).
 EXCLUDED_PAGES = {
     "generale_fvg_manuale_triage_adulto_2018.pdf": {
         11: "schema dei livelli di triage: solo i nomi delle schede",
@@ -117,6 +124,39 @@ EXCLUDED_PAGES = {
     "generale_triage_piemonte.pdf": {
         27: "elenco non esaustivo delle indicazioni all'OBI: solo nomi di patologie",
         28: "continuazione dell'elenco delle indicazioni all'OBI",
+    },
+    "generale_umbria_sepsi.pdf": {
+        1: "gruppo di elaborazione e ringraziamenti",
+    },
+    "cardio_cardarelli_pdta_dolore_toracico.pdf": {
+        2: "gruppo di lavoro e firme di approvazione",
+    },
+    "dermatologia_aniarti_ustioni_ps.pdf": {
+        1: "titolo e nomi degli autori",
+        9: "nomi degli autori e ringraziamenti",
+    },
+    "dermatologia_aopisa_orticaria_angioedema.pdf": {
+        1: "frontespizio della procedura: firme di redazione e approvazione",
+    },
+    "neuro_fvg_pdta_ictus_fase_acuta.pdf": {
+        5: "coordinamento, revisori e metodologia di stesura",
+    },
+    "oftalmologia_soi_pronto_soccorso.pdf": {
+        5: "segreteria, editore e consiglio direttivo",
+        6: "coordinatore ed elenco degli autori",
+        7: "continuazione dell'elenco degli autori",
+        8: "continuazione dell'elenco degli autori",
+        9: "ringraziamenti",
+    },
+    "ortopedia_siot_trauma_maggiore.pdf": {
+        7: "gruppo di sviluppo della linea guida",
+        8: "revisori e gruppi di lavoro",
+        9: "revisore etico e segreteria",
+        22: "elenco delle societa' invitate allo scoping workshop",
+        23: "elenco delle societa' partecipanti",
+    },
+    "pneumo_campania_pdta_asma.pdf": {
+        4: "priorita' del PDTA e gruppo di lavoro",
     },
 }
 

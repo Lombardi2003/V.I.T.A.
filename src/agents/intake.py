@@ -93,14 +93,28 @@ def _capitalize_name(text: str) -> str:
     return re.sub(r"[^\s'\-]+", lambda m: _part(m.group(0)), text.strip())
 
 
+def _is_minor(age: str) -> bool:
+    """Eta' sotto i 18 anni, o scritta in mesi/giorni/settimane (stesso criterio
+    della nota pediatrica in clinical.py). False se l'eta' non si legge."""
+    age = age.strip().lower()
+    match = re.match(r"(\d{1,3})", age)
+    if not match:
+        return False
+    return any(u in age for u in ("mes", "giorn", "settiman")) or int(match.group(1)) < 18
+
+
 def _normalize_card(card: PatientCard) -> PatientCard:
     """Dati uniformi nella scheda stessa (non solo nella stampa), cosi' anche
-    nel database finiscono uguali: sesso "uomo"/"donna" (se non riconosciuto resta com'e'),
-    nome e cognome con l'iniziale maiuscola."""
+    nel database finiscono uguali: sesso "uomo"/"donna", oppure "maschio"/
+    "femmina" per un minorenne ("Sesso uomo" per un bambino di 10 anni suonava
+    strano, osservato nella prova reale dell'app; se non riconosciuto resta
+    com'e'), nome e cognome con l'iniziale maiuscola."""
     sex = card.sex.strip()
     for code, words in _SEX_VALUES.items():
         if sex.lower() in words:
             sex = code
+    if _is_minor(card.age):
+        sex = {"uomo": "maschio", "donna": "femmina"}.get(sex, sex)
     return card.model_copy(update={
         "sex": sex,
         "first_name": _capitalize_name(card.first_name),

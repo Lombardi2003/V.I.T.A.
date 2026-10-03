@@ -113,6 +113,13 @@ class TestReviewer(helpers.VitaTestCase):
         self.assertEqual(self.conv.symptoms, [("dolore lombare", "moderata", "da ieri")])
         self.assertIn("Confermi i dati?", self.last_message())
 
+    def test_triggering_event_rule_and_example_in_prompt(self):
+        """TEST reviewer prompt: the event that caused the symptoms goes into the trigger of each, with an example."""
+        from src.agents.prompts import REVIEWER_PROMPT
+        self.assertIn("l'EVENTO da cui il sintomo e' nato", REVIEWER_PROMPT)
+        self.assertIn('"trigger": "dopo una caduta dalle scale"', REVIEWER_PROMPT)
+        REVIEWER_PROMPT.format(patient_card="{}", awaiting_confirmation=False, user_input="x")
+
     def test_items_without_description_or_not_objects_are_ignored(self):
         """TEST reviewer: symptom items without a description, or that are not objects, are ignored."""
         answer = {"updated_card": {"symptom": {"symptoms": [{"intensity": "forte", "duration": "2 giorni"}, "tosse", None,

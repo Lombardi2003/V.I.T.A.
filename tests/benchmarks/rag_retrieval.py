@@ -134,6 +134,18 @@ OFF_TOPIC = [
 ]
 
 BIBLIOGRAPHY = re.compile(r"(et al\.|doi|N Engl J Med|Lancet|;\s*\d{4})", re.IGNORECASE)
+# Credits pages (authors, signatures, affiliations): from the right specialty
+# but useless to a specialist, so they must not count as a hit.
+CREDITS = re.compile(r"\b(AUTORI|COORDINATOR[EI]|hanno collaborato|gruppo di lavoro|revisori|a cura d[ie]l|"
+                     r"Universit[àa] degli Studi|Ospedale|IRCCS|U\.?O\.?C?\b|Dott\.?(ssa)?\s|Dr\.?(ssa)?\s|Prof\.?\s)",
+                     re.IGNORECASE)
+
+
+def looks_like_credits(text: str) -> bool:
+    """HELPER looks_like_credits: many names/institutions on mostly short lines = a credits page, not guidance."""
+    lines = [line for line in text.splitlines() if line.strip()]
+    short = sum(1 for line in lines if len(line) < 60) / max(len(lines), 1)
+    return len(CREDITS.findall(text)) >= 3 and short >= 0.6
 
 
 def build_query(role: str, descriptions: list[str]) -> list[str]:
@@ -154,12 +166,16 @@ def short_name(source_file: str) -> str:
 def evaluate_cases() -> None:
     """BENCHMARK cases: hit@1 and hit@3 per case and per specialist, using retrieve() exactly as the app does."""
     per_role = defaultdict(lambda: [0, 0, 0, 0])  # cases, hit@1, hit@3, chunks of the specialty
+    credits_found = 0
     print("=" * 100)
-    print(f"CLINICAL CASES (OK = first chunk from the right specialty, ~ = within the first {K}, NO = none)")
+    print(f"CLINICAL CASES (OK = first chunk from the right specialty, ~ = within the first {K}, NO = none; "
+          "credits pages never count)")
     print("=" * 100)
     for role, descriptions in CASES:
         results = retriever.retrieve(build_query(role, descriptions), role, k=K)
-        hits = [chunk.source_file.startswith(ROLE_PREFIX[role] + "_") for chunk in results]
+        hits = [chunk.source_file.startswith(ROLE_PREFIX[role] + "_") and not looks_like_credits(chunk.text)
+                for chunk in results]
+        credits_found += sum(looks_like_credits(chunk.text) for chunk in results)
 
         stats = per_role[role]
         stats[0] += 1
@@ -181,6 +197,7 @@ def evaluate_cases() -> None:
         n_docs = sum(1 for f in corpus_files if f.startswith(ROLE_PREFIX[role] + "_"))
         print(f"{role:22s} {n:5d} {h1:6d} {h3:6d} {own:5d}/{n * K:<6d}  {n_docs}")
     print(f"{'TOTAL':22s} {total[0]:5d} {total[1]:6d} {total[2]:6d} {total[3]:5d}/{total[0] * K:<6d}")
+    print(f"credits chunks (authors, signatures) retrieved: {credits_found}")
 
 
 def _chunk_key(chunk) -> tuple:
