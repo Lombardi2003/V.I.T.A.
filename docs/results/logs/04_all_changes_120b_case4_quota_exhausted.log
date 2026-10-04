@@ -1,0 +1,92 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "palpitazioni irregolari",
+            "specialists": ["cardiologist"]
+        },
+        {
+            "symptom": "lividi estesi comparsi da soli sulle braccia e sulle gambe",
+            "specialists": ["dermatologist"]
+        }
+    ],
+    "reasoning": "Le palpitazioni irregolari in un uomo di 65 anni con fibrillazione atriale nota richiedono una valutazione cardiologica, quindi è indicato il cardiologo. I lividi estesi e inspiegabili su braccia e gambe sono manifestazioni cutanee; l'esperto più appropriato per esaminare lesioni cutanee è il dermatologo. Non sono presenti altri sintomi che richiedano ulteriori specialisti.",
+    "specialists": ["cardiologist", "dermatologist"]
+}
+
+🚦 SUPERVISOR → ['cardiologist', 'dermatologist']
+   Checklist: {'cardiologist': True, 'dermatologist': True}
+🔀 ROUTER: turno di cardiologist (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights:  89%|████████▉ | 178/199 [00:00<00:00, 1747.31it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 1953.45it/s]
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+   2. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   3. [cardio_fvg_pdta_stemi_2022, p. 54] complicanze meccaniche, gli interventi riperfusivi non modificano la prognosi quoad vitam.
+Arresto cardiaco
+I pazienti con arresto cardio -respiratori...
+⚠️ cardiologist: errore API (Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199338, Requested 3781. Please try again in 22m27.408s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}), nessun aggiornamento - turno fallito
+🔀 ROUTER: turno di dermatologist (battuta 2/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [dermatologia_sidemast_micosi, p. 23] soprattutto da Pseudomonas
+aeruginosa, determina la comparsa di un colorito giallo-brunastro o francamente verdastro
+del letto ungueale.
+• Onicomicosi...
+   3. [dermatologia_aopisa_orticaria_angioedema, p. 2] La presente procedura è stata elaborata a cura di:
+• Dott.ssa Isabella Del Corso , dirigente medico U.O. Immunoallergologia clinica U.
+• Dott.ssa Vale...
+⚠️ dermatologist: errore API (Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199338, Requested 4030. Please try again in 24m14.976s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}), nessun aggiornamento - turno fallito
+🔀 ROUTER: turno di cardiologist (battuta 3/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+   2. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   3. [cardio_fvg_pdta_stemi_2022, p. 54] complicanze meccaniche, gli interventi riperfusivi non modificano la prognosi quoad vitam.
+Arresto cardiaco
+I pazienti con arresto cardio -respiratori...
+⚠️ cardiologist: errore API (Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199337, Requested 3781. Please try again in 22m26.976s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}), nessun aggiornamento - turno fallito
+🔀 ROUTER: cardiologist ha avuto 2 turni falliti, passa senza confermare
+🔀 ROUTER: turno di dermatologist (battuta 4/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [dermatologia_sidemast_micosi, p. 23] soprattutto da Pseudomonas
+aeruginosa, determina la comparsa di un colorito giallo-brunastro o francamente verdastro
+del letto ungueale.
+• Onicomicosi...
+   3. [dermatologia_aopisa_orticaria_angioedema, p. 2] La presente procedura è stata elaborata a cura di:
+• Dott.ssa Isabella Del Corso , dirigente medico U.O. Immunoallergologia clinica U.
+• Dott.ssa Vale...
+⚠️ dermatologist: errore API (Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199336, Requested 4030. Please try again in 24m14.112s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}), nessun aggiornamento - turno fallito
+🔀 ROUTER: dermatologist ha avuto 2 turni falliti, passa senza confermare
+🔀 ROUTER: ipotesi confermata da tutti tranne chi e' passato oltre (cardiologist, dermatologist) -> giro di verifica finale
+🔀 ROUTER: ipotesi di gruppo confermata da tutti tranne chi e' passato oltre (cardiologist, dermatologist) -> primario
+⚠️ PRIMARIO: chiamata al modello fallita (Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199336, Requested 1839. Please try again in 8m27.6s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}})
+⚠️ PRIMARIO: sintesi non disponibile, si riporta l'ipotesi di gruppo (nessuna risposta dal modello)
+👨‍⚕️ PRIMARIO → diagnosi='Ipotesi diagnostica non determinata per un errore tecnico.' | urgenza=ARANCIONE
+
+####################################################################################################
+CASO 4: Palpitazioni + lividi: 65 anni, fibrillazione atriale nota   [groq/openai/gpt-oss-120b (ragionamento low)]   tempo 8 s
+specialisti: ['cardiologist', 'dermatologist']
+
+IPOTESI DI GRUPPO: None
+passati senza confermare: ['cardiologist', 'dermatologist'] | turni falliti: {'cardiologist': 2, 'dermatologist': 2} | battute: 4
+DIAGNOSI FINALE: {'diagnosis': 'Ipotesi diagnostica non determinata per un errore tecnico.', 'urgency_level': 'ARANCIONE', 'specialists_involved': ['cardiologist', 'dermatologist'], 'recommended_exams': [], 'to_verify': [], 'operational_guidance': 'Valutazione medica diretta necessaria.', 'recommendations': "Ne' il tavolo degli specialisti ne' il primario hanno prodotto una valutazione: codice ARANCIONE assegnato in via cautelativa."}

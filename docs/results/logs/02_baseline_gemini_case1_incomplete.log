@@ -1,0 +1,204 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 1/2 tra 5.0s
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "dolore al ginocchio",
+            "specialists": ["orthopedist", "dermatologist"]
+        }
+    ],
+    "reasoning": "Il paziente presenta dolore insopportabile al ginocchio conseguente a una caduta in bicicletta, indicativo di un trauma articolare/osseo che richiede la valutazione di un ortopedico (orthopedist). Contestualmente, la caratteristica 'sbucciato' e la foto allegata evidenziano una lesione cutanea superficiale (abrasione/ferita da sfregamento con perdita dell'epidermide), ambito di competenza del dermatologo (dermatologist) per la gestione della ferita cutanea.",
+    "specialists": ["orthopedist", "dermatologist"]
+}
+
+🚦 SUPERVISOR → ['orthopedist', 'dermatologist']
+   Checklist: {'orthopedist': True, 'dermatologist': True}
+🔀 ROUTER: turno di orthopedist (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 3889.50it/s]
+📚 RAG [orthopedist]: 3 pezzi recuperati
+   1. [ortopedia_fvg_pdta_femore_over65, p. 13]  all’arrivo in ospedale;
+ entro 30 minuti dalla somministrazione dei primi analgesici;
+ ogni ora fino all’avvenuto trasferimento in reparto;
+ rego...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+   3. [ortopedia_fvg_pdta_femore_over65, p. 17] riguardo a:
+ valutazione presenza e intensità del dolore
+ documentazione pregressi ricoveri
+ farmaci assunti
+ allergie
+ patologie pregresse
+ pre...
+```json
+{
+    "azione": "proponi",
+    "consulto_utile": "no",
+    "collega_da_consultare": null,
+    "domanda_per_il_collega": null,
+    "diagnosi": "Trauma contusivo-distorsivo del ginocchio con sospetta lesione ossea (frattura di rotula, distacco epifisario o frattura osteocondrale) o capsulo-legamentosa acuta, associato ad abrasione cutanea superficiale",
+    "urgenza": "AZZURRO",
+    "esami_consigliati": [
+        "RX ginocchio in 2 proiezioni (antero-posteriore e latero-laterale)",
+        "RX assiale di rotula (a 30° o 45°)",
+        "Esame obiettivo ortopedico (valutazione articolarità, presenza di idrartro/emartro teso, test di stabilità legamentosa, integrità dell'apparato estensore)",
+        "Eventuale RMN ginocchio (in seconda battuta se RX negativa ma persistenza di deficit funzionale, sospetto emartro o lesione meniscale/legamentosa)"
+    ],
+    "dettagli": "Paziente di 14 anni che presenta gonalgia acuta insorta 10 ore fa in seguito a caduta in bicicletta. Sebbene l'immagine evidenzi un'abrasione superficiale compatibile con lo sfregamento sull'asfalto, l'intensità del dolore riferita come 'insopportabile' è sproporzionata per una semplice lesione dermo-epidermica. Nell'adolescente, con cartilagini di accrescimento ancora aperte, una caduta diretta sul ginocchio espone a rischio significativo di distacchi epifisari (es. eminenza tibiale o tuberosità tibiale anteriore), fratture di rotula o lesioni osteocondrali, oltre a possibili lesioni dell'apparato capsulo-legamentoso o emartro acuto. È mandatorio eseguire un controllo radiografico urgente per escludere fratture e impostare un'adeguata terapia antalgica, oltre alla detersione/disinfezione della ferita e al controllo della copertura antitetanica.",
+    "ipotesi_alternativa_scartata": "Contusione/abrasione cutanea isolata senza danno osteoarticolare sottostante",
+    "motivo_scarto": "La sola escoriazione cutanea superficiale non giustifica un dolore descritto come insopportabile e persistente a 10 ore dall'evento traumatico in un quattordicenne.",
+    "fonti_consultate": "nessuna pertinente",
+    "message": "Buongiorno colleghi, apro io la discussione. Il ragazzo ha 14 anni e riporta un dolore 'insopportabile' dopo una caduta in bicicletta. Anche se la foto mostra un'escoriazione superficiale, l'intensità del dolore a 10 ore dal trauma suggerisce fortemente un danno strutturale sottostante (frattura di rotula, distacco epifisario tipico dell'età o lesione legamentosa/emartro acuto). Propongo di classificarlo con codice AZZURRO per dolore severo e richiedere subito radiografie del ginocchio ed esame obiettivo ortopedico."
+}
+```
+
+🔀 ROUTER: turno di dermatologist (battuta 2/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 9] e l’onicogrifosi. Considerando la contagiosità delle dermatofitosi e i costi sanitari per il loro
+trattamento è necessario che la diagnosi sia quanto ...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   3. [dermatologia_sidemast_micosi, p. 24] cause. Le modalità di invasione della lamina e i conseguenti quadri clinici sono sovrapponibili a quelli sovra ricordati per i dermatofiti. L’aspetto ...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 5.0s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 5.0s
+⚠️ dermatologist: errore API (Error code: 503 - [{'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}]), nessun aggiornamento - turno fallito
+🔀 ROUTER: turno di dermatologist (battuta 3/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 9] e l’onicogrifosi. Considerando la contagiosità delle dermatofitosi e i costi sanitari per il loro
+trattamento è necessario che la diagnosi sia quanto ...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   3. [dermatologia_sidemast_micosi, p. 24] cause. Le modalità di invasione della lamina e i conseguenti quadri clinici sono sovrapponibili a quelli sovra ricordati per i dermatofiti. L’aspetto ...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 5.0s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 5.0s
+⚠️ dermatologist: errore API (Error code: 429 - [{'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\nPlease retry in 38.063209102s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '38s'}]}}]), nessun aggiornamento - turno fallito
+🔀 ROUTER: dermatologist ha avuto 2 turni falliti, passa senza confermare
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di orthopedist (battuta 4/12)
+📚 RAG [orthopedist]: 3 pezzi recuperati
+   1. [ortopedia_fvg_pdta_femore_over65, p. 13]  all’arrivo in ospedale;
+ entro 30 minuti dalla somministrazione dei primi analgesici;
+ ogni ora fino all’avvenuto trasferimento in reparto;
+ rego...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+   3. [ortopedia_fvg_pdta_femore_over65, p. 17] riguardo a:
+ valutazione presenza e intensità del dolore
+ documentazione pregressi ricoveri
+ farmaci assunti
+ allergie
+ patologie pregresse
+ pre...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 5.0s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 5.0s
+⚠️ orthopedist: errore API (Error code: 429 - [{'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\nPlease retry in 27.230569892s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-3.8-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27s'}]}}]), nessun aggiornamento - turno fallito
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 5.0s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 5.0s
+Traceback (most recent call last):
+  File "C:\Users\lomba\AppData\Local\Temp\claude\C--Users-lomba-Desktop-VITA\8d59681a-14c1-4d57-8369-28c101fa7147\scratchpad\test_reference.py", line 97, in <module>
+    asyncio.run(main(sys.argv[1]))
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.2800.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.2800.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.2800.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\AppData\Local\Temp\claude\C--Users-lomba-Desktop-VITA\8d59681a-14c1-4d57-8369-28c101fa7147\scratchpad\test_reference.py", line 78, in main
+    async for _ in app.astream_events(None, config=config, version="v2"):
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langchain_core\runnables\base.py", line 1658, in _astream_events_v1_v2
+    async for event in event_stream:
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langchain_core\tracers\event_stream.py", line 1105, in _astream_events_implementation_v2
+    await task
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langchain_core\tracers\event_stream.py", line 1060, in consume_astream
+    async for _ in event_streamer.tap_output_aiter(run_id, stream):
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langchain_core\tracers\event_stream.py", line 224, in tap_output_aiter
+    async for chunk in output:
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langgraph\pregel\main.py", line 3440, in astream
+    async for _ in runner.atick(
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langgraph\pregel\_runner.py", line 396, in atick
+    await arun_with_retry(
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langgraph\pregel\_retry.py", line 741, in arun_with_retry
+    async for _ in task.proc.astream(task.input, config):
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langgraph\_internal\_runnable.py", line 867, in astream
+    output = await asyncio.create_task(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langgraph\_internal\_runnable.py", line 932, in _consume_aiter
+    async for chunk in it:
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langchain_core\tracers\event_stream.py", line 201, in tap_output_aiter
+    first = await anext(output, sentinel)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langchain_core\runnables\base.py", line 1818, in atransform
+    async for ichunk in input:
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langchain_core\runnables\base.py", line 1222, in astream
+    yield await self.ainvoke(input, config, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langgraph\_internal\_runnable.py", line 501, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\Desktop\VITA\src\agents\clinical.py", line 892, in primary_node
+    content = await asyncio.to_thread(stream_response, prompt)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.2800.0_x64__qbz5n2kfra8p0\Lib\asyncio\threads.py", line 25, in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.2800.0_x64__qbz5n2kfra8p0\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\Desktop\VITA\src\agents\common.py", line 16, in stream_response
+    return stream_text(prompt_current_card, llm_client or llm)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\Desktop\VITA\src\llm\calls.py", line 108, in stream_text
+    return call_with_retry(_stream)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\Desktop\VITA\src\llm\calls.py", line 58, in call_with_retry
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\Desktop\VITA\src\llm\calls.py", line 101, in _stream
+    for chunk in client.stream(prompt):
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langchain_core\language_models\chat_models.py", line 778, in stream
+    for chunk in self._stream(input_messages, stop=stop, **kwargs):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langchain_openai\chat_models\base.py", line 1692, in _stream
+    _handle_openai_api_error(e)
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\langchain_openai\chat_models\base.py", line 1665, in _stream
+    response = self.client.create(**payload)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\openai\_utils\_utils.py", line 298, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\openai\resources\chat\completions\completions.py", line 1284, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\openai\_base_client.py", line 1360, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lomba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\openai\_base_client.py", line 1133, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.RateLimitError: Error code: 429 - [{'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\nPlease retry in 16.440396464s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-3.8-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '16s'}]}}]
+During task with name 'chief_physician' and id '2670b99e-1e3a-e73b-5160-7dba97a9a0a2'

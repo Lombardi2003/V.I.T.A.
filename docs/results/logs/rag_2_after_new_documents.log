@@ -1,0 +1,118 @@
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2766.54it/s]
+====================================================================================================
+CASI CLINICI (OK = primo pezzo della specialita' giusta, ~ = tra i primi 3, NO = nessuno)
+====================================================================================================
+OK Cardiologia - dolore toracico oppressivo, sudorazione fredda   -> cardio_cardarelli_pdta_dolore_toracico p.17(0.227), cardio_protocollo_dolore_toracico p.2(0.233), generale_fvg_manuale_triage_adulto_2018 p.34(0.243)
+~  Cardiologia - palpitazioni, senso di svenimento                -> generale_fvg_manuale_triage_adulto_2018 p.34(0.243), cardio_fvg_pdta_stemi_2022 p.58(0.266), cardio_cardarelli_pdta_dolore_toracico p.14(0.276)
+~  Cardiologia - dolore al petto che si irradia al braccio sinist -> generale_fvg_manuale_triage_adulto_2018 p.34(0.260), cardio_protocollo_dolore_toracico p.3(0.279), cardio_fvg_pdta_stemi_2022 p.20(0.284)
+~  Neurologia - debolezza al braccio destro, difficoltà a parlare -> generale_fvg_manuale_triage_adulto_2018 p.36(0.253), neuro_fvg_pdta_ictus_fase_acuta p.65(0.277), neuro_fvg_pdta_ictus_fase_acuta p.16(0.282)
+OK Neurologia - bocca storta, formicolio alla mano                -> neuro_fvg_pdta_ictus_fase_acuta p.16(0.274), neuro_fvg_pdta_ictus_fase_acuta p.52(0.277), generale_fvg_manuale_triage_adulto_2018 p.39(0.278)
+~  Neurologia - mal di testa improvviso e violento                -> generale_fvg_manuale_triage_adulto_2018 p.19(0.248), neuro_ausl_bologna_cefalea p.12(0.261), neuro_fvg_pdta_ictus_fase_acuta p.32(0.261)
+OK Dermatologia - macchie rosse pruriginose sulla pelle           -> dermatologia_sidemast_micosi p.15(0.286), dermatologia_sidemast_micosi p.10(0.286), generale_fvg_manuale_triage_adulto_2018 p.27(0.319)
+OK Dermatologia - chiazza desquamante tra le dita dei piedi       -> dermatologia_sidemast_micosi p.23(0.261), dermatologia_sidemast_micosi p.8(0.270), generale_triage_piemonte p.34(0.317)
+OK Dermatologia - ustione alla mano                               -> dermatologia_aniarti_ustioni_ps p.2(0.285), dermatologia_sidemast_micosi p.9(0.288), generale_fvg_manuale_triage_adulto_2018 p.28(0.296)
+OK Dermatologia - pomfi pruriginosi, gonfiore delle labbra        -> dermatologia_aopisa_orticaria_angioedema p.4(0.267), dermatologia_sidemast_micosi p.15(0.272), generale_fvg_manuale_triage_adulto_2018 p.48(0.307)
+OK Dermatologia - gamba arrossata, calda e dolente, febbre        -> dermatologia_sidemast_micosi p.9(0.251), dermatologia_emiliaromagna_erisipela_cellulite p.1(0.273), generale_fvg_manuale_triage_adulto_2018 p.48(0.279)
+~  Ortopedia - dolore all'anca dopo una caduta                    -> generale_fvg_manuale_triage_adulto_2018 p.57(0.276), ortopedia_fvg_pdta_femore_over65 p.13(0.301), ortopedia_siot_trauma_maggiore p.22(0.305)
+~  Ortopedia - dolore alla gamba dopo incidente stradale          -> generale_fvg_manuale_triage_adulto_2018 p.57(0.284), ortopedia_siot_trauma_maggiore p.5(0.288), ortopedia_siot_trauma_maggiore p.22(0.295)
+OK Ortopedia - distorsione alla caviglia, gonfiore alla caviglia  -> ortopedia_fvg_pdta_femore_over65 p.19(0.285), generale_fvg_manuale_triage_adulto_2018 p.48(0.294), ortopedia_fvg_pdta_femore_over65 p.13(0.306)
+OK Gastroenterologia - dolore addominale, vomito                  -> gastro_aopisa_dolore_addominale p.4(0.219), generale_fvg_manuale_triage_adulto_2018 p.41(0.248), gastro_aopisa_dolore_addominale p.4(0.253)
+OK Gastroenterologia - sangue nelle feci                          -> gastro_fvg_pdta_emorragie_digestive p.9(0.264), gastro_fvg_pdta_emorragie_digestive p.8(0.266), generale_fvg_manuale_triage_adulto_2018 p.43(0.288)
+OK Gastroenterologia - dolore addominale dopo pasti grassi        -> gastro_aopisa_dolore_addominale p.4(0.270), generale_fvg_manuale_triage_adulto_2018 p.41(0.278), gastro_fvg_pdta_emorragie_digestive p.37(0.290)
+OK Pneumologia - difficoltà respiratoria, tosse persistente       -> pneumo_campania_pdta_asma p.59(0.258), pneumo_campania_pdta_asma p.15(0.260), generale_fvg_manuale_triage_adulto_2018 p.33(0.262)
+~  Pneumologia - dolore toracico quando respiro, fiato corto      -> generale_fvg_manuale_triage_adulto_2018 p.25(0.224), pneumo_campania_pdta_asma p.59(0.247), pneumo_campania_pdta_asma p.15(0.256)
+OK Pneumologia - attacco d'asma                                   -> pneumo_campania_pdta_asma p.59(0.252), pneumo_campania_pdta_asma p.43(0.252), generale_fvg_manuale_triage_adulto_2018 p.48(0.284)
+OK Otorinolaringoiatria - mal d'orecchio, febbre                  -> ent_priorita_orl p.1(0.240), ent_priorita_orl p.1(0.250), generale_triage_piemonte p.10(0.288)
+OK Otorinolaringoiatria - sangue dal naso                         -> ent_priorita_orl p.2(0.279), ent_priorita_orl p.1(0.285), generale_fvg_manuale_triage_adulto_2018 p.52(0.300)
+OK Otorinolaringoiatria - mal di gola, difficoltà a deglutire     -> ent_priorita_orl p.1(0.269), ent_priorita_orl p.1(0.270), generale_fvg_manuale_triage_adulto_2018 p.48(0.276)
+OK Oftalmologia - occhio rosso, dolore oculare                    -> oftalmologia_soi_pronto_soccorso p.6(0.251), oftalmologia_soi_pronto_soccorso p.6(0.252), generale_fvg_manuale_triage_adulto_2018 p.51(0.271)
+OK Oftalmologia - corpo estraneo nell'occhio                      -> oftalmologia_soi_pronto_soccorso p.138(0.261), oftalmologia_soi_pronto_soccorso p.141(0.263), generale_fvg_manuale_triage_adulto_2018 p.51(0.287)
+OK Oftalmologia - perdita improvvisa della vista                  -> oftalmologia_triage p.1(0.246), oftalmologia_soi_pronto_soccorso p.101(0.254), generale_fvg_manuale_triage_adulto_2018 p.51(0.264)
+~  Urologia - dolore al fianco, bruciore quando urino             -> generale_fvg_manuale_triage_adulto_2018 p.55(0.259), urologia_pdta_colica_renale p.6(0.272), urologia_pdta_colica_renale p.2(0.279)
+OK Urologia - colica renale                                       -> urologia_pdta_colica_renale p.2(0.234), urologia_pdta_colica_renale p.5(0.250), generale_fvg_manuale_triage_adulto_2018 p.55(0.282)
+OK Urologia - impossibilità a urinare                             -> urologia_pdta_colica_renale p.2(0.274), urologia_pdta_colica_renale p.5(0.293), generale_fvg_manuale_triage_adulto_2018 p.48(0.294)
+OK Medicina - febbre alta, stanchezza                             -> generale_fvg_manuale_triage_adulto_2018 p.17(0.283), generale_triage_piemonte p.30(0.283), generale_fvg_manuale_triage_adulto_2018 p.48(0.285)
+OK Medicina - svenimento                                          -> generale_fvg_manuale_triage_adulto_2018 p.48(0.302), generale_fvg_manuale_triage_adulto_2018 p.35(0.303), generale_triage_piemonte p.39(0.305)
+OK Medicina - malessere generale, febbre                          -> generale_fvg_manuale_triage_adulto_2018 p.48(0.255), generale_triage_piemonte p.22(0.284), generale_fvg_manuale_triage_adulto_2018 p.19(0.289)
+
+specialista            casi  hit@1  hit@3  pezzi spec.  documenti nel corpus
+cardiologist              3      1      3     6/9       3
+neurologist               3      1      3     6/9       2
+dermatologist             5      5      5    10/15      4
+orthopedist               3      1      3     6/9       2
+gastroenterologist        3      3      3     6/9       2
+pulmonologist             3      2      3     6/9       2
+ent                       3      3      3     6/9       1
+ophthalmologist           3      3      3     6/9       2
+urologist                 3      2      3     6/9       1
+general_practitioner      3      3      3     9/9       4
+TOTALE                   32     24     32    67/96    
+
+====================================================================================================
+CASI CON SINTOMI MISTI (sovrapposizione con il recupero sul solo sintomo pertinente)
+====================================================================================================
+3/3 Gastroenterologia - sintomo pertinente: dolore addominale tipo crampi
+      con tutti i sintomi: gastro_aopisa_dolore_addominale p.4, generale_fvg_manuale_triage_adulto_2018 p.57, gastro_aopisa_dolore_addominale p.4
+      solo il pertinente:  gastro_aopisa_dolore_addominale p.4, generale_fvg_manuale_triage_adulto_2018 p.57, gastro_aopisa_dolore_addominale p.4
+2/3 Dermatologia - sintomo pertinente: eruzione cutanea con macchie rosse pruriginose
+      con tutti i sintomi: dermatologia_sidemast_micosi p.15, dermatologia_aopisa_orticaria_angioedema p.4, generale_fvg_manuale_triage_adulto_2018 p.19
+      solo il pertinente:  dermatologia_sidemast_micosi p.15, dermatologia_aopisa_orticaria_angioedema p.4, generale_triage_piemonte p.34
+3/3 Cardiologia - sintomo pertinente: dolore toracico oppressivo
+      con tutti i sintomi: cardio_cardarelli_pdta_dolore_toracico p.17, cardio_protocollo_dolore_toracico p.2, generale_fvg_manuale_triage_adulto_2018 p.34
+      solo il pertinente:  cardio_cardarelli_pdta_dolore_toracico p.17, cardio_protocollo_dolore_toracico p.2, generale_fvg_manuale_triage_adulto_2018 p.34
+3/3 Neurologia - sintomo pertinente: mal di testa improvviso e violento
+      con tutti i sintomi: generale_fvg_manuale_triage_adulto_2018 p.19, neuro_ausl_bologna_cefalea p.12, neuro_fvg_pdta_ictus_fase_acuta p.32
+      solo il pertinente:  generale_fvg_manuale_triage_adulto_2018 p.19, neuro_ausl_bologna_cefalea p.12, neuro_fvg_pdta_ictus_fase_acuta p.32
+3/3 Urologia - sintomo pertinente: bruciore quando urino
+      con tutti i sintomi: generale_fvg_manuale_triage_adulto_2018 p.55, urologia_pdta_colica_renale p.6, urologia_pdta_colica_renale p.2
+      solo il pertinente:  generale_fvg_manuale_triage_adulto_2018 p.55, urologia_pdta_colica_renale p.6, urologia_pdta_colica_renale p.2
+1/3 Ortopedia - sintomo pertinente: dolore all'anca dopo una caduta
+      con tutti i sintomi: generale_fvg_manuale_triage_adulto_2018 p.57, ortopedia_siot_trauma_maggiore p.128, ortopedia_fvg_pdta_femore_over65 p.15
+      solo il pertinente:  generale_fvg_manuale_triage_adulto_2018 p.57, ortopedia_fvg_pdta_femore_over65 p.13, ortopedia_siot_trauma_maggiore p.22
+3/3 Pneumologia - sintomo pertinente: tosse persistente
+      con tutti i sintomi: pneumo_campania_pdta_asma p.59, pneumo_campania_pdta_asma p.15, generale_fvg_manuale_triage_adulto_2018 p.33
+      solo il pertinente:  pneumo_campania_pdta_asma p.59, pneumo_campania_pdta_asma p.15, generale_fvg_manuale_triage_adulto_2018 p.33
+3/3 Oftalmologia - sintomo pertinente: occhio rosso
+      con tutti i sintomi: oftalmologia_soi_pronto_soccorso p.6, oftalmologia_soi_pronto_soccorso p.6, generale_triage_piemonte p.33
+      solo il pertinente:  oftalmologia_soi_pronto_soccorso p.6, oftalmologia_soi_pronto_soccorso p.6, generale_triage_piemonte p.33
+3/3 Otorinolaringoiatria - sintomo pertinente: mal di gola
+      con tutti i sintomi: ent_priorita_orl p.1, ent_priorita_orl p.1, generale_fvg_manuale_triage_adulto_2018 p.48
+      solo il pertinente:  ent_priorita_orl p.1, ent_priorita_orl p.1, generale_fvg_manuale_triage_adulto_2018 p.48
+--> sovrapposizione totale 24/27
+
+====================================================================================================
+QUERY FUORI TEMA (nessun pezzo dovrebbe essere davvero pertinente)
+====================================================================================================
+   ricetta della carbonara con guanciale                          -> generale_fvg_manuale_triage_adulto_2018(0.395), cardio_fvg_pdta_stemi_2022(0.406), cardio_fvg_pdta_stemi_2022(0.411)
+   risultati del campionato di calcio                             -> cardio_fvg_pdta_stemi_2022(0.378), cardio_fvg_pdta_stemi_2022(0.403), generale_fvg_manuale_triage_adulto_2018(0.416)
+
+====================================================================================================
+RUMORE NELL'INDICE (pezzi quasi vuoti <200 caratteri, parole incollate, bibliografia)
+====================================================================================================
+file                                        totale   vuoti  incoll.  biblio
+cardio_cardarelli_pdta_dolore_toracico.pdf      38       1        0       0
+cardio_fvg_pdta_stemi_2022.pdf                 180       7        0       0
+cardio_protocollo_dolore_toracico.pdf           23       2        0       0
+dermatologia_aniarti_ustioni_ps.pdf             15       2        0       0
+dermatologia_aopisa_orticaria_angioedema.pdf      25       1        0       0
+dermatologia_emiliaromagna_erisipela_cellulite.pdf       5       0        0       0
+dermatologia_sidemast_micosi.pdf               103       5        0       0
+ent_priorita_orl.pdf                             7       0        0       0
+gastro_aopisa_dolore_addominale.pdf             13       0        0       0
+gastro_fvg_pdta_emorragie_digestive.pdf        142      12        2       0
+generale_fvg_manuale_triage_adulto_2018.pdf     182      11        0       0
+generale_simeu_triage_percorsi.pdf              13       0        0       0
+generale_triage_piemonte.pdf                   138       6        0       0
+generale_umbria_sepsi.pdf                       77       4        0       0
+neuro_ausl_bologna_cefalea.pdf                  73       1        0       0
+neuro_fvg_pdta_ictus_fase_acuta.pdf            239      16        1       0
+oftalmologia_soi_pronto_soccorso.pdf           507      11        0       0
+oftalmologia_triage.pdf                          5       1        0       0
+ortopedia_fvg_pdta_femore_over65.pdf            73       4        0       0
+ortopedia_siot_trauma_maggiore.pdf             302      30        0       0
+pneumo_campania_pdta_asma.pdf                  257       9        0       0
+pneumo_simeu_riacutizzazione_bpco.pdf           43       3        0       0
+urologia_pdta_colica_renale.pdf                 18       0        0       0
+TOTALE                                        2478     126        3       0

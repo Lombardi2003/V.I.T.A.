@@ -1,0 +1,278 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "dolore addominale tipo crampi",
+            "specialists": ["gastroenterologist"]
+        },
+        {
+            "symptom": "eruzione cutanea con macchie rosse pruriginose",
+            "specialists": ["dermatologist"]
+        }
+    ],
+    "reasoning": "La paziente presenta dolore addominale crampiforme acuto e forte, di competenza gastroenterologica, associato a un'eruzione cutanea eritematosa e pruriginosa di recente insorgenza, di competenza dermatologica.",
+    "specialists": ["gastroenterologist", "dermatologist"]
+}
+
+🚦 SUPERVISOR → ['gastroenterologist', 'dermatologist']
+   Checklist: {'gastroenterologist': True, 'dermatologist': True}
+🔀 ROUTER: turno di gastroenterologist (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 3892.40it/s]
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+   3. [gastro_aopisa_dolore_addominale, p. 4] Cause Extra-Addominali
+Patologie Toraciche (IMA, Polmoniti, Pleuriti, TEP, PNX, Patologie Esofagee)
+µ Compressione o Flogosi di radici o nervi spinali...
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 1/2 tra 5.0s
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 2/2 tra 5.0s
+```json
+{
+    "azione": "proponi",
+    "consulto_utile": "si",
+    "collega_da_consultare": "allergist",
+    "domanda_per_il_collega": "In presenza di crampi addominali acuti seguiti da eruzione cutanea pruriginosa, quali criteri clinici consentono di distinguere rapidamente una reazione anafilattica sistemica (da alimenti o farmaci) da una sindrome sgombroide o altra tossinfezione istamino-mediata?",
+    "diagnosi": "Sospetta reazione allergica acuta sistemica / anafilassi con interessamento gastrointestinale e cutaneo (in alternativa: tossinfezione alimentare a genesi istaminica)",
+    "urgenza": "ARANCIONE",
+    "esami_consigliati": [
+        "Valutazione immediata parametri vitali (PA, FC, SpO2) e pervietà vie aeree",
+        "Esami ematochimici generali con emocromo, PCR, elettroliti, funzionalità epatica e renale",
+        "Dosaggio della triptasi sierica (al tempo zero e a distanza di 1-2 ore)",
+        "Ecografia addome completo per escludere cause ostruttive o flogistiche endoaddominali acute"
+    ],
+    "dettagli": "Paziente donna di 34 anni che presenta da 6 ore dolore addominale crampiforme di forte intensità, a cui si è aggiunta da 3 ore un'eruzione cutanea con macchie rosse pruriginose. Dal punto di vista gastroenterologico, la combinazione iperacuta di crampi addominali e lesioni cutanee pruriginose suggerisce un interessamento sistemico, primariamente compatibile con una reazione da ipersensibilità immediata/anafilassi (coinvolgimento di almeno due apparati: gastrointestinale e tegumentario) o una tossinfezione con liberazione di istamina. L'urgenza è posta come ARANCIONE per il rischio intrinseco di progressione verso compromissione respiratoria o emodinamica.",
+    "ipotesi_alternativa_scartata": "Gastroenterite infettiva acuta o addome acuto infiammatorio (es. appendicite acuta)",
+    "motivo_scarto": "Tali condizioni non spiegano la comparsa sincrona o a brevissima distanza di un'eruzione cutanea eritematosa marcatamente pruriginosa, tipica espressione di liberazione di mediatori mastocitari.",
+    "fonti_consultate": "[gastro_aopisa_dolore_addominale, p. 4] Cause Extra-Addominali di dolore addominale (cause tossiche e sistemiche)",
+    "message": "Apro il confronto proponendo un'ipotesi di reazione allergica acuta sistemica con compromissione gastrointestinale e cutanea, senza escludere una tossinfezione da istamina. Considerata la presenza del rash pruriginoso associato ai forti crampi, ritengo opportuno richiedere contestualmente il parere di un allergologo per una valutazione mirata sui criteri di anafilassi."
+}
+```
+
+🔀 gastroenterologist: consulto_utile=si verso 'allergist' (non nel roster) -> reindirizzato a general_practitioner
+🔀 gastroenterologist: consulto_utile=si -> mini-consulto verso general_practitioner, in aggiunta all'azione 'proponi'
+🔀 ROUTER: general_practitioner coinvolto nella discussione su richiesta di un collega
+🔀 ROUTER: turno di general_practitioner (battuta 2/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_simeu_triage_percorsi, p. 7] Triage avanzato dolore
+addominale
+Valutazione sulla porta(ABC)
+
+Compromissione
+Valutazione oggettiva parametri
+Valutazione dell’addome
+C.V.P . ed esam...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 41] 3.2.10 Dolore Addominale
+
+* DOLORE EPIGASTRICO
+* VAI ALLA SCHEDA DOLORE TORACICO
+2 IN ATTO, SEVERO
+2 ANAMNESI PER ANEURISMA AORTA ADDOMINALE
+2 EMATEME...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 1/2 tra 5.0s
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 2/2 tra 5.0s
+⚠️ general_practitioner: errore API (Error code: 503 - [{'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}]), nessun aggiornamento - turno fallito
+🔀 ROUTER: turno di general_practitioner (battuta 3/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_simeu_triage_percorsi, p. 7] Triage avanzato dolore
+addominale
+Valutazione sulla porta(ABC)
+
+Compromissione
+Valutazione oggettiva parametri
+Valutazione dell’addome
+C.V.P . ed esam...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 41] 3.2.10 Dolore Addominale
+
+* DOLORE EPIGASTRICO
+* VAI ALLA SCHEDA DOLORE TORACICO
+2 IN ATTO, SEVERO
+2 ANAMNESI PER ANEURISMA AORTA ADDOMINALE
+2 EMATEME...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 1/2 tra 5.0s
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 2/2 tra 5.0s
+{
+    "azione": "conferma",
+    "valutazione_indipendente": "Paziente di 34 anni con forte dolore addominale crampiforme insorto da 6 ore e comparsa successiva (da 3 ore) di lesioni cutanee eritematose e pruriginose. Dal punto di vista della medicina generale, il quadro clinico depone primariamente per una reazione sistemica acuta con coinvolgimento di due apparati (gastroenterico e tegumentario), compatibile con anafilassi/ipersensibilità immediata o tossinfezione a genesi istaminica (es. sindrome sgombroide). Il codice di urgenza deve essere ARANCIONE per il potenziale rischio di rapido deterioramento respiratorio o emodinamico.",
+    "coincide_con_gruppo": "si",
+    "consulto_utile": "no",
+    "collega_da_consultare": null,
+    "domanda_per_il_collega": null,
+    "to": null,
+    "motivazione": "Rispondo innanzitutto al collega gastroenterologo sulla diagnosi differenziale rapida: 1) Anamnesi alimentare e farmacologica: consumo di pesce conservato (sgombro, tonno) orienta verso sindrome sgombroide, specie se ha coinvolto altri commensali o se è stato percepito sapore metallico/piccante; l'assunzione di farmaci (es. FANS, antibiotici) o alimenti a rischio in soggetti atopici orienta per anafilassi. 2) Caratteristiche del rash: l'anafilassi tipicamente induce pomfi orticarioidi fugaci e pruriginosi e/o angioedema, mentre l'intossicazione da istamina esogena si manifesta più spesso come flushing/eritema confluente maculare al volto e tronco superiore, cefalea pulsante e sensazione di calore. 3) Biomarcatori: il dosaggio della triptasi sierica (aumentata nell'anafilassi da degranulazione mastocitaria, normale nella sindrome sgombroide da istamina esogena). Concordo pienamente con l'ipotesi di gruppo, la priorità ARANCIONE e il monitoraggio stretto dei parametri.",
+    "ipotesi_alternativa_scartata": "Patologia endoaddominale acuta flogistica o ostruttiva isolata (es. colica biliare/renale, appendicite acuta)",
+    "motivo_scarto": "Non giustifica la comparsa concomitante dell'esantema pruriginoso, che orienta in modo dirimente verso una genesi immuno-mediata o istaminergica sistemica.",
+    "fonti_consultate": "[generale_simeu_triage_percorsi, p. 7] valutazione primaria ABC, monitoraggio parametri vitali ed esami urgenti nel dolore addominale acuto",
+    "message": "Rispondo subito al quesito di Gastroenterologia: per distinguere rapidamente un'anafilassi sistemica da una sindrome sgombroide/tossinfezione istaminica sono dirimenti: 1) l'anamnesi alimentare (consumo di pesce tipo tonno/sgombro mal conservato, sapore metallico/pepato iniziale, coinvolgimento di altri commensali depongono per tossinfezione); 2) la semeiologia cutanea (orticaria con pomfi ed eventuale angioedema nell'anafilassi vs flushing/eritema maculare diffuso con cefalea e vampate nella sgombroide); 3) la triptasi sierica seriata (elevata nell'anafilassi, normale nell'ingestione di istamina preformata). Condivido pienamente l'ipotesi diagnostica, gli accertamenti e il codice ARANCIONE con monitoraggio ABC."
+}
+
+🔀 ROUTER: turno di gastroenterologist (battuta 4/12)
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 45] § Vomito: pericolo di aspirazione o di contatto ripetuto con la sostanza t ossica a livello di mucose esofagee e del cavo
+orale.
+§ Tosse insistente: s...
+   2. [gastro_fvg_pdta_emorragie_digestive, p. 25] ● Per i pazienti a basso rischio (GBS<1, stratificazione precisa) programmare EGDS non urgente ma differita,
+ovvero primo appuntamento possibile nell’...
+   3. [gastro_fvg_pdta_emorragie_digestive, p. 9] ▪ impossibilità ad ottenere una riduzione della frequenza cardiaca di almeno
+10b/min o a livelli <100b/min
+o C) Fallimento del trattamento dopo 6 ore....
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 1/2 tra 5.0s
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 2/2 tra 5.0s
+```json
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Paziente giovane con insorgenza rapida di violenti crampi addominali seguiti da manifestazioni cutanee eritematose e pruriginose. Dal punto di vista gastroenterologico, l'ipercinesia gastrointestinale acuta combinata con segni cutanei a così stretto giro depone primariamente per una reazione sistemica mastocito-mediata (da ipersensibilità immediata/anafilassi con coinvolgimento di 2 apparati) o una tossicosi istaminica esogena. Le patologie infiammatorie o ostruttive endoaddominali isolate risultano scarsamente verosimili vista la contemporaneità del rash.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Rispondo anzitutto al collega di Medicina: ringrazio per la precisa e puntuale disamina sui criteri clinico-anamnestici (assunzione di pesce conservato vs farmaci/allergeni noti, flushing maculare vs orticaria/angioedema) e sul ruolo dirimente del dosaggio seriato della triptasi. Questi elementi chiariscono perfettamente l'approccio al letto del paziente e confermano in pieno la solidità dell'ipotesi di gruppo. Dal punto di vista gastroenterologico, confermo la priorità ARANCIONE per il rischio di evoluzione sistemica e concordo sulla necessità dell'ecografia addominale per escludere con certezza altre noxae flogistiche acute concomitanti.",
+  "ipotesi_alternativa_scartata": "Esordio acuto di malattia infiammatoria cronica intestinale (MICI) o colite ischemica",
+  "motivo_scarto": "La colite ischemica è eccezionale in una donna di 34 anni priva di fattori di rischio vascolari e non causa lesioni cutanee pruriginose; analogamente, una riacutizzazione di MICI avrebbe un andamento subacuto/cronico e non spiegherebbe la comparsa sincrona di un esantema acuto eritematoso ed intensamente pruriginoso.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Rispondo subito al collega di Medicina: condivido appieno i criteri differenziali evidenziati (differenziazione anamnestica alimentare/farmacologica, semeiologia del rash ed esecuzione della triptasi sierica seriata per identificare l'attivazione mastocitaria endogena rispetto all'ingestione di istamina esogena). Confermo in toto la diagnosi condivisa, l'urgenza ARANCIONE e il pannello di accertamenti (monitoraggio parametri vitali, triptasi ed ecografia addome di sicurezza). Ho considerato e scartato un'eziologia primitiva infiammatoria (es. MICI) o vascolare (colite ischemica), in quanto temporalmente e clinicamente incompatibili con un esantema eritematoso pruriginoso insorto in poche ore."
+}
+```
+
+🔀 ROUTER: turno di dermatologist (battuta 5/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 15] distanza dal bordo. Per le diagnosi differenziali confrontare con tinea cruris.
+A partire da una forma intertriginosa, le lesioni vescico-pustolose po...
+   2. [dermatologia_sidemast_micosi, p. 23] soprattutto da Pseudomonas
+aeruginosa, determina la comparsa di un colorito giallo-brunastro o francamente verdastro
+del letto ungueale.
+• Onicomicosi...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 19] - parestesie/insensibilità: alterazioni della sensibilità tattile, percettiva, dolorifica che assumono significato soprattutto
+se distrettuali;
+- trem...
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 1/2 tra 5.0s
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 2/2 tra 5.0s
+{
+    "azione": "conferma",
+    "valutazione_indipendente": "Dal punto di vista dermatologico, un'eruzione cutanea a comparsa improvvisa (3 ore) caratterizzata da lesioni eritematose francamente pruriginose è fortemente indicativa di orticaria acuta (pomfi eritemato-edematosi) o esantema orticarioide. La stretta associazione temporale con forti crampi addominali acuti (interessamento di almeno due apparati: cutaneo e gastrointestinale) orienta primariamente verso una reazione da ipersensibilità immediata/anafilassi sistemica mediata da degranulazione mastocitaria, oppure verso una tossinfezione da istamina esogena. È essenziale verificare clinicamente la fugacità delle lesioni e lo sbiancamento alla digitopressione (diapascopia) per escludere lesioni purpuriche o vasculitiche.",
+    "coincide_con_gruppo": "si",
+    "consulto_utile": "no",
+    "collega_da_consultare": null,
+    "domanda_per_il_collega": null,
+    "to": null,
+    "motivazione": "Confermo pienamente l'ipotesi di gruppo e la priorità di triage ARANCIONE. L'insorgenza iperacuta di lesioni eritematose e pruriginose in concomitanza con sintomi gastrointestinali maggiori configura i criteri per una reazione anafilattica sistemica o per una sindrome sgombroide/tossinfezione istaminica. Dal punto di vista obiettivo dermatologico, è prioritario verificare la morfologia degli elementi (pomfi fugaci vs flushing o lesioni fisse) e monitorare l'eventuale comparsa di angioedema mucoso (labbra, palpebre, cavo orale). Condivido in toto la necessità di monitoraggio immediato dei parametri vitali e il dosaggio della triptasi sierica seriata.",
+    "ipotesi_alternativa_scartata": "Vasculite da IgA (porpora di Henoch-Schönlein) a esordio addominale-cutaneo",
+    "motivo_scarto": "Sebbene la vasculite da IgA possa associare crampi addominali intensi a manifestazioni cutanee, la semeiologia dermatologica tipica è costituita da porpora palpabile ed elementi petecchiali non pruriginosi (o solo blandamente urenti), che non sbiancano alla digitopressione. La comparsa esplosiva in sole 3 ore di un'eruzione pruriginosa depone nettamente per un meccanismo orticarioide/istamino-mediato e rende l'ipotesi vasculitica altamente improbabile in questa fase.",
+    "fonti_consultate": "nessuna pertinente",
+    "message": "Condivido pienamente l'ipotesi diagnostica e il codice ARANCIONE. Come dermatologo confermo che l'insorgenza iperacuta di lesioni eritematose intensamente pruriginose associata al quadro addominale è la classica espressione cutanea di un rilascio massivo di istamina (degranulazione mastocitaria da anafilassi o assorbimento esogeno in tossinfezione). All'esame obiettivo andrà verificato il carattere pomfoide, la fugacità e l'eventuale comparsa di angioedema al volto o al cavo orale. Ho scartato l'ipotesi di una vasculite sistemica (come la porpora di Henoch-Schönlein) in quanto le lesioni vasculitiche sono purpuriche, infiltrabili e tipicamente non pruriginose, del tutto distanti dalla clinica qui descritta."
+}
+
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di gastroenterologist (battuta 6/12)
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [generale_triage_piemonte, p. 34] SCHEDA FAST TRACK DERMATOLOGICO
+COGNOME E NOME: DATA:
+CRITERI DI INCLUSIONE
+- Lesioni cutanee eritematose e/o bollose diffuse as sociate a sintomatolo...
+   2. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   3. [gastro_fvg_pdta_emorragie_digestive, p. 35] Percorso per Emorragia varicosa sospetta/accertata
+
+Percorso per Emorragia varicosa sospetta/accertata
+paziente con ematemesi /melena
+Valutazione para...
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 1/2 tra 5.0s
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 2/2 tra 5.0s
+⚠️ gastroenterologist: errore API (Error code: 503 - [{'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}]), nessun aggiornamento - turno fallito
+🔀 ROUTER: giro di verifica, turno di dermatologist (battuta 7/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 15] distanza dal bordo. Per le diagnosi differenziali confrontare con tinea cruris.
+A partire da una forma intertriginosa, le lesioni vescico-pustolose po...
+   2. [dermatologia_sidemast_micosi, p. 23] soprattutto da Pseudomonas
+aeruginosa, determina la comparsa di un colorito giallo-brunastro o francamente verdastro
+del letto ungueale.
+• Onicomicosi...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 19] - parestesie/insensibilità: alterazioni della sensibilità tattile, percettiva, dolorifica che assumono significato soprattutto
+se distrettuali;
+- trem...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 5.0s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 5.0s
+⚠️ dermatologist: errore API (Error code: 429 - [{'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\nPlease retry in 50.544907283s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '50s'}]}}]), nessun aggiornamento - turno fallito
+🔀 ROUTER: giro di verifica, turno di general_practitioner (battuta 8/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_simeu_triage_percorsi, p. 7] Triage avanzato dolore
+addominale
+Valutazione sulla porta(ABC)
+
+Compromissione
+Valutazione oggettiva parametri
+Valutazione dell’addome
+C.V.P . ed esam...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 41] 3.2.10 Dolore Addominale
+
+* DOLORE EPIGASTRICO
+* VAI ALLA SCHEDA DOLORE TORACICO
+2 IN ATTO, SEVERO
+2 ANAMNESI PER ANEURISMA AORTA ADDOMINALE
+2 EMATEME...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 5.0s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 5.0s
+⚠️ general_practitioner: errore API (Error code: 429 - [{'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\nPlease retry in 39.877850751s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '39s'}]}}]), nessun aggiornamento - turno fallito
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 5.0s
+{
+    "diagnosis": "Quadro clinico compatibile con sospetta reazione allergica sistemica acuta (anafilassi) con interessamento combinato cutaneo e gastrointestinale, oppure con una tossinfezione alimentare a genesi istaminergica.",
+    "urgency_level": "ARANCIONE",
+    "operational_guidance": "La paziente deve recarsi immediatamente e senza indugio presso il Pronto Soccorso più vicino (o allertare il servizio di emergenza 112/118 evitando di mettersi alla guida) per la valutazione urgente dei parametri vitali, della pervietà delle vie aeree e l'eventuale somministrazione tempestiva di terapia medica.",
+    "recommendations": "La decisione unanime del collegio specialistico sul codice ARANCIONE deriva dalla comparsa acuta e ravvicinata di sintomi che coinvolgono due distinti distretti d'organo (dolore addominale crampiforme forte ed eruzione cutanea pruriginosa), configurando un quadro a potenziale rischio di progressione verso compromissione respiratoria o instabilità emodinamica. In sede di Pronto Soccorso andranno verificati immediatamente come priorità assoluta la stabilità dei parametri vitali (PA, FC, SpO2) e l'assenza di angioedema a carico delle vie aeree superiori. Vanno inoltre indagate le assunzioni alimentari e farmacologiche delle ore precedenti e dosati i livelli seriati di triptasi per differenziare una degranulazione mastocitaria endogena da un'assunzione esogena di istamina, associando un'ecografia dell'addome per escludere altre patologie addominali acute."
+}
+
+👨‍⚕️ PRIMARIO → diagnosi='Quadro clinico compatibile con sospetta reazione allergica sistemica acuta (anafilassi) con interessamento combinato cutaneo e gastrointestinale, oppure con una tossinfezione alimentare a genesi istaminergica.' | urgenza=ARANCIONE
+
+####################################################################################################
+CASO 3: Addome + eruzione: 34 anni   [gemini/gemini-3.8-flash]   tempo 247 s
+specialisti: ['gastroenterologist', 'dermatologist', 'general_practitioner']
+
+  [gastroenterologist -> tutti] proponi urgenza=ARANCIONE
+    Apro il confronto proponendo un'ipotesi di reazione allergica acuta sistemica con compromissione gastrointestinale e cutanea, senza escludere una tossinfezione da istamina. Considerata la presenza del rash pruriginoso associato ai forti crampi, ritengo opportuno richiedere contestualmente il parere di un allergologo per una valutazione mirata sui criteri di anafilassi. — Ho considerato anche 'Gastroenterite infettiva acuta o addome acuto infiammatorio (es. appendicite acuta)' ma l'ho esclusa (Tali condizioni non spiegano la comparsa sincrona o a brevissima distanza di un'eruzione cutanea eritematosa marcatamente pruriginosa, tipica espressione di liberazione di mediatori mastocitari.).
+
+  [gastroenterologist -> general_practitioner] consulta
+    In presenza di crampi addominali acuti seguiti da eruzione cutanea pruriginosa, quali criteri clinici consentono di distinguere rapidamente una reazione anafilattica sistemica (da alimenti o farmaci) da una sindrome sgombroide o altra tossinfezione istamino-mediata?
+
+  [general_practitioner -> gastroenterologist] conferma urgenza=ARANCIONE
+    Rispondo innanzitutto al collega gastroenterologo sulla diagnosi differenziale rapida: 1) Anamnesi alimentare e farmacologica: consumo di pesce conservato (sgombro, tonno) orienta verso sindrome sgombroide, specie se ha coinvolto altri commensali o se è stato percepito sapore metallico/piccante; l'assunzione di farmaci (es. FANS, antibiotici) o alimenti a rischio in soggetti atopici orienta per anafilassi. 2) Caratteristiche del rash: l'anafilassi tipicamente induce pomfi orticarioidi fugaci e pruriginosi e/o angioedema, mentre l'intossicazione da istamina esogena si manifesta più spesso come flushing/eritema confluente maculare al volto e tronco superiore, cefalea pulsante e sensazione di calore. 3) Biomarcatori: il dosaggio della triptasi sierica (aumentata nell'anafilassi da degranulazione mastocitaria, normale nella sindrome sgombroide da istamina esogena). Concordo pienamente con l'ipotesi di gruppo, la priorità ARANCIONE e il monitoraggio stretto dei parametri. — Rispondo subito al quesito di Gastroenterologia: per distinguere rapidamente un'anafilassi sistemica da una sindrome sgombroide/tossinfezione istaminica sono dirimenti: 1) l'anamnesi alimentare (consumo di pesce tipo tonno/sgombro mal conservato, sapore metallico/pepato iniziale, coinvolgimento di altri commensali depongono per tossinfezione); 2) la semeiologia cutanea (orticaria con pomfi ed eventuale angioedema nell'anafilassi vs flushing/eritema maculare diffuso con cefalea e vampate nella sgombroide); 3) la triptasi sierica seriata (elevata nell'anafilassi, normale nell'ingestione di istamina preformata). Condivido pienamente l'ipotesi diagnostica, gli accertamenti e il codice ARANCIONE con monitoraggio ABC. — Ho considerato anche 'Patologia endoaddominale acuta flogistica o ostruttiva isolata (es. colica biliare/renale, appendicite acuta)' ma l'ho esclusa (Non giustifica la comparsa concomitante dell'esantema pruriginoso, che orienta in modo dirimente verso una genesi immuno-mediata o istaminergica sistemica.).
+
+  [gastroenterologist -> general_practitioner] conferma urgenza=ARANCIONE
+    Rispondo anzitutto al collega di Medicina: ringrazio per la precisa e puntuale disamina sui criteri clinico-anamnestici (assunzione di pesce conservato vs farmaci/allergeni noti, flushing maculare vs orticaria/angioedema) e sul ruolo dirimente del dosaggio seriato della triptasi. Questi elementi chiariscono perfettamente l'approccio al letto del paziente e confermano in pieno la solidità dell'ipotesi di gruppo. Dal punto di vista gastroenterologico, confermo la priorità ARANCIONE per il rischio di evoluzione sistemica e concordo sulla necessità dell'ecografia addominale per escludere con certezza altre noxae flogistiche acute concomitanti. — Rispondo subito al collega di Medicina: condivido appieno i criteri differenziali evidenziati (differenziazione anamnestica alimentare/farmacologica, semeiologia del rash ed esecuzione della triptasi sierica seriata per identificare l'attivazione mastocitaria endogena rispetto all'ingestione di istamina esogena). Confermo in toto la diagnosi condivisa, l'urgenza ARANCIONE e il pannello di accertamenti (monitoraggio parametri vitali, triptasi ed ecografia addome di sicurezza). Ho considerato e scartato un'eziologia primitiva infiammatoria (es. MICI) o vascolare (colite ischemica), in quanto temporalmente e clinicamente incompatibili con un esantema eritematoso pruriginoso insorto in poche ore. — Ho considerato anche 'Esordio acuto di malattia infiammatoria cronica intestinale (MICI) o colite ischemica' ma l'ho esclusa (La colite ischemica è eccezionale in una donna di 34 anni priva di fattori di rischio vascolari e non causa lesioni cutanee pruriginose; analogamente, una riacutizzazione di MICI avrebbe un andamento subacuto/cronico e non spiegherebbe la comparsa sincrona di un esantema acuto eritematoso ed intensamente pruriginoso.).
+
+  [dermatologist -> gastroenterologist] conferma urgenza=ARANCIONE
+    Confermo pienamente l'ipotesi di gruppo e la priorità di triage ARANCIONE. L'insorgenza iperacuta di lesioni eritematose e pruriginose in concomitanza con sintomi gastrointestinali maggiori configura i criteri per una reazione anafilattica sistemica o per una sindrome sgombroide/tossinfezione istaminica. Dal punto di vista obiettivo dermatologico, è prioritario verificare la morfologia degli elementi (pomfi fugaci vs flushing o lesioni fisse) e monitorare l'eventuale comparsa di angioedema mucoso (labbra, palpebre, cavo orale). Condivido in toto la necessità di monitoraggio immediato dei parametri vitali e il dosaggio della triptasi sierica seriata. — Condivido pienamente l'ipotesi diagnostica e il codice ARANCIONE. Come dermatologo confermo che l'insorgenza iperacuta di lesioni eritematose intensamente pruriginose associata al quadro addominale è la classica espressione cutanea di un rilascio massivo di istamina (degranulazione mastocitaria da anafilassi o assorbimento esogeno in tossinfezione). All'esame obiettivo andrà verificato il carattere pomfoide, la fugacità e l'eventuale comparsa di angioedema al volto o al cavo orale. Ho scartato l'ipotesi di una vasculite sistemica (come la porpora di Henoch-Schönlein) in quanto le lesioni vasculitiche sono purpuriche, infiltrabili e tipicamente non pruriginose, del tutto distanti dalla clinica qui descritta. — Ho considerato anche 'Vasculite da IgA (porpora di Henoch-Schönlein) a esordio addominale-cutaneo' ma l'ho esclusa (Sebbene la vasculite da IgA possa associare crampi addominali intensi a manifestazioni cutanee, la semeiologia dermatologica tipica è costituita da porpora palpabile ed elementi petecchiali non pruriginosi (o solo blandamente urenti), che non sbiancano alla digitopressione. La comparsa esplosiva in sole 3 ore di un'eruzione pruriginosa depone nettamente per un meccanismo orticarioide/istamino-mediato e rende l'ipotesi vasculitica altamente improbabile in questa fase.).
+
+IPOTESI DI GRUPPO: {'diagnosis': 'Sospetta reazione allergica acuta sistemica / anafilassi con interessamento gastrointestinale e cutaneo (in alternativa: tossinfezione alimentare a genesi istaminica)', 'urgency_level': 'ARANCIONE', 'recommended_exams': ['Valutazione immediata parametri vitali (PA, FC, SpO2) e pervietà vie aeree', 'Esami ematochimici generali con emocromo, PCR, elettroliti, funzionalità epatica e renale', 'Dosaggio della triptasi sierica (al tempo zero e a distanza di 1-2 ore)', 'Ecografia addome completo per escludere cause ostruttive o flogistiche endoaddominali acute'], 'confirmed_by': ['dermatologist', 'gastroenterologist', 'general_practitioner']}
+passati senza confermare: [] | turni falliti: {'general_practitioner': 2, 'gastroenterologist': 1, 'dermatologist': 1} | battute: 8
+DIAGNOSI FINALE: {'diagnosis': 'Quadro clinico compatibile con sospetta reazione allergica sistemica acuta (anafilassi) con interessamento combinato cutaneo e gastrointestinale, oppure con una tossinfezione alimentare a genesi istaminergica.', 'urgency_level': 'ARANCIONE', 'specialists_involved': ['gastroenterologist', 'dermatologist', 'general_practitioner'], 'operational_guidance': "La paziente deve recarsi immediatamente e senza indugio presso il Pronto Soccorso più vicino (o allertare il servizio di emergenza 112/118 evitando di mettersi alla guida) per la valutazione urgente dei parametri vitali, della pervietà delle vie aeree e l'eventuale somministrazione tempestiva di terapia medica.", 'recommendations': "La decisione unanime del collegio specialistico sul codice ARANCIONE deriva dalla comparsa acuta e ravvicinata di sintomi che coinvolgono due distinti distretti d'organo (dolore addominale crampiforme forte ed eruzione cutanea pruriginosa), configurando un quadro a potenziale rischio di progressione verso compromissione respiratoria o instabilità emodinamica. In sede di Pronto Soccorso andranno verificati immediatamente come priorità assoluta la stabilità dei parametri vitali (PA, FC, SpO2) e l'assenza di angioedema a carico delle vie aeree superiori. Vanno inoltre indagate le assunzioni alimentari e farmacologiche delle ore precedenti e dosati i livelli seriati di triptasi per differenziare una degranulazione mastocitaria endogena da un'assunzione esogena di istamina, associando un'ecografia dell'addome per escludere altre patologie addominali acute."}

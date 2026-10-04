@@ -1,17 +1,8 @@
-# Live script (NOT a unit test with asserts). It checks whether the
-# CORRECTION mechanism works: a specialist facing a clearly WRONG group
-# hypothesis in their own field really fixes it with "rivedi", instead of
-# confirming it or just adding details (see the rule "PRIORITA' (ipotesi
-# scartata nel TUO ambito)" in SPECIALIST_PROMPT).
-#
-# Here the wrong first entry is INJECTED, not left to the model (in real runs
-# this model almost never gets the first turn wrong): "renal colic", urgency
-# VERDE, for a textbook acute cholecystitis (right-flank pain that gets worse
-# after fatty food) - the discarded explanation falls exactly in the second
-# specialist's field (gastroenterologist). Router, specialists and primary are
-# the real code with real model calls - it USES API QUOTA.
-#
-# Usage: python -m tests.live.correction
+"""Live script: does a specialist overturn a wrong hypothesis injected in its own field? Uses API quota.
+
+Usage: python -m tests.live.correction
+"""
+
 import asyncio
 
 from src.state import PatientCard, SymptomProfile, Symptom, GroupHypothesis, RoundTableEntry

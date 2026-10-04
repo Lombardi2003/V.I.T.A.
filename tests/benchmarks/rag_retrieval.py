@@ -1,29 +1,11 @@
-# RAG benchmark (NOT a unit test with asserts: it MEASURES retrieval quality,
-# it gives no pass/fail). For a fixed set of clinical cases, one or more for
-# each of the 10 specialists, it builds the search queries exactly as
-# specialist_node does (specialist.py) and checks whether the retrieved chunks
-# include a guideline of the right specialty. It prints hit@1 (the first chunk
-# is from the right specialty) and hit@3 (at least one of the 3 is), per case,
-# per specialist and in total - so every change to corpus, indexing or
-# retrieval is compared on the same cases instead of "by eye" on a chat.
-#
-# It also reports:
-# - cases with MIXED symptoms (different specialties in the same card), see
-#   MIXED_CASES: "overlap" = how many chunks retrieved with ALL the symptoms
-#   match those retrieved with the pertinent symptom alone (3/3 = the other
-#   symptoms did not disturb the search);
-# - 2 off-topic queries, to see what scores unrelated chunks get;
-# - a count of the noise in the index, per file: almost empty chunks, glued
-#   words (failed PDF text extraction) and bibliography.
-#
-# A document's specialty is the prefix of its file name
-# ("cardio_simeu_dolore_toracico.pdf" -> "cardio"), see ROLE_PREFIX.
-#
-# The index is NOT opened directly in data/chroma_db: Chroma may rewrite its
-# files just by opening them, so it is copied to a temporary folder (outside
-# the project) first. No model, no API quota.
-#
-# Usage: python -m tests.benchmarks.rag_retrieval
+"""Retrieval benchmark: on fixed clinical cases, are the retrieved chunks from the right specialty?
+
+It measures (hit@1, hit@3, mixed-symptom cases, noise in the index); it gives no pass/fail. No model, no API
+quota. It works on a temporary copy of the index.
+
+Usage: python -m tests.benchmarks.rag_retrieval
+"""
+
 import logging
 import os
 import re
@@ -33,8 +15,7 @@ import warnings
 from collections import Counter, defaultdict
 from pathlib import Path
 
-# The embedding model is already in the local cache after the first index
-# build - no network calls to HuggingFace during the measurement.
+# Use the embedding model from the local cache: no network calls.
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
 warnings.filterwarnings("ignore")
 logging.disable(logging.WARNING)
@@ -44,9 +25,7 @@ from src.rag.build_index import CHROMA_DIR  # noqa: E402
 
 K = 3
 
-# Same names as SPECIALIST_DISPLAY_NAMES in src/agents/roundtable.py - copied
-# instead of imported because importing src.agents creates the LLM clients and
-# the patient database connection, useless (and with side effects) here.
+# Copied from src/agents/roundtable.py: importing src.agents would create the model clients.
 DISPLAY_NAMES = {
     "cardiologist": "Cardiologia",
     "neurologist": "Neurologia",
@@ -74,8 +53,7 @@ ROLE_PREFIX = {
     "general_practitioner": "generale",
 }
 
-# Clinical cases: (role of the specialist speaking, symptom descriptions as the
-# reviewer would store them in PatientCard).
+# (role of the specialist speaking, symptom descriptions)
 CASES = [
     ("cardiologist", ["dolore toracico oppressivo", "sudorazione fredda"]),
     ("cardiologist", ["palpitazioni", "senso di svenimento"]),
@@ -111,10 +89,7 @@ CASES = [
     ("general_practitioner", ["malessere generale", "febbre"]),
 ]
 
-# Cases with symptoms of different specialties in the same card: (role, all
-# the symptoms in the card, the symptom that concerns that specialist). The
-# pertinent symptom is given ONLY to compute the reference result - the app's
-# retrieval does not know it.
+# Mixed cases: (role, every symptom in the card, the one that concerns that specialist)
 MIXED_CASES = [
     ("gastroenterologist", ["dolore addominale tipo crampi", "eruzione cutanea con macchie rosse pruriginose"], "dolore addominale tipo crampi"),
     ("dermatologist", ["dolore addominale tipo crampi", "eruzione cutanea con macchie rosse pruriginose"], "eruzione cutanea con macchie rosse pruriginose"),
@@ -134,8 +109,7 @@ OFF_TOPIC = [
 ]
 
 BIBLIOGRAPHY = re.compile(r"(et al\.|doi|N Engl J Med|Lancet|;\s*\d{4})", re.IGNORECASE)
-# Credits pages (authors, signatures, affiliations): from the right specialty
-# but useless to a specialist, so they must not count as a hit.
+# Credits pages (authors, signatures) never count as a hit.
 CREDITS = re.compile(r"\b(AUTORI|COORDINATOR[EI]|hanno collaborato|gruppo di lavoro|revisori|a cura d[ie]l|"
                      r"Universit[àa] degli Studi|Ospedale|IRCCS|U\.?O\.?C?\b|Dott\.?(ssa)?\s|Dr\.?(ssa)?\s|Prof\.?\s)",
                      re.IGNORECASE)
@@ -276,8 +250,7 @@ def main() -> None:
         copy_dir = Path(tmp) / "chroma_db"
         shutil.copytree(CHROMA_DIR, copy_dir)
 
-        # The production retriever reads CHROMA_DIR on its first call: point it
-        # at the copy, so the measurement uses the app's own index-opening code.
+        # Point the app's own retriever at the copy.
         retriever.CHROMA_DIR = copy_dir
         vectorstore = retriever._get_vectorstore()
 

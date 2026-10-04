@@ -1,0 +1,221 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "dolore al petto",
+            "specialists": ["cardiologist"]
+        },
+        {
+            "symptom": "sudorazione",
+            "specialists": ["cardiologist"]
+        }
+    ],
+    "reasoning": "Il paziente di 63 anni con ipertensione presenta dolore toracico forte, oppressivo e irradiato al braccio sinistro, sintomi tipici di un possibile evento coronarico. La sudorazione moderata associata è un segno autonomico comune in tali situazioni. L'età avanzata e la storia di ipertensione aumentano il rischio cardiovascolare, rendendo urgente il consulto con un cardiologo.",
+    "specialists": ["cardiologist"]
+}
+
+🚦 SUPERVISOR → ['cardiologist']
+🚦 SUPERVISOR: un solo specialista, aggiunto general_practitioner per un secondo parere
+   Checklist: {'cardiologist': True, 'general_practitioner': True}
+🔀 ROUTER: turno di cardiologist (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights:  82%|████████▏ | 163/199 [00:00<00:00, 1620.70it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 1938.03it/s]
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 35] perdita di coscienza. L’utente non ha ricordo dell’accadimento. Se convulsioni in atto usa la scheda “Alterazioni acute della
+coscienza” .
+DOLORE TORA...
+   3. [cardio_cardarelli_pdta_dolore_toracico, p. 9] Chest Pain Score: - > 4 → dolore tipico: medio/alta probabilità di angina pectoris.
+- < 4 → dolore atipico: bassa probabilità di angina pectoris;
+
+Ino...
+{
+  "azione": "proponi",
+  "consulto_utile": "si",
+  "collega_da_consultare": "radiologist",
+  "domanda_per_il_collega": "È necessario escludere rapidamente pneumotorace o ematoma mediastinico con una radiografia toracica urgente?",
+  "diagnosi": "infarto miocardico acuto (sospetto STEMI/ NSTEMI)",
+  "urgenza": "ROSSO",
+  "esami_consigliati": ["ECG 12 derivazioni immediato", "dosaggio troponine seriale", "emocromo completo, coagulazione (quick, aPTT)", "radiografia del torace", "ecocardiografia bedside"],
+  "dettagli": "Dolore toracico oppressivo, irradiato al braccio sinistro, forte, associato a sudorazione in un uomo 63 anni con ipertensione indica alta probabilità di ischemia miocardica. L’età e i fattori di rischio cardiovascolare aumentano il punteggio Chest Pain Score >4. L’urgenza è massima per avviare terapia anti‑ischemica e valutare reperfusione.",
+  "ipotesi_alternativa_scartata": "dissezione aortica",
+  "motivo_scarto": "Meno probabile senza dolore dorsale, ipotensione o segni di dissecazione; l’irradiamento al braccio sinistro è tipico dell’ischemia coronarica.",
+  "fonti_consultate": "[cardio_protocollo_dolore_toracico, p. 2] indicano l’immediata posizionamento di linee IV, prelievo di enzimi cardiaci e ASA; [cardio_cardarelli_pdta_dolore_toracico, p. 9] suggeriscono alta probabilità di angina con Chest Pain Score >4.",
+  "message": "Propongo di considerare un infarto miocardico acuto come diagnosi principale, con priorità rossa e gli esami indicati; chiedo al radiologo conferma rapida su eventuali emergenze toraciche non cardiache."
+}
+
+🔀 cardiologist: consulto_utile=si verso 'radiologist' (non nel roster) -> reindirizzato a general_practitioner
+🔀 cardiologist: consulto_utile=si -> mini-consulto verso general_practitioner, in aggiunta all'azione 'proponi'
+🔀 ROUTER: turno di general_practitioner (battuta 2/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_simeu_triage_percorsi, p. 6] triage avanzato dolore
+toracico
+Valutazione sulla porta(ABC)
+Compromissione?
+
+Triage avanzato
+Chest -pain score
+
+Valutazione oggettiva
+Esecuzione ECG ...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 30] Considera “dolore toracico” qualsiasi dolore localizzato tra il mento e l’ombelico, sia anteriore che posteriore, non motivato
+da altre cause immediat...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 19] - parestesie/insensibilità: alterazioni della sensibilità tattile, percettiva, dolorifica che assumono significato soprattutto
+se distrettuali;
+- trem...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 4.3s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Dolore toracico oppressivo, irradiato al braccio sinistro, forte, associato a sudorazione in uomo 63 anni con ipertensione → alta probabilità di infarto miocardico acuto; priorità rossa per ECG immediato e marcatori cardiaci.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "I dati clinici supportano pienamente l'IPMI; la radiografia toracica non è urgente se non vi sono segni di trauma, dispnea improvvisa o ipotensione, quindi può essere posticipata dopo ECG e troponine.",
+  "ipotesi_alternativa_scartata": "Dissezione aortica",
+  "motivo_scarto": "Assenza di dolore dorsale, ipotensione, segni di dissecazione; irradiamento al braccio sinistro tipico di ischemia coronarica.",
+  "fonti_consultate": "[generale_fvg_manuale_triage_adulto_2018, p. 30] ECG entro 10 min per dolore toracico sospetto; linee guida ESC 2020 per gestione STEMI/NSTEMI.",
+  "message": "Confermo diagnosi di infarto miocardico acuto, urgenza ROSSO; la radiografia toracica non è necessaria in via prioritaria, ma può essere eseguita dopo ECG se emergono segni respiratori o emodinamici."
+}
+
+🔀 ROUTER: cardiologist chiamato in causa dopo aver gia' confermato, una battuta di reazione
+🔀 ROUTER: turno di cardiologist (battuta 3/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   2. [cardio_fvg_pdta_stemi_2022, p. 36] o ecocardiografia entro 24 dal ricovero (anche per ricerca
+complicanze meccaniche)
+o marcatori danno miocardico (curva troponina)
+o esami ematochimici...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 35] perdita di coscienza. L’utente non ha ricordo dell’accadimento. Se convulsioni in atto usa la scheda “Alterazioni acute della
+coscienza” .
+DOLORE TORA...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 30.0s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Con i dati disponibili (dolore toracico oppressivo, irradiato al braccio sinistro, forte, sudorazione, ipertensione, età 63) la diagnosi più probabile è infarto miocardico acuto, con urgenza ROSSO; gli esami prioritari sono ECG 12 derivazioni e troponine seriali.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Il quadro clinico è tipico di ischemia coronarica acuta; la radiografia toracica può essere posticipata in assenza di segni di trauma, dispnea improvvisa o ipotensione, come indicato da Medicina.",
+  "ipotesi_alternativa_scartata": "Dissezione aortica",
+  "motivo_scarto": "Mancanza di dolore dorsale, ipotensione e segni di dissecazione; l'irradiazione al braccio sinistro è più tipica di IPMI.",
+  "fonti_consultate": "[cardio_protocollo_dolore_toracico, p. 2] indicazione di priorità ECG e troponine, e di ASA orale; la radiografia è secondaria se non ci sono segni respiratori/emodinamici.",
+  "message": "Confermo la diagnosi di IPMI con urgenza ROSSO e la sequenza di esami proposta; la Rx torace può essere eseguita dopo l'ECG se emergono segni respiratori."
+}
+
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di cardiologist (battuta 4/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 35] perdita di coscienza. L’utente non ha ricordo dell’accadimento. Se convulsioni in atto usa la scheda “Alterazioni acute della
+coscienza” .
+DOLORE TORA...
+   3. [cardio_cardarelli_pdta_dolore_toracico, p. 9] Chest Pain Score: - > 4 → dolore tipico: medio/alta probabilità di angina pectoris.
+- < 4 → dolore atipico: bassa probabilità di angina pectoris;
+
+Ino...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 31.2s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Dolore toracico oppressivo, irradiato al braccio sinistro, forte, associato a sudorazione in uomo 63 anni con ipertensione → alta probabilità di infarto miocardico acuto; priorità di valutazione ed esecuzione di ECG e troponine è rossa.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Il quadro clinico soddisfa i criteri di Chest Pain Score >4 e i fattori di rischio (età, ipertensione). L'assenza di segni di dissecazione aortica o di emergenze toraciche non cardiache rende l'IPMI la diagnosi più probabile; l'urgenza resta ROSSO e gli esami proposti (ECG, troponine seriali, emocromo, coagulazione, ecocardiografia bedside) sono appropriati.",
+  "ipotesi_alternativa_scartata": "Dissezione aortica",
+  "motivo_scarto": "Mancanza di dolore dorsale, ipotensione, segni di dissecazione e irradiamento tipico al braccio sinistro, più caratteristico di ischemia coronarica.",
+  "fonti_consultate": "[cardio_cardarelli_pdta_dolore_toracico, p. 9] Chest Pain Score >4 indica alta probabilità di angina/infarto; [cardio_protocollo_dolore_toracico, p. 2] indica le misure di emergenza (IV, ASA, prelievi).",
+  "message": "Confermo l'IPMI con urgenza ROSSO e gli esami indicati; la dissecazione aortica è stata esclusa per mancanza di segni tipici."
+}
+
+🔀 ROUTER: giro di verifica, turno di general_practitioner (battuta 5/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 35] perdita di coscienza. L’utente non ha ricordo dell’accadimento. Se convulsioni in atto usa la scheda “Alterazioni acute della
+coscienza” .
+DOLORE TORA...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 34] sempre obiettivabile. Può essere equivalente anginoso. La segnalazione può anche essere riferita solo dopo richiesta
+dell’interrogante con la modalità...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 36.7s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Dolore toracico oppressivo, irradiato al braccio sinistro, forte, associato a sudorazione in uomo 63 anni con ipertensione indica alta probabilità di infarto miocardico acuto.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "I dati clinici corrispondono ai criteri di Chest Pain Score >4 e ai fattori di rischio cardiovascolare; l'assenza di segni di dissecazione aortica o di emergenze toraciche non cardiache rende l'IPMI la diagnosi più probabile. L'urgenza resta ROSSO e gli esami proposti (ECG, troponine seriali, emocromo, coagulazione, ecocardiografia bedside) sono appropriati.",
+  "ipotesi_alternativa_scartata": "Dissezione aortica",
+  "motivo_scarto": "Mancanza di dolore dorsale, ipotensione, segni di dissecazione e irradiamento tipico al braccio sinistro, più caratteristico di ischemia coronarica.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo l'IPMI con urgenza ROSSO e gli esami indicati; la dissecazione aortica è stata esclusa per mancanza di segni tipici."
+}
+
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 20.0s
+{
+    "diagnosis": "Infarto miocardico acuto (sospetto STEMI/NSTEMI) come ipotesi diagnostica preliminare",
+    "urgency_level": "ROSSO",
+    "recommended_exams": [
+        "ECG 12 derivazioni immediato",
+        "Dosaggio troponine seriale",
+        "Emocromo completo",
+        "Coagulazione (quick, aPTT)",
+        "Radiografia del torace (post‑ECG, se emergono segni respiratori o emodinamici)",
+        "Ecocardiografia bedside"
+    ],
+    "to_verify": [
+        "Pressione arteriosa e frequenza cardiaca attuali (misurare per valutare eventuale ipotensione o tachicardia)",
+        "Segni di insufficienza respiratoria o edema polmonare (auscultare i campi polmonari)",
+        "Eventuali farmaci in corso (es. antiaggreganti, anticoagulanti) per gestire terapia anti‑ischemica",
+        "Storia di fumo, diabete, dislipidemia (chiedere al paziente per completare il profilo di rischio cardiovascolare)"
+    ],
+    "operational_guidance": "Portare il paziente immediatamente in zona triage rosso/area di emergenza cardiaca. Avviare monitoraggio continuo ECG e pressione arteriosa. Eseguire l'ECG a 12 derivazioni entro i prossimi 5 minuti. Se l'ECG mostra segni di STEMI, attivare la via di reperfusione (cateterismo d'emergenza) e somministrare terapia anti‑ischemica (aspirina 250 mg, clopidogrel 300 mg, ossido nitrico se indicato, anticoagulante). Prelevare campioni per troponine, emocromo e coagulazione in parallelo. Dopo l'ECG, eseguire la radiografia toracica solo se compaiono segni di distress respiratorio o instabilità emodinamica. Preparare ecocardiografia bedside per valutare funzione ventricolare e eventuali complicanze. Rivalutare clinicamente e con ECG ogni 15 minuti finché non è disponibile la conferma diagnostica definitiva.",
+    "recommendations": "Il quadro clinico (dolore toracico oppressivo, forte, irradiato al braccio sinistro, associato a sudorazione) in un uomo di 63 anni con ipertensione corrisponde a un Chest Pain Score >4 e a fattori di rischio cardiovascolari elevati, rendendo l'IPMI la diagnosi più probabile. Tutti gli specialisti (Cardiologia e Medicina) hanno confermato l'ipotesi e hanno assegnato urgenza ROSSO, indicando la necessità di interventi immediati per limitare il danno miocardico. La dissezione aortica è stata considerata ma esclusa per assenza di dolore dorsale, ipotensione e segni tipici. La radiografia toracica, pur consigliata per escludere emergenze toraciche non cardiache, può essere posticipata se non ci sono segni respiratori o emodinamici. Non ci sono dubbi rimasti sulla priorità diagnostica: la conferma definitiva dipenderà dall'ECG e dalle troponine, ma la gestione deve procedere con protocollo STEMI/NSTEMI fin da subito."
+}
+
+👨‍⚕️ PRIMARIO → diagnosi='Infarto miocardico acuto (sospetto STEMI/NSTEMI) come ipotesi diagnostica preliminare' | urgenza=ROSSO
+
+####################################################################################################
+CASO 2: Petto: 63 anni iperteso, dolore oppressivo irradiato al braccio sinistro + sudorazione   [groq/openai/gpt-oss-120b (ragionamento low)]   tempo 142 s
+specialisti: ['cardiologist', 'general_practitioner']
+
+  [cardiologist -> tutti] proponi urgenza=ROSSO
+    Propongo di considerare un infarto miocardico acuto come diagnosi principale, con priorità rossa e gli esami indicati; chiedo al radiologo conferma rapida su eventuali emergenze toraciche non cardiache. — Ho considerato anche 'dissezione aortica' ma l'ho esclusa (Meno probabile senza dolore dorsale, ipotensione o segni di dissecazione; l’irradiamento al braccio sinistro è tipico dell’ischemia coronarica.).
+
+  [cardiologist -> general_practitioner] consulta
+    È necessario escludere rapidamente pneumotorace o ematoma mediastinico con una radiografia toracica urgente?
+
+  [general_practitioner -> cardiologist] conferma urgenza=ROSSO
+    I dati clinici supportano pienamente l'IPMI; la radiografia toracica non è urgente se non vi sono segni di trauma, dispnea improvvisa o ipotensione, quindi può essere posticipata dopo ECG e troponine. — Confermo diagnosi di infarto miocardico acuto, urgenza ROSSO; la radiografia toracica non è necessaria in via prioritaria, ma può essere eseguita dopo ECG se emergono segni respiratori o emodinamici. — Ho considerato anche 'Dissezione aortica' ma l'ho esclusa (Assenza di dolore dorsale, ipotensione, segni di dissecazione; irradiamento al braccio sinistro tipico di ischemia coronarica.).
+
+  [cardiologist -> general_practitioner] conferma urgenza=ROSSO
+    Il quadro clinico è tipico di ischemia coronarica acuta; la radiografia toracica può essere posticipata in assenza di segni di trauma, dispnea improvvisa o ipotensione, come indicato da Medicina. — Confermo la diagnosi di IPMI con urgenza ROSSO e la sequenza di esami proposta; la Rx torace può essere eseguita dopo l'ECG se emergono segni respiratori. — Ho considerato anche 'Dissezione aortica' ma l'ho esclusa (Mancanza di dolore dorsale, ipotensione e segni di dissecazione; l'irradiazione al braccio sinistro è più tipica di IPMI.).
+
+  [cardiologist -> general_practitioner] conferma [VERIFICA] urgenza=ROSSO
+    Il quadro clinico soddisfa i criteri di Chest Pain Score >4 e i fattori di rischio (età, ipertensione). L'assenza di segni di dissecazione aortica o di emergenze toraciche non cardiache rende l'IPMI la diagnosi più probabile; l'urgenza resta ROSSO e gli esami proposti (ECG, troponine seriali, emocromo, coagulazione, ecocardiografia bedside) sono appropriati. — Confermo l'IPMI con urgenza ROSSO e gli esami indicati; la dissecazione aortica è stata esclusa per mancanza di segni tipici. — Ho considerato anche 'Dissezione aortica' ma l'ho esclusa (Mancanza di dolore dorsale, ipotensione, segni di dissecazione e irradiamento tipico al braccio sinistro, più caratteristico di ischemia coronarica.).
+
+  [general_practitioner -> cardiologist] conferma [VERIFICA] urgenza=ROSSO
+    I dati clinici corrispondono ai criteri di Chest Pain Score >4 e ai fattori di rischio cardiovascolare; l'assenza di segni di dissecazione aortica o di emergenze toraciche non cardiache rende l'IPMI la diagnosi più probabile. L'urgenza resta ROSSO e gli esami proposti (ECG, troponine seriali, emocromo, coagulazione, ecocardiografia bedside) sono appropriati. — Confermo l'IPMI con urgenza ROSSO e gli esami indicati; la dissecazione aortica è stata esclusa per mancanza di segni tipici. — Ho considerato anche 'Dissezione aortica' ma l'ho esclusa (Mancanza di dolore dorsale, ipotensione, segni di dissecazione e irradiamento tipico al braccio sinistro, più caratteristico di ischemia coronarica.).
+
+IPOTESI DI GRUPPO: {'diagnosis': 'infarto miocardico acuto (sospetto STEMI/ NSTEMI)', 'urgency_level': 'ROSSO', 'recommended_exams': ['ECG 12 derivazioni immediato', 'dosaggio troponine seriale', 'emocromo completo, coagulazione (quick, aPTT)', 'radiografia del torace', 'ecocardiografia bedside'], 'confirmed_by': ['cardiologist', 'general_practitioner']}
+passati senza confermare: [] | turni falliti: {} | battute: 5
+DIAGNOSI FINALE: {'diagnosis': 'Infarto miocardico acuto (sospetto STEMI/NSTEMI) come ipotesi diagnostica preliminare', 'urgency_level': 'ROSSO', 'specialists_involved': ['cardiologist', 'general_practitioner'], 'recommended_exams': ['ECG 12 derivazioni immediato', 'Dosaggio troponine seriale', 'Emocromo completo', 'Coagulazione (quick, aPTT)', 'Radiografia del torace (post‑ECG, se emergono segni respiratori o emodinamici)', 'Ecocardiografia bedside'], 'to_verify': ['Pressione arteriosa e frequenza cardiaca attuali (misurare per valutare eventuale ipotensione o tachicardia)', 'Segni di insufficienza respiratoria o edema polmonare (auscultare i campi polmonari)', 'Eventuali farmaci in corso (es. antiaggreganti, anticoagulanti) per gestire terapia anti‑ischemica', 'Storia di fumo, diabete, dislipidemia (chiedere al paziente per completare il profilo di rischio cardiovascolare)'], 'operational_guidance': "Portare il paziente immediatamente in zona triage rosso/area di emergenza cardiaca. Avviare monitoraggio continuo ECG e pressione arteriosa. Eseguire l'ECG a 12 derivazioni entro i prossimi 5 minuti. Se l'ECG mostra segni di STEMI, attivare la via di reperfusione (cateterismo d'emergenza) e somministrare terapia anti‑ischemica (aspirina 250\u202fmg, clopidogrel 300\u202fmg, ossido nitrico se indicato, anticoagulante). Prelevare campioni per troponine, emocromo e coagulazione in parallelo. Dopo l'ECG, eseguire la radiografia toracica solo se compaiono segni di distress respiratorio o instabilità emodinamica. Preparare ecocardiografia bedside per valutare funzione ventricolare e eventuali complicanze. Rivalutare clinicamente e con ECG ogni 15 minuti finché non è disponibile la conferma diagnostica definitiva.", 'recommendations': "Il quadro clinico (dolore toracico oppressivo, forte, irradiato al braccio sinistro, associato a sudorazione) in un uomo di 63\u202fanni con ipertensione corrisponde a un Chest Pain Score >4 e a fattori di rischio cardiovascolari elevati, rendendo l'IPMI la diagnosi più probabile. Tutti gli specialisti (Cardiologia e Medicina) hanno confermato l'ipotesi e hanno assegnato urgenza ROSSO, indicando la necessità di interventi immediati per limitare il danno miocardico. La dissezione aortica è stata considerata ma esclusa per assenza di dolore dorsale, ipotensione e segni tipici. La radiografia toracica, pur consigliata per escludere emergenze toraciche non cardiache, può essere posticipata se non ci sono segni respiratori o emodinamici. Non ci sono dubbi rimasti sulla priorità diagnostica: la conferma definitiva dipenderà dall'ECG e dalle troponine, ma la gestione deve procedere con protocollo STEMI/NSTEMI fin da subito."}

@@ -1,0 +1,115 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "dolore al petto",
+            "specialists": ["cardiologist"]
+        },
+        {
+            "symptom": "sudorazione",
+            "specialists": ["cardiologist"]
+        }
+    ],
+    "reasoning": "Il paziente di 63 anni con storia di ipertensione presenta dolore toracico forte, oppressivo e irradiato al braccio sinistro, sintomi tipici di un possibile evento coronarico. La sudorazione moderata associata è un segno autonomico comune in tali situazioni. L'età avanzata e la presenza di ipertensione aumentano il rischio cardiovascolare, rendendo prioritario il consulto con un cardiologo.",
+    "specialists": ["cardiologist"]
+}
+
+🚦 SUPERVISOR → ['cardiologist']
+   Checklist: {'cardiologist': True}
+🔀 ROUTER: turno di cardiologist (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 11202.83it/s]
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 35] perdita di coscienza. L’utente non ha ricordo dell’accadimento. Se convulsioni in atto usa la scheda “Alterazioni acute della
+coscienza” .
+DOLORE TORA...
+   3. [cardio_cardarelli_pdta_dolore_toracico, p. 9] Chest Pain Score: - > 4 → dolore tipico: medio/alta probabilità di angina pectoris.
+- < 4 → dolore atipico: bassa probabilità di angina pectoris;
+
+Ino...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 14.6s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 3.7s
+{
+    "azione": "proponi",
+    "consulto_utile": "no",
+    "collega_da_consultare": null,
+    "domanda_per_il_collega": null,
+    "diagnosi": "Sospetta sindrome coronarica acuta (ACS) con possibile infarto miocardico senza sopraslivellamento del tratto ST (NSTEMI)",
+    "urgenza": "ROSSO",
+    "esami_consigliati": [
+        "ECG a riposo (e ripetuto dopo 15‑30 minuti)",
+        "Dosaggio troponina I/T ultrasensibile (seriale)",
+        "Emocromo completo, elettroliti, funzionalità renale, profilo lipidico",
+        "Radiografia del torace (escludere pneumotorace, edema polmonare)",
+        "Ecocardiografia transtoracica rapida (valutare funzione ventricolare, eventuali segmenti ipocinetici)",
+        "Monitoraggio continuo della pressione arteriosa e della frequenza cardiaca"
+    ],
+    "dettagli": "Il paziente maschio di 63 anni, con ipertensione nota, presenta un dolore toracico forte, oppressivo, di 30 minuti, irradiato al braccio sinistro, associato a sudorazione moderata. Questi sono criteri classici di dolore ischemico (Chest Pain Score >4) secondo [cardio_cardarelli_pdta_dolore_toracico, p. 9]. L’età >45 anni, la presenza di ipertensione e il profilo di rischio cardiovascolare rendono alta la probabilità di una coronaropatia. L’urgenza è massima (ROSSO) perché la sospetta ACS richiede intervento tempestivo per limitare il danno miocardico. Si raccomanda l’avvio immediato di terapia anti‑ischemica (ASA masticabile, nitroglicerina se non controindicata, ossigeno se saturazione <94%) e la preparazione per eventuale coronarografia, in attesa dei risultati di troponina ed ECG seriali. ",
+    "ipotesi_alternativa_scartata": "Dissezione aortica acuta",
+    "motivo_scarto": "Il dolore è tipicamente descrittivo come 'lacerante' o 'a lama' e spesso associato a differenza di pressione arteriosa tra arti, sintomi neurologici o segni di insufficienza organica; qui il dolore è oppressivo, irradiato al braccio sinistro, con sudorazione, più tipico di ischemia miocardica.",
+    "fonti_consultate": "[cardio_cardarelli_pdta_dolore_toracico, p. 9] criteri di Chest Pain Score; [cardio_protocollo_dolore_toracico, p. 2] indicazioni per linee endovenose, prelievo ematico, radiografia toracica e ASA.",
+    "message": "Propongo di considerare una sindrome coronarica acuta (probabilmente NSTEMI) come diagnosi principale, data la tipica presentazione dolorosa, l’età e i fattori di rischio. L’urgenza è ROSSO: avviamo terapia anti‑ischemica, monitoraggio continuo e gli esami diagnostici indicati per confermare e guidare il trattamento. Escludiamo per ora la dissezione aortica, meno probabile data la natura del dolore."
+}
+
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di cardiologist (battuta 2/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 35] perdita di coscienza. L’utente non ha ricordo dell’accadimento. Se convulsioni in atto usa la scheda “Alterazioni acute della
+coscienza” .
+DOLORE TORA...
+   3. [cardio_cardarelli_pdta_dolore_toracico, p. 9] Chest Pain Score: - > 4 → dolore tipico: medio/alta probabilità di angina pectoris.
+- < 4 → dolore atipico: bassa probabilità di angina pectoris;
+
+Ino...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 40.7s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 4.9s
+{
+    "azione": "conferma",
+    "valutazione_indipendente": "Dal solo quadro clinico (dolore toracico oppressivo, irradiato al braccio sinistro, sudorazione, età 63 anni, ipertensione) formulerei una sindrome coronarica acuta, più probabilmente NSTEMI, in attesa di conferma ECG e troponine.",
+    "coincide_con_gruppo": "si",
+    "consulto_utile": "no",
+    "collega_da_consultare": null,
+    "domanda_per_il_collega": null,
+    "to": null,
+    "motivazione": "Il dolore è tipico per ischemia miocardica (Chest Pain Score >4) e i fattori di rischio (età, ipertensione) aumentano la probabilità di coronaropatia. L'assenza di segni tipici di dissezione aortica o embolia polmonare rende queste ipotesi meno probabili. Pertanto confermo la diagnosi di sospetta ACS/NSTEMI, l'urgenza ROSSO e gli esami proposti.",
+    "ipotesi_alternativa_scartata": "Embolia polmonare acuta",
+    "motivo_scarto": "L'embolia polmonare di solito presenta dispnea, tachipnea, dolore pleurico e segni di ipossia; il paziente presenta dolore toracico tipico ischemico e sudorazione, senza sintomi respiratori.",
+    "fonti_consultate": "[cardio_cardarelli_pdta_dolore_toracico, p. 9] Chest Pain Score >4 → alta probabilità di angina pectoris; [cardio_protocollo_dolore_toracico, p. 2] indicazioni per monitoraggio e terapia anti‑ischemica.",
+    "message": "Confermo l'ipotesi di gruppo: sospetta sindrome coronarica acuta (NSTEMI) con urgenza ROSSO. Gli esami e la terapia indicati sono appropriati; l'embolia polmonare è stata considerata ma scartata per la tipologia del dolore e l'assenza di segni respiratori."
+}
+
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 9.7s
+{
+    "diagnosis": "Sospetta sindrome coronarica acuta (NSTEMI) in un uomo di 63 anni con ipertensione, dolore toracico oppressivo irradiato al braccio sinistro e sudorazione.",
+    "urgency_level": "ROSSO",
+    "operational_guidance": "Trasporto immediato al pronto soccorso con attivazione del percorso ACS: monitoraggio continuo, ECG a riposo (e ripetuto entro 15‑30 min), dosaggio seriale di troponina ultrasensibile, esami ematologici di base, radiografia toracica, ecocardiografia rapida e inizio terapia anti‑ischemica (ASA masticabile, nitroglicerina se non controindicata, ossigeno se saturazione <94%). Preparare la possibile coronarografia emergente.",
+    "recommendations": "Il quadro clinico (dolore toracico forte, oppressivo, irradiato al braccio sinistro, sudorazione, età >45 anni e ipertensione) corrisponde a un Chest Pain Score >4, indicativo di dolore ischemico. L'assenza di segni tipici di dissezione aortica o embolia polmonare rende queste diagnosi meno probabili. Pertanto, il tavolo ha confermato la diagnosi di sospetta ACS/NSTEMI con urgenza ROSSO, richiedendo interventi diagnostici e terapeutici tempestivi per limitare il danno miocardico. Non vi sono elementi che giustifichino un aumento di urgenza oltre ROSSO né motivi per ridurla."
+}
+
+👨‍⚕️ PRIMARIO → diagnosi='Sospetta sindrome coronarica acuta (NSTEMI) in un uomo di 63 anni con ipertensione, dolore toracico oppressivo irradiato al braccio sinistro e sudorazione.' | urgenza=ROSSO
+
+####################################################################################################
+CASO 2: Petto: 63 anni iperteso, dolore oppressivo irradiato al braccio sinistro + sudorazione   [groq/openai/gpt-oss-120b (ragionamento low)]   tempo 88 s
+specialisti: ['cardiologist']
+
+  [cardiologist -> tutti] proponi urgenza=ROSSO
+    Propongo di considerare una sindrome coronarica acuta (probabilmente NSTEMI) come diagnosi principale, data la tipica presentazione dolorosa, l’età e i fattori di rischio. L’urgenza è ROSSO: avviamo terapia anti‑ischemica, monitoraggio continuo e gli esami diagnostici indicati per confermare e guidare il trattamento. Escludiamo per ora la dissezione aortica, meno probabile data la natura del dolore. — Ho considerato anche 'Dissezione aortica acuta' ma l'ho esclusa (Il dolore è tipicamente descrittivo come 'lacerante' o 'a lama' e spesso associato a differenza di pressione arteriosa tra arti, sintomi neurologici o segni di insufficienza organica; qui il dolore è oppressivo, irradiato al braccio sinistro, con sudorazione, più tipico di ischemia miocardica.).
+
+  [cardiologist -> tutti] conferma [VERIFICA] urgenza=ROSSO
+    Il dolore è tipico per ischemia miocardica (Chest Pain Score >4) e i fattori di rischio (età, ipertensione) aumentano la probabilità di coronaropatia. L'assenza di segni tipici di dissezione aortica o embolia polmonare rende queste ipotesi meno probabili. Pertanto confermo la diagnosi di sospetta ACS/NSTEMI, l'urgenza ROSSO e gli esami proposti. — Confermo l'ipotesi di gruppo: sospetta sindrome coronarica acuta (NSTEMI) con urgenza ROSSO. Gli esami e la terapia indicati sono appropriati; l'embolia polmonare è stata considerata ma scartata per la tipologia del dolore e l'assenza di segni respiratori. — Ho considerato anche 'Embolia polmonare acuta' ma l'ho esclusa (L'embolia polmonare di solito presenta dispnea, tachipnea, dolore pleurico e segni di ipossia; il paziente presenta dolore toracico tipico ischemico e sudorazione, senza sintomi respiratori.).
+
+IPOTESI DI GRUPPO: {'diagnosis': 'Sospetta sindrome coronarica acuta (ACS) con possibile infarto miocardico senza sopraslivellamento del tratto ST (NSTEMI)', 'urgency_level': 'ROSSO', 'recommended_exams': ['ECG a riposo (e ripetuto dopo 15‑30 minuti)', 'Dosaggio troponina I/T ultrasensibile (seriale)', 'Emocromo completo, elettroliti, funzionalità renale, profilo lipidico', 'Radiografia del torace (escludere pneumotorace, edema polmonare)', 'Ecocardiografia transtoracica rapida (valutare funzione ventricolare, eventuali segmenti ipocinetici)', 'Monitoraggio continuo della pressione arteriosa e della frequenza cardiaca'], 'confirmed_by': ['cardiologist']}
+passati senza confermare: [] | turni falliti: {} | battute: 2
+DIAGNOSI FINALE: {'diagnosis': 'Sospetta sindrome coronarica acuta (NSTEMI) in un uomo di 63 anni con ipertensione, dolore toracico oppressivo irradiato al braccio sinistro e sudorazione.', 'urgency_level': 'ROSSO', 'specialists_involved': ['cardiologist'], 'operational_guidance': 'Trasporto immediato al pronto soccorso con attivazione del percorso ACS: monitoraggio continuo, ECG a riposo (e ripetuto entro 15‑30\u202fmin), dosaggio seriale di troponina ultrasensibile, esami ematologici di base, radiografia toracica, ecocardiografia rapida e inizio terapia anti‑ischemica (ASA masticabile, nitroglicerina se non controindicata, ossigeno se saturazione <94%). Preparare la possibile coronarografia emergente.', 'recommendations': "Il quadro clinico (dolore toracico forte, oppressivo, irradiato al braccio sinistro, sudorazione, età >45\u202fanni e ipertensione) corrisponde a un Chest Pain Score >4, indicativo di dolore ischemico. L'assenza di segni tipici di dissezione aortica o embolia polmonare rende queste diagnosi meno probabili. Pertanto, il tavolo ha confermato la diagnosi di sospetta ACS/NSTEMI con urgenza ROSSO, richiedendo interventi diagnostici e terapeutici tempestivi per limitare il danno miocardico. Non vi sono elementi che giustifichino un aumento di urgenza oltre ROSSO né motivi per ridurla."}

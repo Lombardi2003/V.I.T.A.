@@ -1,0 +1,221 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "dolore al ginocchio",
+            "specialists": ["orthopedist"]
+        },
+        {
+            "symptom": "lesione cutanea superficiale (abrasione)",
+            "specialists": ["dermatologist"]
+        }
+    ],
+    "reasoning": "Il paziente di 14 anni ha riportato un dolore al ginocchio insopportabile dopo una caduta in bicicletta, tipico di un trauma muscolo-scheletrico, perciò è opportuno un consulto ortopedico. Inoltre la foto mostra un\'abrasione cutanea con erosioni e croste, che rientra nella competenza del dermatologo. Non ci sono allergie né patologie pregresse che richiedano ulteriori specialisti.",
+    "specialists": ["orthopedist", "dermatologist"]
+}
+
+🚦 SUPERVISOR: errore lettura JSON, fallback su medico generale
+   Checklist: {'general_practitioner': True}
+🔀 ROUTER: turno di general_practitioner (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 3979.24it/s]
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 53] 3.2.5 Problema Specifico - Odontoiatrico
+
+2 DISLOCAZIONE MANDIBOLA
+5 ODONTALGIA
+5 FRATTURA DI DENTE O DI PROTESI
+5 DOLORE / INFIAMMAZIONE DI GENGIVE E...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+{
+    "azione": "proponi",
+    "consulto_utile": "si",
+    "collega_da_consultare": "ortopedico",
+    "domanda_per_il_collega": "Quali sono i segni clinici che orientano verso una frattura epifisaria del ginocchio in un adolescente e quali radiografie o altri imaging sono consigliati in prima istanza?",
+    "diagnosi": "Possibile frattura epifisaria (Salter‑Harris) del ginocchio (es. condilo femorale distale o tibia prossimale) a seguito della caduta in bicicletta, con abrasione cutanea associata",
+    "urgenza": "ROSSO",
+    "esami_consigliati": ["Radiografia del ginocchio in proiezioni AP e laterale", "Ecografia muscoloscheletrica per valutare eventuali versamenti ematomi", "Se indicata, TC o risonanza magnetica per escludere lesioni epifisarie non evidenti"],
+    "dettagli": "Il paziente è un ragazzo di 14 anni che ha riportato un dolore al ginocchio di intensità insopportabile subito dopo una caduta in bicicletta. La presenza di un'area di abrasione cutanea indica un trauma diretto, ma il dolore molto intenso e la durata di 10 ore suggeriscono coinvolgimento osseo o articolare. In età adolescenziale le ossa sono ancora in fase di crescita e le epifisi sono vulnerabili a fratture di tipo Salter‑Harris, soprattutto in caso di impatto diretto o torsione. È quindi prioritario escludere una frattura epifisaria o una lesione ossea significativa, poiché la gestione precoce influisce sul risultato a lungo termine della crescita articolare.",
+    "ipotesi_alternativa_scartata": "Contusione o distorsione muscolotendinea senza frattura",
+    "motivo_scarto": "Il dolore è descritto come insopportabile e persistente, tipico di lesioni ossee più che di semplici contusioni; inoltre il meccanismo di caduta con impatto diretto aumenta la probabilità di frattura epifisaria in un soggetto in crescita.",
+    "fonti_consultate": "nessuna pertinente",
+    "message": "Propongo di considerare una frattura epifisaria del ginocchio come diagnosi principale, data l'età del paziente, il trauma meccanico e l'intensità del dolore. Suggerisco di effettuare subito una radiografia del ginocchio (AP e laterale) e, se necessario, un'ecografia o una RM per valutare eventuali lesioni non evidenti. Chiedo al collega ortopedico quali segni clinici specifici ci aiutano a distinguere una frattura epifisaria da una semplice contusione e quale protocollo di imaging è più indicato in questa situazione."
+}
+
+🔀 general_practitioner: consulto_utile=si -> mini-consulto verso orthopedist, in aggiunta all'azione 'proponi'
+🔀 ROUTER: orthopedist coinvolto nella discussione su richiesta di un collega
+🔀 ROUTER: turno di orthopedist (battuta 2/12)
+📚 RAG [orthopedist]: 3 pezzi recuperati
+   1. [ortopedia_fvg_pdta_femore_over65, p. 17] riguardo a:
+ valutazione presenza e intensità del dolore
+ documentazione pregressi ricoveri
+ farmaci assunti
+ allergie
+ patologie pregresse
+ pre...
+   2. [ortopedia_fvg_pdta_femore_over65, p. 13] In caso di sospetta frattura del femore prossimale non evidenziata sui radiogrammi in proiezione AP e assiale
+di qualità adeguata l’esame consigliato ...
+   3. [generale_triage_piemonte, p. 10] • Trauma minore (senza rischio di compromissione dello stato generale, riferito ad un
+segmento corporeo isolato –ustione-)
+• Problema psicosociale
+• F...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 30.7s
+{
+    "azione": "conferma",
+    "valutazione_indipendente": "Davanti a un adolescente di 14 anni con dolore al ginocchio di intensità insopportabile, insorto subito dopo una caduta in bicicletta con abrasione cutanea locale, il quadro clinico suggerisce fortemente una lesione ossea articolare, in particolare una frattura epifisaria (Salter‑Harris) del ginocchio (condilo femorale distale o tibia prossimale).",
+    "coincide_con_gruppo": "si",
+    "consulto_utile": "no",
+    "collega_da_consultare": null,
+    "domanda_per_il_collega": null,
+    "to": null,
+    "motivazione": "Il dolore è descritto come \"insopportabile\" e persiste per più di 10 ore, segno tipico di coinvolgimento osseo. L'età (14 anni) indica una cartilagine epifisaria ancora presente e vulnerabile a fratture di tipo Salter‑Harris. L'evento traumatico (caduta con impatto diretto) è coerente con una frattura epifisaria. La presenza di un'area di abrasione non esclude una lesione ossea sottostante. Pertanto l'ipotesi di frattura epifisaria è la più plausibile e richiede valutazione urgente.",
+    "ipotesi_alternativa_scartata": "Contusione o distorsione muscolotendinea senza frattura",
+    "motivo_scarto": "Il dolore insopportabile e la sua persistenza per più di 10 ore sono più tipici di una lesione ossea che di una semplice contusione; inoltre il meccanismo di impatto diretto aumenta la probabilità di frattura epifisaria in un soggetto in crescita.",
+    "fonti_consultate": "nessuna pertinente",
+    "message": "Confermo l'ipotesi di frattura epifisaria del ginocchio (Salter‑Harris) con urgenza ROSSO. I segni clinici che orientano verso questa diagnosi includono: dolore intenso e persistente, limitazione marcata dell'estensione/flessione, edema locale, possibile ematoma intra-articolare, e segni di instabilità. In prima istanza raccomando radiografia AP e laterale del ginocchio; se le radiografie sono negative ma il sospetto rimane alto, è indicata un'ecografia muscoloscheletrica per versamento ematomi e, preferibilmente, una risonanza magnetica (RM) per valutare la cartilagine epifisaria e le strutture intra-articolari."
+}
+
+🔀 ROUTER: general_practitioner chiamato in causa dopo aver gia' confermato, una battuta di reazione
+🔀 ROUTER: turno di general_practitioner (battuta 3/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 27] DEFORMITÀ OSSA LUNGHE E GROSSE ARTICOLAZIONI: lesione a carico di omero e femore con deformazione evidente.
+Sospetta lussazione a carico di spalla, go...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 24] DISTURBI NEUROLOGICI / PLEGIA / GLOBO VESCICALE / INSENSIBILITÀ / PRIAPISMO: attivare se paresi, o assenza
+di sensibilità con distribuzione metamerica...
+   3. [generale_triage_piemonte, p. 10] • Trauma minore (senza rischio di compromissione dello stato generale, riferito ad un
+segmento corporeo isolato –ustione-)
+• Problema psicosociale
+• F...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 54.0s
+{
+    "azione": "conferma",
+    "valutazione_indipendente": "Anche valutando i dati del paziente in modo autonomo, l'unica spiegazione clinicamente coerente è una frattura epifisaria del ginocchio (tipo Salter‑Harris), data l'età, il meccanismo di trauma diretto, l'intensità del dolore e la limitazione funzionale.",
+    "coincide_con_gruppo": "si",
+    "consulto_utile": "no",
+    "collega_da_consultare": null,
+    "domanda_per_il_collega": null,
+    "to": null,
+    "motivazione": "Concordo pienamente con l'ipotesi di frattura epifisaria: il dolore insopportabile e persistente, l'edema locale, la limitazione marcata del movimento e la presenza di un'abrasione cutanea dopo impatto diretto sono tutti segni tipici di coinvolgimento osseo in un adolescente. L'urgenza resta ROSSO perché è necessario escludere una lesione epifisaria per evitare danni alla crescita.",
+    "ipotesi_alternativa_scartata": "Contusione o distorsione muscolotendinea senza frattura",
+    "motivo_scarto": "Il dolore è descritto come insopportabile e persiste per più di 10 ore, caratteristica più tipica di una lesione ossea che di una semplice contusione; inoltre il meccanismo di impatto diretto aumenta la probabilità di frattura epifisaria in un soggetto in crescita.",
+    "fonti_consultate": "nessuna pertinente",
+    "message": "Confermo l'ipotesi di frattura epifisaria del ginocchio (Salter‑Harris) con urgenza ROSSO. I segni clinici (dolore intenso, limitazione del movimento, edema, possibile ematoma intra-articolare) e il meccanismo di trauma supportano questa diagnosi. Gli esami consigliati rimangono: radiografia AP e laterale del ginocchio; se le radiografie sono negative ma il sospetto persiste, ecografia muscoloscheletrica e, preferibilmente, risonanza magnetica per valutare la cartilagine epifisaria e le strutture intra-articolari."
+}
+
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di general_practitioner (battuta 4/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 53] 3.2.5 Problema Specifico - Odontoiatrico
+
+2 DISLOCAZIONE MANDIBOLA
+5 ODONTALGIA
+5 FRATTURA DI DENTE O DI PROTESI
+5 DOLORE / INFIAMMAZIONE DI GENGIVE E...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 51.9s
+{
+    "azione": "conferma",
+    "valutazione_indipendente": "Considerando un adolescente di 14 anni con dolore al ginocchio insopportabile, insorto subito dopo una caduta in bicicletta con abrasione cutanea, l'ipotesi più probabile è una frattura epifisaria (Salter‑Harris) del ginocchio, con possibile versamento ematomi intra‑articolare.",
+    "coincide_con_gruppo": "si",
+    "consulto_utile": "no",
+    "collega_da_consultare": null,
+    "domanda_per_il_collega": null,
+    "to": null,
+    "motivazione": "I segni clinici (dolore intenso e persistente, limitazione marcata del movimento, edema locale) e il meccanismo di trauma diretto in un soggetto in crescita rendono la frattura epifisaria la diagnosi più plausibile. L'abrasione cutanea non esclude un danno osseo sottostante. L'urgenza resta ROSSO per escludere danni alla crescita epifisaria.",
+    "ipotesi_alternativa_scartata": "Contusione o distorsione muscolotendinea senza frattura",
+    "motivo_scarto": "Il dolore è descritto come insopportabile e persiste per più di 10 ore, tipico di coinvolgimento osseo piuttosto che di una semplice contusione; inoltre il trauma diretto aumenta la probabilità di frattura epifisaria in un adolescente.",
+    "fonti_consultate": "nessuna pertinente",
+    "message": "Confermo l'ipotesi di frattura epifisaria del ginocchio (Salter‑Harris) con urgenza ROSSO, come già proposto dal gruppo. Gli esami consigliati (radiografia AP e laterale, ecografia e, se necessario, RM) rimangono appropriati."
+}
+
+🔀 ROUTER: giro di verifica, turno di orthopedist (battuta 5/12)
+📚 RAG [orthopedist]: 3 pezzi recuperati
+   1. [ortopedia_fvg_pdta_femore_over65, p. 17] riguardo a:
+ valutazione presenza e intensità del dolore
+ documentazione pregressi ricoveri
+ farmaci assunti
+ allergie
+ patologie pregresse
+ pre...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 27] DEFORMITÀ OSSA LUNGHE E GROSSE ARTICOLAZIONI: lesione a carico di omero e femore con deformazione evidente.
+Sospetta lussazione a carico di spalla, go...
+   3. [ortopedia_fvg_pdta_femore_over65, p. 7] - sottotrocanteriche
+Nelle fratture extracapsulari l’intervento chirurgico prevede riduzione e osteosintesi della frattura. Il tipo di
+osteosintesi vi...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 47.5s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 4.9s
+{
+    "azione": "conferma",
+    "valutazione_indipendente": "Considerando un adolescente di 14 anni con dolore al ginocchio di intensità insopportabile, comparso subito dopo una caduta in bicicletta con impatto diretto e presenza di abrasione cutanea, i segni più indicativi sono quelli di una lesione ossea intra‑articolare, tipicamente una frattura epifisaria (Salter‑Harris) del ginocchio (condilo femorale distale o tibia prossimale).",
+    "coincide_con_gruppo": "si",
+    "consulto_utile": "no",
+    "collega_da_consultare": null,
+    "domanda_per_il_collega": null,
+    "to": null,
+    "motivazione": "I dati clinici (dolore insopportabile, limitazione marcata del movimento, edema locale) e il meccanismo di trauma diretto in un soggetto in crescita rendono la frattura epifisaria la diagnosi più plausibile. L'abrasione cutanea non esclude un danno osseo sottostante. L'urgenza resta ROSSO per evitare danni alla crescita epifisaria.",
+    "ipotesi_alternativa_scartata": "Contusione o distorsione muscolotendinea senza frattura",
+    "motivo_scarto": "Il dolore è descritto come insopportabile e persiste per più di 10 ore, caratteristica tipica di coinvolgimento osseo piuttosto che di una semplice contusione; inoltre il trauma diretto aumenta la probabilità di frattura epifisaria in un adolescente.",
+    "fonti_consultate": "nessuna pertinente",
+    "message": "Confermo l'ipotesi di frattura epifisaria del ginocchio (Salter‑Harris) con urgenza ROSSO. I segni clinici e il meccanismo di trauma supportano pienamente questa diagnosi; le indagini consigliate (radiografia AP e laterale, ecografia e, se necessario, RM) rimangono appropriate."
+}
+
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 24.7s
+{
+    "diagnosis": "Frattura epifisaria del ginocchio (probabile Salter‑Harris) con abrasione cutanea associata",
+    "urgency_level": "ROSSO",
+    "operational_guidance": "Recarsi immediatamente al Pronto Soccorso ortopedico per eseguire radiografia AP e laterale del ginocchio; se le radiografie non mostrano la frattura ma il sospetto rimane alto, effettuare ecografia muscoloscheletrica e, se necessario, risonanza magnetica per valutare la cartilagine epifisaria.",
+    "recommendations": "Il paziente di 14 anni presenta dolore al ginocchio di intensità insopportabile da 10 ore dopo una caduta in bicicletta con impatto diretto, associato a un'area di abrasione cutanea. In età adolescenziale le epifisi sono ancora cartilaginee e vulnerabili a fratture Salter‑Harris, le quali si manifestano con dolore molto intenso, limitazione marcata del movimento e possibile edema o ematoma. Tutti gli specialisti (Medicina e Ortopedia) hanno concordato che questi segni clinici rendono più probabile una frattura epifisaria rispetto a una semplice contusione muscolotendinea. L'urgenza è stata uniformemente classificata come ROSSO per escludere danni alla crescita epifisaria. Pertanto la diagnosi finale è una possibile frattura epifisaria del ginocchio, da confermare con imaging urgente: radiografia AP e laterale come primo step, seguita da ecografia e/o risonanza magnetica se le radiografie risultano negative o inconcludenti."
+}
+
+👨‍⚕️ PRIMARIO → diagnosi='Frattura epifisaria del ginocchio (probabile Salter‑Harris) con abrasione cutanea associata' | urgenza=ROSSO
+
+####################################################################################################
+CASO 1: Ginocchio: 14 anni, caduta in bici, abrasione, dolore insopportabile   [groq/openai/gpt-oss-120b (ragionamento low)]   tempo 235 s
+specialisti: ['general_practitioner', 'orthopedist']
+
+  [general_practitioner -> tutti] proponi urgenza=ROSSO
+    Propongo di considerare una frattura epifisaria del ginocchio come diagnosi principale, data l'età del paziente, il trauma meccanico e l'intensità del dolore. Suggerisco di effettuare subito una radiografia del ginocchio (AP e laterale) e, se necessario, un'ecografia o una RM per valutare eventuali lesioni non evidenti. Chiedo al collega ortopedico quali segni clinici specifici ci aiutano a distinguere una frattura epifisaria da una semplice contusione e quale protocollo di imaging è più indicato in questa situazione. — Ho considerato anche 'Contusione o distorsione muscolotendinea senza frattura' ma l'ho esclusa (Il dolore è descritto come insopportabile e persistente, tipico di lesioni ossee più che di semplici contusioni; inoltre il meccanismo di caduta con impatto diretto aumenta la probabilità di frattura epifisaria in un soggetto in crescita.).
+
+  [general_practitioner -> orthopedist] consulta
+    Quali sono i segni clinici che orientano verso una frattura epifisaria del ginocchio in un adolescente e quali radiografie o altri imaging sono consigliati in prima istanza?
+
+  [orthopedist -> general_practitioner] conferma urgenza=ROSSO
+    Il dolore è descritto come "insopportabile" e persiste per più di 10 ore, segno tipico di coinvolgimento osseo. L'età (14 anni) indica una cartilagine epifisaria ancora presente e vulnerabile a fratture di tipo Salter‑Harris. L'evento traumatico (caduta con impatto diretto) è coerente con una frattura epifisaria. La presenza di un'area di abrasione non esclude una lesione ossea sottostante. Pertanto l'ipotesi di frattura epifisaria è la più plausibile e richiede valutazione urgente. — Confermo l'ipotesi di frattura epifisaria del ginocchio (Salter‑Harris) con urgenza ROSSO. I segni clinici che orientano verso questa diagnosi includono: dolore intenso e persistente, limitazione marcata dell'estensione/flessione, edema locale, possibile ematoma intra-articolare, e segni di instabilità. In prima istanza raccomando radiografia AP e laterale del ginocchio; se le radiografie sono negative ma il sospetto rimane alto, è indicata un'ecografia muscoloscheletrica per versamento ematomi e, preferibilmente, una risonanza magnetica (RM) per valutare la cartilagine epifisaria e le strutture intra-articolari. — Ho considerato anche 'Contusione o distorsione muscolotendinea senza frattura' ma l'ho esclusa (Il dolore insopportabile e la sua persistenza per più di 10 ore sono più tipici di una lesione ossea che di una semplice contusione; inoltre il meccanismo di impatto diretto aumenta la probabilità di frattura epifisaria in un soggetto in crescita.).
+
+  [general_practitioner -> orthopedist] conferma urgenza=ROSSO
+    Concordo pienamente con l'ipotesi di frattura epifisaria: il dolore insopportabile e persistente, l'edema locale, la limitazione marcata del movimento e la presenza di un'abrasione cutanea dopo impatto diretto sono tutti segni tipici di coinvolgimento osseo in un adolescente. L'urgenza resta ROSSO perché è necessario escludere una lesione epifisaria per evitare danni alla crescita. — Confermo l'ipotesi di frattura epifisaria del ginocchio (Salter‑Harris) con urgenza ROSSO. I segni clinici (dolore intenso, limitazione del movimento, edema, possibile ematoma intra-articolare) e il meccanismo di trauma supportano questa diagnosi. Gli esami consigliati rimangono: radiografia AP e laterale del ginocchio; se le radiografie sono negative ma il sospetto persiste, ecografia muscoloscheletrica e, preferibilmente, risonanza magnetica per valutare la cartilagine epifisaria e le strutture intra-articolari. — Ho considerato anche 'Contusione o distorsione muscolotendinea senza frattura' ma l'ho esclusa (Il dolore è descritto come insopportabile e persiste per più di 10 ore, caratteristica più tipica di una lesione ossea che di una semplice contusione; inoltre il meccanismo di impatto diretto aumenta la probabilità di frattura epifisaria in un soggetto in crescita.).
+
+  [general_practitioner -> orthopedist] conferma [VERIFICA] urgenza=ROSSO
+    I segni clinici (dolore intenso e persistente, limitazione marcata del movimento, edema locale) e il meccanismo di trauma diretto in un soggetto in crescita rendono la frattura epifisaria la diagnosi più plausibile. L'abrasione cutanea non esclude un danno osseo sottostante. L'urgenza resta ROSSO per escludere danni alla crescita epifisaria. — Confermo l'ipotesi di frattura epifisaria del ginocchio (Salter‑Harris) con urgenza ROSSO, come già proposto dal gruppo. Gli esami consigliati (radiografia AP e laterale, ecografia e, se necessario, RM) rimangono appropriati. — Ho considerato anche 'Contusione o distorsione muscolotendinea senza frattura' ma l'ho esclusa (Il dolore è descritto come insopportabile e persiste per più di 10 ore, tipico di coinvolgimento osseo piuttosto che di una semplice contusione; inoltre il trauma diretto aumenta la probabilità di frattura epifisaria in un adolescente.).
+
+  [orthopedist -> general_practitioner] conferma [VERIFICA] urgenza=ROSSO
+    I dati clinici (dolore insopportabile, limitazione marcata del movimento, edema locale) e il meccanismo di trauma diretto in un soggetto in crescita rendono la frattura epifisaria la diagnosi più plausibile. L'abrasione cutanea non esclude un danno osseo sottostante. L'urgenza resta ROSSO per evitare danni alla crescita epifisaria. — Confermo l'ipotesi di frattura epifisaria del ginocchio (Salter‑Harris) con urgenza ROSSO. I segni clinici e il meccanismo di trauma supportano pienamente questa diagnosi; le indagini consigliate (radiografia AP e laterale, ecografia e, se necessario, RM) rimangono appropriate. — Ho considerato anche 'Contusione o distorsione muscolotendinea senza frattura' ma l'ho esclusa (Il dolore è descritto come insopportabile e persiste per più di 10 ore, caratteristica tipica di coinvolgimento osseo piuttosto che di una semplice contusione; inoltre il trauma diretto aumenta la probabilità di frattura epifisaria in un adolescente.).
+
+IPOTESI DI GRUPPO: {'diagnosis': 'Possibile frattura epifisaria (Salter‑Harris) del ginocchio (es. condilo femorale distale o tibia prossimale) a seguito della caduta in bicicletta, con abrasione cutanea associata', 'urgency_level': 'ROSSO', 'recommended_exams': ['Radiografia del ginocchio in proiezioni AP e laterale', 'Ecografia muscoloscheletrica per valutare eventuali versamenti ematomi', 'Se indicata, TC o risonanza magnetica per escludere lesioni epifisarie non evidenti'], 'confirmed_by': ['general_practitioner', 'orthopedist']}
+passati senza confermare: [] | turni falliti: {} | battute: 5
+DIAGNOSI FINALE: {'diagnosis': 'Frattura epifisaria del ginocchio (probabile Salter‑Harris) con abrasione cutanea associata', 'urgency_level': 'ROSSO', 'specialists_involved': ['general_practitioner', 'orthopedist'], 'operational_guidance': 'Recarsi immediatamente al Pronto Soccorso ortopedico per eseguire radiografia AP e laterale del ginocchio; se le radiografie non mostrano la frattura ma il sospetto rimane alto, effettuare ecografia muscoloscheletrica e, se necessario, risonanza magnetica per valutare la cartilagine epifisaria.', 'recommendations': "Il paziente di 14 anni presenta dolore al ginocchio di intensità insopportabile da 10 ore dopo una caduta in bicicletta con impatto diretto, associato a un'area di abrasione cutanea. In età adolescenziale le epifisi sono ancora cartilaginee e vulnerabili a fratture Salter‑Harris, le quali si manifestano con dolore molto intenso, limitazione marcata del movimento e possibile edema o ematoma. Tutti gli specialisti (Medicina e Ortopedia) hanno concordato che questi segni clinici rendono più probabile una frattura epifisaria rispetto a una semplice contusione muscolotendinea. L'urgenza è stata uniformemente classificata come ROSSO per escludere danni alla crescita epifisaria. Pertanto la diagnosi finale è una possibile frattura epifisaria del ginocchio, da confermare con imaging urgente: radiografia AP e laterale come primo step, seguita da ecografia e/o risonanza magnetica se le radiografie risultano negative o inconcludenti."}

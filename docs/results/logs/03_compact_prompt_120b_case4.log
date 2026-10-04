@@ -1,0 +1,395 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "palpitazioni irregolari",
+            "specialists": ["cardiologist"]
+        },
+        {
+            "symptom": "lividi estesi comparsi da soli sulle braccia e sulle gambe",
+            "specialists": ["dermatologist"]
+        }
+    ],
+    "reasoning": "Il paziente ha 65 anni, è maschio e ha una fibrillazione atriale nota. Le palpitazioni irregolari, soprattutto di intensità forte e durata di 2 ore, sono tipiche di aritmie cardiache; quindi è necessario il consulto di un cardiologo, anche considerando la patologia pregressa. I lividi estesi e spontanei su braccia e gambe sono manifestazioni cutanee; non vi è alcun trauma correlato, perciò è opportuno un esame dermatologico per valutare eventuali disturbi della coagulazione o patologie della pelle. Non emergono altri sintomi che richiedano specialisti diversi.",
+    "specialists": ["cardiologist", "dermatologist"]
+}
+
+🚦 SUPERVISOR → ['cardiologist', 'dermatologist']
+   Checklist: {'cardiologist': True, 'dermatologist': True}
+🔀 ROUTER: turno di cardiologist (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights:  17%|█▋        | 34/199 [00:00<00:00, 327.37it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 1352.09it/s]
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+   2. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   3. [cardio_fvg_pdta_stemi_2022, p. 54] complicanze meccaniche, gli interventi riperfusivi non modificano la prognosi quoad vitam.
+Arresto cardiaco
+I pazienti con arresto cardio -respiratori...
+{
+  "azione": "proponi",
+  "consulto_utile": "si",
+  "collega_da_consultare": "ematologo",
+  "domanda_per_il_collega": "Quali indagini di laboratorio e criteri diagnostici consigli per valutare una possibile coagulopatia o effetto di anticoagulanti in un paziente con fibrillazione atriale e ecchimosi estese senza trauma?",
+  "diagnosi": "Fibrillazione atriale con risposta ventricolare rapida (RVR) associata a possibile sovradosaggio o interazione di anticoagulanti che provoca ecchimosi estese",
+  "urgenza": "ARANCIONE",
+  "esami_consigliati": ["ECG a riposo", "ECG Holter 24h", "Emocromo completo con piastrine", "PT/INR e APTT", "Profilo di coagulazione (fattori V, VIII, IX)", "Ecocardiografia transtoracica", "Screening per farmaci anticoagulanti (es. dosaggio anti-Xa se LMWH)"],
+  "dettagli": "Il paziente riferisce palpitazioni intense da 2 ore, tipiche di un episodio di AF con RVR. La comparsa di ecchimosi diffuse in assenza di trauma suggerisce una possibile alterazione della coagulazione, comune nei pazienti in terapia anticoagulante per AF. È necessario confermare l’attuale ritmo, valutare la risposta ventricolare e verificare lo stato anticoagulante per guidare la gestione.",
+  "ipotesi_alternativa_scartata": "Infarto miocardico acuto",
+  "motivo_scarto": "Assenza di dolore toracico, sintomi tipici e nessun dato di ECG o enzimi cardiaci; le ecchimosi non sono correlate a infarto.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Propongo di considerare AF con RVR e possibile eccesso anticoagulante come diagnosi principale, richiedendo ECG, studio della coagulazione e ecocardiografia; consulto l'ematologo per approfondire la causa delle ecchimosi."
+}
+
+🔀 cardiologist: consulto_utile=si verso 'ematologo' (non nel roster) -> reindirizzato a general_practitioner
+🔀 cardiologist: consulto_utile=si -> mini-consulto verso general_practitioner, in aggiunta all'azione 'proponi'
+🔀 ROUTER: general_practitioner coinvolto nella discussione su richiesta di un collega
+🔀 ROUTER: turno di general_practitioner (battuta 2/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] (vertigine obiettiva) oppure come se se la persona stesse girando attorno nello spazio (vertigine soggettiva).
+§ Capogiro : Disturbi dell’orientamento...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 34] - gonfiore agli arti
+- recente intervento chirurgico
+- anamnesi per ipercoagulabilità
+- immobilità / allettamento
+- presenza di apparecchio gessato
+- ...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 21] COAGULOPATIE E/O ANTICOAGULANTI: emofilia, piastrinopenia, leucemia, cirrosi epatica, neoplasia, terapia
+anticoagulante e, in relazione al trauma cran...
+{
+  "azione": "rivedi",
+  "valutazione_indipendente": "AF con risposta ventricolare rapida e possibile eccesso anticoagulante, con ecchimosi spontanee suggerenti alterazione della coagulazione.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "diagnosi": "Fibrillazione atriale con risposta ventricolare rapida (RVR) associata a possibile sovradosaggio o interazione di anticoagulanti che provoca ecchimosi estese",
+  "urgenza": "ARANCIONE",
+  "esami_consigliati": [
+    "ECG a riposo",
+    "ECG Holter 24h",
+    "Emocromo completo con conta piastrinica",
+    "PT/INR e APTT",
+    "Dosaggio anti‑Xa (se terapia con LMWH) o livello di warfarin (INR) se VKA",
+    "Fattori di coagulazione (VIII, IX, V) se sospetta coagulopatia ereditaria",
+    "Ecocardiografia transtoracica"
+  ],
+  "dettagli": "Per valutare l’effetto anticoagulante: PT/INR, APTT, anti‑Xa e conta piastrinica. Per escludere coagulopatie ereditarie: dosaggio dei fattori VIII, IX, V. L’ECG confermerà l’AF e la frequenza ventricolare; l’Holter valuterà la variabilità. L’ecocardiografia escluderà trombi atriali o patologie strutturali.",
+  "motivazione": "Aggiungo esami specifici per quantificare l’intensità dell’anticoagulazione (anti‑Xa, INR) e per indagare eventuali coagulopatie congenite, in modo da guidare la gestione terapeutica.",
+  "ipotesi_alternativa_scartata": "Infarto miocardico acuto",
+  "motivo_scarto": "Assenza di dolore toracico, sintomi tipici e dati ECG/enzimatici; le ecchimosi non sono correlate a infarto.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Propongo di integrare gli esami di laboratorio con anti‑Xa, INR, conta piastrinica e fattori della coagulazione per valutare l’eccesso anticoagulante o una coagulopatia sottostante."
+}
+
+🔀 ROUTER: turno di cardiologist (battuta 3/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_cardarelli_pdta_dolore_toracico, p. 11] con ecocardiogramma transtoracico)
+Fattori di rischio cardiovascolari (diabete mellito, ipertensione arteriosa, familiarità per coronaropatia, dislipi...
+   2. [cardio_fvg_pdta_stemi_2022, p. 54] elettrocardiografica di STEMI, ma con un elevato sospetto clinico di infarto miocardico (dolore toracico
+prima dell’ACR, coronaropatia nota). In quest...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 48] (vertigine obiettiva) oppure come se se la persona stesse girando attorno nello spazio (vertigine soggettiva).
+§ Capogiro : Disturbi dell’orientamento...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 26.6s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "In un paziente 65 anni con fibrillazione atriale nota, palpitazioni irregolari da 2 ore e ecchimosi estese spontanee, la prima ipotesi è AF con risposta ventricolare rapida associata a eccesso di anticoagulazione o coagulopatia acquisita.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Concordo con la diagnosi di AF con RVR e possibile sovradosaggio/effetto anticoagulante; gli esami proposti (ECG, Holter, emocromo, PT/INR, APTT, anti‑Xa, conta piastrinica, fattori della coagulazione, ecocardiografia) sono appropriati per confermare ritmo, valutare l'intensità dell'anticoagulazione e escludere coagulopatie.",
+  "ipotesi_alternativa_scartata": "Infarto miocardico acuto",
+  "motivo_scarto": "Assenza di dolore toracico, sintomi tipici, e nessun dato ECG/enzimatico suggerente; le ecchimosi non sono correlate a infarto.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di AF con RVR e possibile eccesso anticoagulante; gli esami suggeriti sono completi e adeguati per la gestione."
+}
+
+🔀 ROUTER: turno di dermatologist (battuta 4/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [dermatologia_sidemast_micosi, p. 23] soprattutto da Pseudomonas
+aeruginosa, determina la comparsa di un colorito giallo-brunastro o francamente verdastro
+del letto ungueale.
+• Onicomicosi...
+   3. [dermatologia_sidemast_micosi, p. 9] e l’onicogrifosi. Considerando la contagiosità delle dermatofitosi e i costi sanitari per il loro
+trattamento è necessario che la diagnosi sia quanto ...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 28.7s
+{
+  "azione": "rivedi",
+  "valutazione_indipendente": "Le ecchimosi estese in un anziano con fibrillazione atriale suggeriscono una possibile coagulopatia o un'alterazione della parete vascolare; in dermatologia considererei principalmente una purpura trombocitopenica (es. trombocitopenia indotta da farmaci) o una vasculite leucocitocitica, piuttosto che un semplice effetto anticoagulante.",
+  "coincide_con_gruppo": "no",
+  "consulto_utile": "si",
+  "collega_da_consultare": "ematologo",
+  "domanda_per_il_collega": "Quali parametri di laboratorio (es. conta piastrinica, test per anticorpi anti-platelet) e criteri diagnostici consigli per distinguere una purpura trombocitopenica da un eccesso di anticoagulazione in questo paziente?",
+  "to": "cardiologia",
+  "diagnosi": "Fibrillazione atriale con RVR associata a possibile eccesso anticoagulante o a purpura trombocitopenica indotta da farmaci; da escludere vasculite leucocitocitica cutanea.",
+  "urgenza": "ARANCIONE",
+  "esami_consigliati": [
+    "Biopsia cutanea delle ecchimosi per istologia e immunofluorescenza",
+    "Conta piastrinica con esame morfologico",
+    "Test per anticorpi anti-platelet (es. test di aggregazione, anti-PF4 se sospetto HIT)",
+    "Screening per vasculiti (ANCA, complemento C3/C4)"
+  ],
+  "dettagli": "Le ecchimosi senza trauma possono derivare da trombocitopenia o vasculite; una biopsia cutanea aiuta a distinguere emorragia intravascolare da vasculite. La conta piastrinica è fondamentale per valutare una purpura trombocitopenica, mentre gli anticorpi anti-platelet escludono HIT o altre cause immunitarie. Gli ANCA e il complemento orientano verso vasculiti sistemiche.",
+  "motivazione": "Integro la valutazione dermatologica per includere cause ematologiche cutanee (purpura trombocitopenica, vasculite) che richiedono esami specifici e una possibile biopsia cutanea, garantendo una diagnosi più completa.",
+  "ipotesi_alternativa_scartata": "Ecchimosi dovute a trauma occulto o a insufficienza venosa cronica",
+  "motivo_scarto": "Il paziente riferisce assenza di traumi e la distribuzione è diffusa su arti superiori e inferiori, non tipica di insufficienza venosa.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Propongo di ampliare la diagnosi includendo purpura trombocitopenica o vasculite cutanea, con biopsia cutanea e esami ematologici specifici; consulto l'ematologo per definire i criteri di laboratorio."
+}
+
+🔀 dermatologist: consulto_utile=si verso 'ematologo' (non nel roster) -> reindirizzato a general_practitioner
+🔀 dermatologist: consulto_utile=si -> mini-consulto verso general_practitioner, in aggiunta all'azione 'rivedi'
+🔀 ROUTER: turno di general_practitioner (battuta 5/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 38] possibilità di effettuare il trattamento trombolitico.
+Se sono presenti i seguenti fattori che controindicano la trombolisi la scheda non deve essere ...
+   2. [generale_triage_piemonte, p. 8] interazione con utente ed accompagnatori. Essa deve prevedere una raccolta dati relativa alle
+condizioni di salute della persona rapida, ma adegu ata ...
+   3. [generale_umbria_sepsi, p. 17] La terapia standard nel caso di un paziente già ricoverato è più compless a in
+quanto deve tenere conto di numerose variabili tra cui:
+1. la patologia...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 34.4s
+{
+  "azione": "rivedi",
+  "valutazione_indipendente": "Con i dati disponibili (AF nota, palpitazioni, ecchimosi estese senza trauma) sospetto una coagulopatia legata a terapia anticoagulante o una purpura trombocitopenica; è necessario distinguere le due con esami mirati.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "diagnosi": "Fibrillazione atriale con RVR associata a possibile eccesso anticoagulante o purpura trombocitopenica; da escludere vasculite cutanea.",
+  "urgenza": "ARANCIONE",
+  "esami_consigliati": [
+    "Conta piastrinica con esame morfologico",
+    "PT/INR e APTT",
+    "Anti‑Xa (se terapia con eparina/LMWH) o dosaggio del farmaco anticoagulante (es. rivaroxaban plasma level se disponibile)",
+    "Test di aggregazione piastrinica e anticorpi anti‑PF4 (HIT) se esposizione a eparina",
+    "Screening per vasculiti: ANCA, complemento C3/C4",
+    "Biopsia cutanea delle ecchimosi per istologia e immunofluorescenza"
+  ],
+  "dettagli": "Per distinguere purpura trombocitopenica da eccesso anticoagulante: 1) piastrinopenia significativa (<100 000/µL) indica purpura; 2) PT/INR prolungato o anti‑Xa elevato suggerisce sovradosaggio anticoagulante; 3) normalità di PT/INR con piastrinopenia orienta verso causa piastrinica; 4) test anti‑PF4 esclude HIT; 5) biopsia cutanea differenzia emorragia intravascolare (coagulopatia) da vasculite leucocitocitica.",
+  "motivazione": "Aggiungo esami specifici per valutare quantitativamente l'intensità dell'anticoagulazione e la conta piastrinica, oltre a test immunologici per escludere HIT e vasculiti, così da differenziare le due principali ipotesi ematologiche.",
+  "ipotesi_alternativa_scartata": "Ecchimosi da trauma occulto o insufficienza venosa cronica",
+  "motivo_scarto": "Il paziente nega traumi e la distribuzione è diffusa su arti superiori e inferiori, non tipica di insufficienza venosa.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Propongo di integrare gli esami di laboratorio con conta piastrinica, PT/INR, anti‑Xa, test anti‑PF4 e aggregazione piastrinica; questi parametri permettono di distinguere se le ecchimosi derivano da purpura trombocitopenica o da eccesso di anticoagulante, supportando la diagnosi di gruppo."
+}
+
+🔀 ROUTER: turno di dermatologist (battuta 6/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 23] soprattutto da Pseudomonas
+aeruginosa, determina la comparsa di un colorito giallo-brunastro o francamente verdastro
+del letto ungueale.
+• Onicomicosi...
+   2. [generale_triage_piemonte, p. 22] nazionale FIMUPS, Torino, 25-28 /11/1996: 297-301
+* Boni D. Differenti modelli di triage e loro applicazione in Italia in atti I° Convegno
+Internazion...
+   3. [dermatologia_sidemast_micosi, p. 9] e l’onicogrifosi. Considerando la contagiosità delle dermatofitosi e i costi sanitari per il loro
+trattamento è necessario che la diagnosi sia quanto ...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 35.0s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 5.0s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "In un paziente anziano con fibrillazione atriale nota e comparsa recente di ecchimosi estese senza trauma, la prima ipotesi è un disturbo della coagulazione legato a terapia anticoagulante o a una purpura trombocitopenica; la possibilità di vasculite cutanea resta da escludere con biopsia.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Gli esami proposti (PT/INR, anti‑Xa, conta piastrinica, anti‑PF4, fattori della coagulazione) consentono di distinguere tra eccesso anticoagulante e purpura trombocitopenica; la biopsia cutanea è indicata per escludere vasculite. Questo approccio è coerente con la nostra valutazione dermatologica.",
+  "ipotesi_alternativa_scartata": "Ecchimosi da trauma occulto",
+  "motivo_scarto": "Il paziente nega traumi e la distribuzione è diffusa su arti superiori e inferiori, non tipica di lesioni traumatiche localizzate.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di possibile eccesso anticoagulante vs purpura trombocitopenica e l’indicazione di biopsia cutanea per escludere vasculite; gli esami di laboratorio suggeriti sono appropriati."
+}
+
+🔀 ROUTER: turno di cardiologist (battuta 7/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+   2. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   3. [cardio_fvg_pdta_stemi_2022, p. 54] complicanze meccaniche, gli interventi riperfusivi non modificano la prognosi quoad vitam.
+Arresto cardiaco
+I pazienti con arresto cardio -respiratori...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 33.4s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Il paziente con fibrillazione atriale nota presenta palpitazioni intense da 2 h e ecchimosi diffuse da una settimana. La combinazione suggerisce AF con risposta ventricolare rapida (RVR) e possibile eccesso di anticoagulazione o purpura trombocitopenica; è necessario escludere vasculite cutanea.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "I dati clinici (AF nota, palpitazioni, ecchimosi estese senza trauma) supportano la diagnosi di AF con RVR associata a possibile sovradosaggio anticoagulante o purpura trombocitopenica; le indagini proposte (ECG, conta piastrinica, PT/INR, anti‑Xa, anti‑PF4, biopsia cutanea) sono adeguate per distinguere le due ipotesi e guidare la terapia.",
+  "ipotesi_alternativa_scartata": "Ecchimosi da trauma occulto o insufficienza venosa cronica",
+  "motivo_scarto": "Il paziente nega traumi e la distribuzione è diffusa su arti superiori e inferiori, non tipica di insufficienza venosa; inoltre la comparsa contemporanea con palpitazioni suggerisce una causa sistemica.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di AF con RVR e possibile eccesso anticoagulante vs purpura trombocitopenica; gli esami indicati sono completi per confermare il ritmo, valutare l'intensità dell'anticoagulazione e escludere coagulopatie o vasculite."
+}
+
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di cardiologist (battuta 8/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+   2. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   3. [cardio_fvg_pdta_stemi_2022, p. 54] complicanze meccaniche, gli interventi riperfusivi non modificano la prognosi quoad vitam.
+Arresto cardiaco
+I pazienti con arresto cardio -respiratori...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 37.5s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Il paziente con fibrillazione atriale nota presenta palpitazioni intense da 2 h e ecchimosi diffuse senza trauma; la combinazione suggerisce AF con possibile tachicardia ventricolare rapida (RVR) e un disturbo della coagulazione, più probabile eccesso di anticoagulante o purpura trombocitopenica.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Ritengo adeguata la diagnosi di AF con RVR associata a possibile sovradosaggio anticoagulante vs purpura trombocitopenica; gli esami proposti (ECG, conta piastrinica, PT/INR, anti‑Xa, anti‑PF4, biopsia cutanea) coprono sia la valutazione del ritmo che la distinzione tra eccesso anticoagulante e causa piastrinica, come indicato dai colleghi.",
+  "ipotesi_alternativa_scartata": "Ecchimosi da trauma occulto o insufficienza venosa cronica",
+  "motivo_scarto": "Il paziente nega traumi e la distribuzione è diffusa su arti superiori e inferiori, non tipica di insufficienza venosa; inoltre la comparsa contemporanea con le palpitazioni suggerisce una causa sistemica.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo l'ipotesi di gruppo: AF con RVR e possibile eccesso anticoagulante o purpura trombocitopenica, urgenza ARANCIONE, esami indicati già elencati."
+}
+
+🔀 ROUTER: giro di verifica, turno di dermatologist (battuta 9/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [generale_triage_piemonte, p. 22] http://www.doh.gov.uk/emergencycare/index.htm, ultimo aggiornamento 14/7/2003, ultima
+consultazione 29/11/2003
+* Derlet R.W, Richards J.R. “Overcrowdi...
+   2. [dermatologia_sidemast_micosi, p. 9] e l’onicogrifosi. Considerando la contagiosità delle dermatofitosi e i costi sanitari per il loro
+trattamento è necessario che la diagnosi sia quanto ...
+   3. [dermatologia_sidemast_micosi, p. 22] coloro che immergono frequentemente le mani in acqua e/o deter -
+genti. Possono presentarsi con 4
+tipi di manifestazioni cliniche
+7:
+• Perionissi cron...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 45.0s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 5.0s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Le ecchimosi estese in un paziente con fibrillazione atriale suggeriscono una possibile coagulopatia legata a terapia anticoagulante o una purpura trombocitopenica; la valutazione dermatologica richiede conta piastrinica, PT/INR, anti‑Xa e, se necessario, biopsia cutanea per escludere vasculite.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Concordo con l'ipotesi di AF con RVR associata a possibile sovradosaggio anticoagulante o purpura trombocitopenica; gli esami proposti coprono sia la valutazione del ritmo cardiaco sia la distinzione tra eccesso anticoagulante e causa piastrinica, includendo la biopsia cutanea per escludere vasculite, come indicato dai colleghi.",
+  "ipotesi_alternativa_scartata": "Ecchimosi da trauma occulto o insufficienza venosa cronica",
+  "motivo_scarto": "Il paziente nega traumi e la distribuzione diffusa su arti superiori e inferiori non è tipica di insufficienza venosa; la comparsa contemporanea con le palpitazioni indica una causa sistemica.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo l'ipotesi di gruppo: AF con RVR e possibile eccesso anticoagulante vs purpura trombocitopenica, urgenza ARANCIONE, esami indicati già elencati."
+}
+
+🔀 ROUTER: giro di verifica, turno di general_practitioner (battuta 10/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 48] VIOLENZA DI GENERE: la persona riferisce aggressione verbale, minacce, strattonamenti, vessazioni, situazioni di mobbing
+sul posto di lavoro, al domic...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 40.4s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 5.0s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Paziente anziano con fibrillazione atriale nota presenta palpitazioni intense e ecchimosi diffuse senza trauma. Le due ipotesi principali sono eccesso anticoagulante (sovradosaggio o interazione) o purpura trombocitopenica; è necessario escludere vasculite. La valutazione richiede ECG, conta piastrinica, PT/INR, anti‑Xa, anti‑PF4 e, se necessario, biopsia cutanea.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "L'analisi dei dati clinici (AF, palpitazioni, ecchimosi spontanee) porta alla stessa conclusione del gruppo: possibile sovradosaggio anticoagulante vs purpura trombocitopenica, con urgenza arancione e gli esami proposti sono completi per distinguere le due condizioni.",
+  "ipotesi_alternativa_scartata": "Ecchimosi da trauma occulto o insufficienza venosa cronica",
+  "motivo_scarto": "Il paziente nega traumi e la distribuzione è diffusa su arti superiori e inferiori, non tipica di insufficienza venosa; inoltre la comparsa contemporanea con le palpitazioni suggerisce una causa sistemica.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo l'ipotesi di gruppo: fibrillazione atriale con RVR associata a possibile eccesso anticoagulante o purpura trombocitopenica, urgenza arancione, esami indicati già elencati."
+}
+
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 26.6s
+{
+    "diagnosis": "Fibrillazione atriale con risposta ventricolare rapida associata a possibile eccesso anticoagulante o purpura trombocitopenica, da escludere vasculite cutanea.",
+    "urgency_level": "ARANCIONE",
+    "operational_guidance": "Recarsi immediatamente al pronto soccorso per valutazione urgente: ECG, monitoraggio cardiaco, prelievo ematico per emocromo, conta piastrinica, PT/INR, APTT, anti‑Xa (o livello del nuovo anticoagulante), test anti‑PF4 e, se indicato, biopsia cutanea delle ecchimosi.",
+    "recommendations": "Il paziente presenta palpitazioni irregolari di forte intensità da 2 ore, compatibili con fibrillazione atriale con risposta ventricolare rapida (RVR). Contestualmente, sono comparsi ecchimosi estese su arti superiori e inferiori senza trauma, suggerendo una possibile coagulopatia: può trattarsi di sovradosaggio o eccessiva attività dell’anticoagulante in uso, oppure di una purpura trombocitopenica. La discussione multidisciplinare ha confermato che gli esami richiesti (ECG, conta piastrinica, PT/INR, APTT, anti‑Xa o livello del nuovo anticoagulante, test anti‑PF4, eventuale biopsia cutanea) sono sufficienti a distinguere tra le due ipotesi e a escludere una vasculite cutanea. Data la combinazione di aritmia potenzialmente instabile e possibile alterazione della coagulazione con rischio di sanguinamento grave, l’urgenza è mantenuta al livello ARANCIONE, che richiede valutazione e gestione entro poche ore ma non necessariamente un intervento di emergenza vitale immediata (ROSSO)."
+}
+
+👨‍⚕️ PRIMARIO → diagnosi='Fibrillazione atriale con risposta ventricolare rapida associata a possibile eccesso anticoagulante o purpura trombocitopenica, da escludere vasculite cutanea.' | urgenza=ARANCIONE
+
+####################################################################################################
+CASO 4: Palpitazioni + lividi: 65 anni, fibrillazione atriale nota   [groq/openai/gpt-oss-120b (ragionamento low)]   tempo 383 s
+specialisti: ['cardiologist', 'dermatologist', 'general_practitioner']
+
+  [cardiologist -> tutti] proponi urgenza=ARANCIONE
+    Propongo di considerare AF con RVR e possibile eccesso anticoagulante come diagnosi principale, richiedendo ECG, studio della coagulazione e ecocardiografia; consulto l'ematologo per approfondire la causa delle ecchimosi. — Ho considerato anche 'Infarto miocardico acuto' ma l'ho esclusa (Assenza di dolore toracico, sintomi tipici e nessun dato di ECG o enzimi cardiaci; le ecchimosi non sono correlate a infarto.).
+
+  [cardiologist -> general_practitioner] consulta
+    Quali indagini di laboratorio e criteri diagnostici consigli per valutare una possibile coagulopatia o effetto di anticoagulanti in un paziente con fibrillazione atriale e ecchimosi estese senza trauma?
+
+  [general_practitioner -> cardiologist] rivedi urgenza=ARANCIONE
+    Aggiungo esami specifici per quantificare l’intensità dell’anticoagulazione (anti‑Xa, INR) e per indagare eventuali coagulopatie congenite, in modo da guidare la gestione terapeutica. — Propongo di integrare gli esami di laboratorio con anti‑Xa, INR, conta piastrinica e fattori della coagulazione per valutare l’eccesso anticoagulante o una coagulopatia sottostante. — Ho considerato anche 'Infarto miocardico acuto' ma l'ho esclusa (Assenza di dolore toracico, sintomi tipici e dati ECG/enzimatici; le ecchimosi non sono correlate a infarto.).
+
+  [cardiologist -> general_practitioner] conferma urgenza=ARANCIONE
+    Concordo con la diagnosi di AF con RVR e possibile sovradosaggio/effetto anticoagulante; gli esami proposti (ECG, Holter, emocromo, PT/INR, APTT, anti‑Xa, conta piastrinica, fattori della coagulazione, ecocardiografia) sono appropriati per confermare ritmo, valutare l'intensità dell'anticoagulazione e escludere coagulopatie. — Confermo la diagnosi di AF con RVR e possibile eccesso anticoagulante; gli esami suggeriti sono completi e adeguati per la gestione. — Ho considerato anche 'Infarto miocardico acuto' ma l'ho esclusa (Assenza di dolore toracico, sintomi tipici, e nessun dato ECG/enzimatico suggerente; le ecchimosi non sono correlate a infarto.).
+
+  [dermatologist -> cardiologist] rivedi urgenza=ARANCIONE
+    Integro la valutazione dermatologica per includere cause ematologiche cutanee (purpura trombocitopenica, vasculite) che richiedono esami specifici e una possibile biopsia cutanea, garantendo una diagnosi più completa. — Propongo di ampliare la diagnosi includendo purpura trombocitopenica o vasculite cutanea, con biopsia cutanea e esami ematologici specifici; consulto l'ematologo per definire i criteri di laboratorio. — Ho considerato anche 'Ecchimosi dovute a trauma occulto o a insufficienza venosa cronica' ma l'ho esclusa (Il paziente riferisce assenza di traumi e la distribuzione è diffusa su arti superiori e inferiori, non tipica di insufficienza venosa.).
+
+  [dermatologist -> general_practitioner] consulta
+    Quali parametri di laboratorio (es. conta piastrinica, test per anticorpi anti-platelet) e criteri diagnostici consigli per distinguere una purpura trombocitopenica da un eccesso di anticoagulazione in questo paziente?
+
+  [general_practitioner -> dermatologist] rivedi urgenza=ARANCIONE
+    Aggiungo esami specifici per valutare quantitativamente l'intensità dell'anticoagulazione e la conta piastrinica, oltre a test immunologici per escludere HIT e vasculiti, così da differenziare le due principali ipotesi ematologiche. — Propongo di integrare gli esami di laboratorio con conta piastrinica, PT/INR, anti‑Xa, test anti‑PF4 e aggregazione piastrinica; questi parametri permettono di distinguere se le ecchimosi derivano da purpura trombocitopenica o da eccesso di anticoagulante, supportando la diagnosi di gruppo. — Ho considerato anche 'Ecchimosi da trauma occulto o insufficienza venosa cronica' ma l'ho esclusa (Il paziente nega traumi e la distribuzione è diffusa su arti superiori e inferiori, non tipica di insufficienza venosa.).
+
+  [dermatologist -> general_practitioner] conferma urgenza=ARANCIONE
+    Gli esami proposti (PT/INR, anti‑Xa, conta piastrinica, anti‑PF4, fattori della coagulazione) consentono di distinguere tra eccesso anticoagulante e purpura trombocitopenica; la biopsia cutanea è indicata per escludere vasculite. Questo approccio è coerente con la nostra valutazione dermatologica. — Confermo la diagnosi di possibile eccesso anticoagulante vs purpura trombocitopenica e l’indicazione di biopsia cutanea per escludere vasculite; gli esami di laboratorio suggeriti sono appropriati. — Ho considerato anche 'Ecchimosi da trauma occulto' ma l'ho esclusa (Il paziente nega traumi e la distribuzione è diffusa su arti superiori e inferiori, non tipica di lesioni traumatiche localizzate.).
+
+  [cardiologist -> dermatologist] conferma urgenza=ARANCIONE
+    I dati clinici (AF nota, palpitazioni, ecchimosi estese senza trauma) supportano la diagnosi di AF con RVR associata a possibile sovradosaggio anticoagulante o purpura trombocitopenica; le indagini proposte (ECG, conta piastrinica, PT/INR, anti‑Xa, anti‑PF4, biopsia cutanea) sono adeguate per distinguere le due ipotesi e guidare la terapia. — Confermo la diagnosi di AF con RVR e possibile eccesso anticoagulante vs purpura trombocitopenica; gli esami indicati sono completi per confermare il ritmo, valutare l'intensità dell'anticoagulazione e escludere coagulopatie o vasculite. — Ho considerato anche 'Ecchimosi da trauma occulto o insufficienza venosa cronica' ma l'ho esclusa (Il paziente nega traumi e la distribuzione è diffusa su arti superiori e inferiori, non tipica di insufficienza venosa; inoltre la comparsa contemporanea con palpitazioni suggerisce una causa sistemica.).
+
+  [cardiologist -> dermatologist] conferma [VERIFICA] urgenza=ARANCIONE
+    Ritengo adeguata la diagnosi di AF con RVR associata a possibile sovradosaggio anticoagulante vs purpura trombocitopenica; gli esami proposti (ECG, conta piastrinica, PT/INR, anti‑Xa, anti‑PF4, biopsia cutanea) coprono sia la valutazione del ritmo che la distinzione tra eccesso anticoagulante e causa piastrinica, come indicato dai colleghi. — Confermo l'ipotesi di gruppo: AF con RVR e possibile eccesso anticoagulante o purpura trombocitopenica, urgenza ARANCIONE, esami indicati già elencati. — Ho considerato anche 'Ecchimosi da trauma occulto o insufficienza venosa cronica' ma l'ho esclusa (Il paziente nega traumi e la distribuzione è diffusa su arti superiori e inferiori, non tipica di insufficienza venosa; inoltre la comparsa contemporanea con le palpitazioni suggerisce una causa sistemica.).
+
+  [dermatologist -> cardiologist] conferma [VERIFICA] urgenza=ARANCIONE
+    Concordo con l'ipotesi di AF con RVR associata a possibile sovradosaggio anticoagulante o purpura trombocitopenica; gli esami proposti coprono sia la valutazione del ritmo cardiaco sia la distinzione tra eccesso anticoagulante e causa piastrinica, includendo la biopsia cutanea per escludere vasculite, come indicato dai colleghi. — Confermo l'ipotesi di gruppo: AF con RVR e possibile eccesso anticoagulante vs purpura trombocitopenica, urgenza ARANCIONE, esami indicati già elencati. — Ho considerato anche 'Ecchimosi da trauma occulto o insufficienza venosa cronica' ma l'ho esclusa (Il paziente nega traumi e la distribuzione diffusa su arti superiori e inferiori non è tipica di insufficienza venosa; la comparsa contemporanea con le palpitazioni indica una causa sistemica.).
+
+  [general_practitioner -> dermatologist] conferma [VERIFICA] urgenza=ARANCIONE
+    L'analisi dei dati clinici (AF, palpitazioni, ecchimosi spontanee) porta alla stessa conclusione del gruppo: possibile sovradosaggio anticoagulante vs purpura trombocitopenica, con urgenza arancione e gli esami proposti sono completi per distinguere le due condizioni. — Confermo l'ipotesi di gruppo: fibrillazione atriale con RVR associata a possibile eccesso anticoagulante o purpura trombocitopenica, urgenza arancione, esami indicati già elencati. — Ho considerato anche 'Ecchimosi da trauma occulto o insufficienza venosa cronica' ma l'ho esclusa (Il paziente nega traumi e la distribuzione è diffusa su arti superiori e inferiori, non tipica di insufficienza venosa; inoltre la comparsa contemporanea con le palpitazioni suggerisce una causa sistemica.).
+
+IPOTESI DI GRUPPO: {'diagnosis': 'Fibrillazione atriale con RVR associata a possibile eccesso anticoagulante o purpura trombocitopenica; da escludere vasculite cutanea.', 'urgency_level': 'ARANCIONE', 'recommended_exams': ['Conta piastrinica con esame morfologico', 'PT/INR e APTT', 'Anti‑Xa (se terapia con eparina/LMWH) o dosaggio del farmaco anticoagulante (es. rivaroxaban plasma level se disponibile)', 'Test di aggregazione piastrinica e anticorpi anti‑PF4 (HIT) se esposizione a eparina', 'Screening per vasculiti: ANCA, complemento C3/C4', 'Biopsia cutanea delle ecchimosi per istologia e immunofluorescenza'], 'confirmed_by': ['cardiologist', 'dermatologist', 'general_practitioner']}
+passati senza confermare: [] | turni falliti: {} | battute: 10
+DIAGNOSI FINALE: {'diagnosis': 'Fibrillazione atriale con risposta ventricolare rapida associata a possibile eccesso anticoagulante o purpura trombocitopenica, da escludere vasculite cutanea.', 'urgency_level': 'ARANCIONE', 'specialists_involved': ['cardiologist', 'dermatologist', 'general_practitioner'], 'operational_guidance': 'Recarsi immediatamente al pronto soccorso per valutazione urgente: ECG, monitoraggio cardiaco, prelievo ematico per emocromo, conta piastrinica, PT/INR, APTT, anti‑Xa (o livello del nuovo anticoagulante), test anti‑PF4 e, se indicato, biopsia cutanea delle ecchimosi.', 'recommendations': 'Il paziente presenta palpitazioni irregolari di forte intensità da 2 ore, compatibili con fibrillazione atriale con risposta ventricolare rapida (RVR). Contestualmente, sono comparsi ecchimosi estese su arti superiori e inferiori senza trauma, suggerendo una possibile coagulopatia: può trattarsi di sovradosaggio o eccessiva attività dell’anticoagulante in uso, oppure di una purpura trombocitopenica. La discussione multidisciplinare ha confermato che gli esami richiesti (ECG, conta piastrinica, PT/INR, APTT, anti‑Xa o livello del nuovo anticoagulante, test anti‑PF4, eventuale biopsia cutanea) sono sufficienti a distinguere tra le due ipotesi e a escludere una vasculite cutanea. Data la combinazione di aritmia potenzialmente instabile e possibile alterazione della coagulazione con rischio di sanguinamento grave, l’urgenza è mantenuta al livello ARANCIONE, che richiede valutazione e gestione entro poche ore ma non necessariamente un intervento di emergenza vitale immediata (ROSSO).'}

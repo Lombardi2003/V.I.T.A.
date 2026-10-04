@@ -137,18 +137,3 @@ RECURSION_LIMIT = 2 * MAX_TOTAL_TURNS + 20
 def thread_config(thread_id: str) -> dict:
     """Configuration every caller must use: the thread and the step limit."""
     return {"configurable": {"thread_id": thread_id}, "recursion_limit": RECURSION_LIMIT}
-
-
-def photo_next(state: MedicalState):
-    """Unused routing helper of an earlier version."""
-    return state.next_step
-
-
-def triage_complete(state: MedicalState):
-    """Unused routing helper of an earlier version."""
-    return state.triage_complete
-
-
-def user_next(state: MedicalState):
-    """Unused routing helper of an earlier version."""
-    return state.next_step

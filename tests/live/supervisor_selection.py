@@ -1,11 +1,8 @@
-# Live script (NOT a unit test with asserts: the choice is made by the model
-# in free form). It checks whether supervisor_node picks ALL the relevant
-# specialists when the patient has symptoms from different fields, instead of
-# "forgetting" one (per-symptom analysis forced in SUPERVISOR_PROMPT, see
-# prompts.py). It also covers the opposite case: two related symptoms (headache
-# + blurred vision) that ONE specialist can rightly cover. It USES API QUOTA.
-#
-# Usage: python -m tests.live.supervisor_selection
+"""Live script: does the supervisor pick every relevant specialist, and only those? Uses API quota.
+
+Usage: python -m tests.live.supervisor_selection
+"""
+
 import asyncio
 
 from chainlit.context import init_http_context

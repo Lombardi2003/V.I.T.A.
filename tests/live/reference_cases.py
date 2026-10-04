@@ -1,17 +1,10 @@
-# Live script (NOT a unit test with asserts): the four fixed reference cases,
-# from the supervisor to the primary's summary report, on the real graph with
-# the real model. Personal data and symptoms are already confirmed, so the run
-# starts right after the photo step. It USES API QUOTA (one whole case is about
-# 10-15 model calls, ~60-80k tokens with the 120b).
-#
-# By default the text model is the one chosen in src/llm/factory.py. For a
-# comparison it can be switched for this run only (factory.py is not changed):
-#   --groq-key FIELD    same Groq text model with another key field of settings.py
-#                       (e.g. groq_api_key for the first account)
-#   --gemini [FIELD]    Gemini text model (Models.Gemini.TEXT_FLASH), with the key
-#                       field FIELD (default: GEMINI_KEY in factory.py)
-#
-# Usage: python -m tests.live.reference_cases 1 2 3 4 [--groq-key groq_api_key] [--gemini [gemini_api_key]]
+"""Live script: the four reference cases, from the supervisor to the summary report. Uses API quota.
+
+Usage: python -m tests.live.reference_cases [1 2 3 4] [--groq-key FIELD] [--gemini [FIELD]]
+    --groq-key FIELD   the active Groq model with the key in another field of settings.py
+    --gemini [FIELD]   the Gemini model instead, with the key in FIELD (default: GEMINI_KEY in factory.py)
+"""
+
 import argparse
 import asyncio
 import logging

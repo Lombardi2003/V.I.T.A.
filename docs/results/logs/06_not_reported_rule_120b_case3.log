@@ -1,0 +1,225 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+Text model for this run: groq/openai/gpt-oss-120b (ragionamento low)
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "dolore addominale tipo crampi",
+            "specialists": ["gastroenterologist"]
+        },
+        {
+            "symptom": "eruzione cutanea con macchie rosse pruriginose",
+            "specialists": ["dermatologist"]
+        }
+    ],
+    "reasoning": "Il dolore addominale a tipo crampi, forte e di durata di 6 ore, è tipico di patologie gastrointestinali, quindi è opportuno un consulto con il gastroenterologist. L'eruzione cutanea con macchie rosse pruriginose è un problema cutaneo visibile, perciò è indicato il dermatologist. Non vi sono allergie, patologie pregresse o altri fattori che richiedano ulteriori specialisti.",
+    "specialists": ["gastroenterologist", "dermatologist"]
+}
+
+🚦 SUPERVISOR → ['gastroenterologist', 'dermatologist']
+   Checklist: {'gastroenterologist': True, 'dermatologist': True}
+🔀 ROUTER: turno di gastroenterologist (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 9429.56it/s]
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+   3. [gastro_aopisa_dolore_addominale, p. 4] Cause Extra-Addominali
+Patologie Toraciche (IMA, Polmoniti, Pleuriti, TEP, PNX, Patologie Esofagee)
+µ Compressione o Flogosi di radici o nervi spinali...
+{
+  "azione": "proponi",
+  "consulto_utile": "si",
+  "collega_da_consultare": "dermatologist",
+  "domanda_per_il_collega": "Puoi confermare se l'eruzione cutanea descritta (macchie rosse pruriginose) è compatibile con una vasculite cutanea (es. IgA) o se suggerisce un'altra eziologia dermatologica?",
+  "diagnosi": "Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale",
+  "urgenza": "ARANCIONE",
+  "esami_consigliati": ["CBC con formula leucocitaria", "ESR/CRP", "VFG, BUN, creatinina", "Esame delle urine per ematuria/proteine", "Ecografia addominale", "Biopsia cutanea se possibile"],
+  "dettagli": "Dolore addominale crampiforme di forte intensità e comparsa di rash cutaneo pruriginoso suggeriscono una vasculite sistemica; l'IgA vasculite è nota per dolore addominale dovuto a edema intestinale e rash purpurico. L'assenza di febbre o segni di peritonite non esclude la diagnosi, ma richiede valutazione rapida.",
+  "ipotesi_alternativa_scartata": "Pancreatite acuta",
+  "motivo_scarto": "Il rash cutaneo non è tipico della pancreatite; inoltre non sono stati riferiti sintomi di nausea/vomito o elevazione dei trigliceridi.",
+  "fonti_consultate": "[gastro_aopisa_dolore_addominale, p. 4] considerazione delle cause intra‑addominali e extra‑addominali, includendo vasculiti e manifestazioni cutanee.",
+  "message": "Propongo come ipotesi principale una vasculite IgA con coinvolgimento gastrointestinale, dato il quadro di dolore addominale crampiforme associato a rash pruriginoso. Suggerisco esami di laboratorio e imaging, e richiedo il parere del dermatologo per caratterizzare l'eruzione."
+}
+
+🔀 gastroenterologist: consulto_utile=si -> mini-consulto verso dermatologist, in aggiunta all'azione 'proponi'
+🔀 ROUTER: turno di dermatologist (battuta 2/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 15] distanza dal bordo. Per le diagnosi differenziali confrontare con tinea cruris.
+A partire da una forma intertriginosa, le lesioni vescico-pustolose po...
+   2. [dermatologia_emiliaromagna_erisipela_cellulite, p. 1] raccolte profonde (cellulite purulenta). Spesso è
+associata a una interruzione dell'integrità cutanea.
+Criteri clinici
+Si sospetta un’infezione in cas...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 19] - parestesie/insensibilità: alterazioni della sensibilità tattile, percettiva, dolorifica che assumono significato soprattutto
+se distrettuali;
+- trem...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 29.0s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "L'eruzione descritta (macchie rosse pruriginose) può corrispondere a una vasculite cutanea, tipicamente purpurica, come nella vasculite IgA; la pruriticità è comune e la distribuzione non è stata specificata, ma non vi sono elementi che suggeriscano un'origine infettiva o fungina.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "L'aspetto e la tempistica dell'eruzione sono coerenti con una vasculite IgA; non ci sono segni tipici di infezione cutanea, dermatite da contatto o micosi, perciò supporto la diagnosi proposta.",
+  "ipotesi_alternativa_scartata": "Eritema multiforme o dermatite da contatto",
+  "motivo_scarto": "Mancanza di lesioni target o di correlazione con esposizione a irritanti/ allergeni.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo che le macchie rosse pruriginose sono compatibili con una vasculite cutanea IgA; le alternative infettive o allergiche risultano meno probabili."
+}
+
+🔀 ROUTER: gastroenterologist chiamato in causa dopo aver gia' confermato, una battuta di reazione
+🔀 ROUTER: turno di gastroenterologist (battuta 3/12)
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+   3. [gastro_fvg_pdta_emorragie_digestive, p. 12] Applicando questi dati alla Regione FVG (1.250.000 abitanti) l’incidenza attesa dovrebbe essere poco
+meno di 800 ricoveri/anno per emorragia digestiva...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 33.4s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 2.3s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Dolore addominale crampiforme di forte intensità associato a rash cutaneo purpurico pruriginoso suggerisce vasculite sistemica, tipicamente IgA, con coinvolgimento gastrointestinale.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Il quadro clinico è tipico di vasculite IgA (Henoch‑Schönlein): dolore addominale da edema intestinale e rash purpurico. Non vi sono elementi che suggeriscano altre cause gastrointestinali acute.",
+  "ipotesi_alternativa_scartata": "Pancreatite acuta",
+  "motivo_scarto": "Mancanza di nausea, vomito, dolore epigastrico tipico e assenza di fattori di rischio; il rash cutaneo non è caratteristico della pancreatite.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione, come proposto dal gruppo."
+}
+
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di gastroenterologist (battuta 4/12)
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+   3. [gastro_aopisa_dolore_addominale, p. 4] Cause Extra-Addominali
+Patologie Toraciche (IMA, Polmoniti, Pleuriti, TEP, PNX, Patologie Esofagee)
+µ Compressione o Flogosi di radici o nervi spinali...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 33.3s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Con i soli dati (dolore addominale crampiforme forte, eruzione cutanea rossa pruriginosa) la diagnosi più plausibile è una vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "L'associazione tipica di dolore addominale colico e rash purpurico è caratteristica della vasculite IgA; non ci sono elementi di pancreatite, infezione o ostruzione. L'urgenza arancione è adeguata per valutare rapidamente eventuali complicanze intestinali.",
+  "ipotesi_alternativa_scartata": "Intussuscenza intestinale",
+  "motivo_scarto": "Intussuscenza può causare dolore addominale crampiforme, ma non è associata a rash cutaneo purpurico; inoltre l'età adulta e l'assenza di segni di ostruzione rendono questa ipotesi meno probabile.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione, come proposto dal gruppo."
+}
+
+🔀 ROUTER: giro di verifica, turno di dermatologist (battuta 5/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 15] distanza dal bordo. Per le diagnosi differenziali confrontare con tinea cruris.
+A partire da una forma intertriginosa, le lesioni vescico-pustolose po...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 56] ISCHEMIA ACUTA DI UN ARTO: dolore, pallore, cute fredda, spesso impotenza funzionale insorti acutamente nel corso di
+alcune ore, sono segni di un prob...
+   3. [dermatologia_emiliaromagna_erisipela_cellulite, p. 1] raccolte profonde (cellulite purulenta). Spesso è
+associata a una interruzione dell'integrità cutanea.
+Criteri clinici
+Si sospetta un’infezione in cas...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 28.3s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "L'eruzione descritta (macchie rosse pruriginose, comparsa recente, distribuzione non specificata) è tipica di una vasculite cutanea di piccolo vaso, coerente con IgA vasculitis; non vi sono elementi per dermatiti da contatto, infezioni o micosi.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale: l'aspetto pruriginoso e purpurico dell'eruzione è compatibile con vasculite dei piccoli vasi; le alternative dermatologiche (eritema multiforme, dermatite da contatto, infezione) sono meno probabili per mancanza di lesioni target, esposizione a irritanti o segni infettivi.",
+  "ipotesi_alternativa_scartata": "Eritema multiforme o dermatite da contatto",
+  "motivo_scarto": "Assenza di lesioni a bersaglio tipiche dell'eritema multiforme e nessuna storia di esposizione a allergeni o irritanti per dermatite da contatto.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA con rash cutaneo compatibile; l'urgenza arancione resta adeguata per valutare possibili complicanze intestinali."
+}
+
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 21.2s
+{
+    "diagnosis": "Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale, ipotesi preliminare da confermare.",
+    "urgency_level": "ARANCIONE",
+    "recommended_exams": [
+        "Emocromo completo con formula leucocitaria",
+        "Velocità di eritrosedimentazione (VES) e/o PCR",
+        "Funzionalità renale: VFG, BUN, creatinina",
+        "Esame delle urine (ricerca di ematuria e proteinuria)",
+        "Ecografia addominale",
+        "Biopsia cutanea, se possibile"
+    ],
+    "to_verify": [
+        "Presenza di sangue occulto o sanguinamento gastrointestinale (chiedere al paziente eventuali melena o sanguinamento rettale).",
+        "Comparsa di edema articolare o renale (verificare se il paziente ha gonfiore alle articolazioni o segni di ritenzione idrica).",
+        "Eventuali sintomi sistemici non riferiti (febbre, nausea, vomito) – chiedere al paziente se ne ha avuto recentemente.",
+        "Storia di farmaci o esposizioni recenti (possibili trigger di vasculite) – indagare su eventuali nuovi farmaci, vaccini o infezioni recenti."
+    ],
+    "operational_guidance": "Trasferire la paziente in zona di osservazione ad alta priorità (codice ARANCIONE). Avviare monitoraggio continuo dei parametri vitali (pressione arteriosa, frequenza cardiaca, saturazione, temperatura). Prelevare subito i campioni per gli esami di laboratorio indicati e richiedere l'ecografia addominale. Attivare consulto dermatologico per biopsia cutanea, se disponibile, e consulto nefrologico per valutare eventuale coinvolgimento renale. Rivalutare clinicamente la paziente entro 2 ore o prima se compaiono segni di deterioramento (dolore addominale crescente, ematemesi, oliguria, ipotensione).",
+    "recommendations": "Il gruppo di specialisti (Gastroenterologia e Dermatologia) ha concordato che il quadro clinico di dolore addominale crampiforme di forte intensità associato a rash cutaneo pruriginoso è tipico di una vasculite IgA sistemica, nota per coinvolgere intestino (edema, dolore) e piccoli vasi cutanei (purpura). L'assenza di sintomi tipici di pancreatite, intussuscenza o infezioni cutanee è stata valutata e le alternative sono state escluse. Tutti gli specialisti hanno confermato l'ipotesi e l'urgenza ARANCIONE, ritenuta adeguata per valutare rapidamente possibili complicanze intestinali (perforazione, sanguinamento) e renali. Non sono emersi dubbi sostanziali; tuttavia, alcuni dati chiave (presenza di sangue occulto, edema articolare/renale, sintomi sistemici, trigger recenti) non sono stati riferiti dal paziente e devono essere verificati per confermare la diagnosi e guidare la terapia. Per questo motivo, si raccomanda di completare gli esami indicati, effettuare la biopsia cutanea se possibile e monitorare strettamente l'evoluzione clinica."
+}
+
+👨‍⚕️ PRIMARIO → diagnosi='Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale, ipotesi preliminare da confermare.' | urgenza=ARANCIONE
+
+####################################################################################################
+CASE 3: Abdomen + rash: 34 years old   [groq/openai/gpt-oss-120b (ragionamento low)]   time 165 s
+specialists: ['gastroenterologist', 'dermatologist'] | second opinion: -
+
+  [gastroenterologist -> everyone] proponi urgency=ARANCIONE
+    Propongo come ipotesi principale una vasculite IgA con coinvolgimento gastrointestinale, dato il quadro di dolore addominale crampiforme associato a rash pruriginoso. Suggerisco esami di laboratorio e imaging, e richiedo il parere del dermatologo per caratterizzare l'eruzione. — Ho considerato anche 'Pancreatite acuta' ma l'ho esclusa (Il rash cutaneo non è tipico della pancreatite; inoltre non sono stati riferiti sintomi di nausea/vomito o elevazione dei trigliceridi.).
+
+  [gastroenterologist -> dermatologist] consulta
+    Puoi confermare se l'eruzione cutanea descritta (macchie rosse pruriginose) è compatibile con una vasculite cutanea (es. IgA) o se suggerisce un'altra eziologia dermatologica?
+
+  [dermatologist -> gastroenterologist] conferma urgency=ARANCIONE
+    L'aspetto e la tempistica dell'eruzione sono coerenti con una vasculite IgA; non ci sono segni tipici di infezione cutanea, dermatite da contatto o micosi, perciò supporto la diagnosi proposta. — Confermo che le macchie rosse pruriginose sono compatibili con una vasculite cutanea IgA; le alternative infettive o allergiche risultano meno probabili. — Ho considerato anche 'Eritema multiforme o dermatite da contatto' ma l'ho esclusa (Mancanza di lesioni target o di correlazione con esposizione a irritanti/ allergeni.).
+
+  [gastroenterologist -> dermatologist] conferma urgency=ARANCIONE
+    Il quadro clinico è tipico di vasculite IgA (Henoch‑Schönlein): dolore addominale da edema intestinale e rash purpurico. Non vi sono elementi che suggeriscano altre cause gastrointestinali acute. — Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione, come proposto dal gruppo. — Ho considerato anche 'Pancreatite acuta' ma l'ho esclusa (Mancanza di nausea, vomito, dolore epigastrico tipico e assenza di fattori di rischio; il rash cutaneo non è caratteristico della pancreatite.).
+
+  [gastroenterologist -> dermatologist] conferma [VERIFICATION] urgency=ARANCIONE
+    L'associazione tipica di dolore addominale colico e rash purpurico è caratteristica della vasculite IgA; non ci sono elementi di pancreatite, infezione o ostruzione. L'urgenza arancione è adeguata per valutare rapidamente eventuali complicanze intestinali. — Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione, come proposto dal gruppo. — Ho considerato anche 'Intussuscenza intestinale' ma l'ho esclusa (Intussuscenza può causare dolore addominale crampiforme, ma non è associata a rash cutaneo purpurico; inoltre l'età adulta e l'assenza di segni di ostruzione rendono questa ipotesi meno probabile.).
+
+  [dermatologist -> gastroenterologist] conferma [VERIFICATION] urgency=ARANCIONE
+    Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale: l'aspetto pruriginoso e purpurico dell'eruzione è compatibile con vasculite dei piccoli vasi; le alternative dermatologiche (eritema multiforme, dermatite da contatto, infezione) sono meno probabili per mancanza di lesioni target, esposizione a irritanti o segni infettivi. — Confermo la diagnosi di vasculite IgA con rash cutaneo compatibile; l'urgenza arancione resta adeguata per valutare possibili complicanze intestinali. — Ho considerato anche 'Eritema multiforme o dermatite da contatto' ma l'ho esclusa (Assenza di lesioni a bersaglio tipiche dell'eritema multiforme e nessuna storia di esposizione a allergeni o irritanti per dermatite da contatto.).
+
+GROUP HYPOTHESIS: {'diagnosis': 'Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale', 'urgency_level': 'ARANCIONE', 'recommended_exams': ['CBC con formula leucocitaria', 'ESR/CRP', 'VFG, BUN, creatinina', 'Esame delle urine per ematuria/proteine', 'Ecografia addominale', 'Biopsia cutanea se possibile'], 'confirmed_by': ['dermatologist', 'gastroenterologist']}
+passed without confirming: [] | failed turns: {} | turns: 5
+
+REPORT SHOWN IN THE CHAT:
+**Report di sintesi**
+**Codice** ARANCIONE · **Ipotesi diagnostica preliminare** Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale, ipotesi preliminare da confermare.
+
+**Specialisti coinvolti** Gastroenterologia, Dermatologia · **Hanno confermato** Dermatologia, Gastroenterologia
+
+**Esami e accertamenti** Emocromo completo con formula leucocitaria; Velocità di eritrosedimentazione (VES) e/o PCR; Funzionalità renale: VFG, BUN, creatinina; Esame delle urine (ricerca di ematuria e proteinuria); Ecografia addominale; Biopsia cutanea, se possibile
+
+**Da verificare** Presenza di sangue occulto o sanguinamento gastrointestinale (chiedere al paziente eventuali melena o sanguinamento rettale).; Comparsa di edema articolare o renale (verificare se il paziente ha gonfiore alle articolazioni o segni di ritenzione idrica).; Eventuali sintomi sistemici non riferiti (febbre, nausea, vomito) – chiedere al paziente se ne ha avuto recentemente.; Storia di farmaci o esposizioni recenti (possibili trigger di vasculite) – indagare su eventuali nuovi farmaci, vaccini o infezioni recenti.
+
+**Indicazioni operative** Trasferire la paziente in zona di osservazione ad alta priorità (codice ARANCIONE). Avviare monitoraggio continuo dei parametri vitali (pressione arteriosa, frequenza cardiaca, saturazione, temperatura). Prelevare subito i campioni per gli esami di laboratorio indicati e richiedere l'ecografia addominale. Attivare consulto dermatologico per biopsia cutanea, se disponibile, e consulto nefrologico per valutare eventuale coinvolgimento renale. Rivalutare clinicamente la paziente entro 2 ore o prima se compaiono segni di deterioramento (dolore addominale crescente, ematemesi, oliguria, ipotensione).
+
+**Motivazione** Il gruppo di specialisti (Gastroenterologia e Dermatologia) ha concordato che il quadro clinico di dolore addominale crampiforme di forte intensità associato a rash cutaneo pruriginoso è tipico di una vasculite IgA sistemica, nota per coinvolgere intestino (edema, dolore) e piccoli vasi cutanei (purpura). L'assenza di sintomi tipici di pancreatite, intussuscenza o infezioni cutanee è stata valutata e le alternative sono state escluse. Tutti gli specialisti hanno confermato l'ipotesi e l'urgenza ARANCIONE, ritenuta adeguata per valutare rapidamente possibili complicanze intestinali (perforazione, sanguinamento) e renali. Non sono emersi dubbi sostanziali; tuttavia, alcuni dati chiave (presenza di sangue occulto, edema articolare/renale, sintomi sistemici, trigger recenti) non sono stati riferiti dal paziente e devono essere verificati per confermare la diagnosi e guidare la terapia. Per questo motivo, si raccomanda di completare gli esami indicati, effettuare la biopsia cutanea se possibile e monitorare strettamente l'evoluzione clinica.

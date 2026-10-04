@@ -1,10 +1,7 @@
 """Shared code for the live scripts: start the round table on the real graph and print what happened."""
 import uuid
 
-# NB: "import chainlit.context" followed by chainlit.context.init_http_context()
-# does NOT work - chainlit/__init__.py does "from chainlit.context import
-# context", which replaces the package attribute chainlit.context with the
-# proxy instead of the submodule. Importing the function by name avoids it.
+# Import the function by name: the package attribute chainlit.context is not the submodule.
 from chainlit.context import init_http_context
 
 from src.graph import generate_graph, thread_config
@@ -19,14 +16,12 @@ ALL_SPECIALIST_NODES = (
 
 async def run_table(card, seated, extra_state=None):
     """HELPER run_table: seats the given specialists (skipping the supervisor) and runs table and primary with the real model."""
-    # The nodes call cl.Step/cl.Message, which need an active Chainlit context.
-    # init_http_context() creates one whose emitter is a no-op test stub.
+    # The nodes need an active Chainlit context: this one has a no-op emitter.
     init_http_context()
     app = generate_graph()
     config = thread_config(str(uuid.uuid4()))
     app.update_state(config, MedicalState(patient_card=card).model_dump())
-    # The ONLY thing skipped is the supervisor's choice: router, specialists
-    # and primary are the real production code.
+    # Only the supervisor's choice is skipped.
     app.update_state(config, {"needed_specialists": {r: True for r in seated}, **(extra_state or {})}, as_node="supervisor")
 
     async for event in app.astream_events(None, config=config, version="v2"):

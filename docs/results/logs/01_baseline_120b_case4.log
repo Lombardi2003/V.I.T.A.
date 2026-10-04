@@ -1,0 +1,248 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "palpitazioni irregolari",
+            "specialists": ["cardiologist"]
+        },
+        {
+            "symptom": "lividi estesi comparsi da soli sulle braccia e sulle gambe",
+            "specialists": ["dermatologist"]
+        }
+    ],
+    "reasoning": "Le palpitazioni irregolari in un uomo di 65 anni con fibrillazione atriale nota richiedono una valutazione cardiologica, quindi è indicato il cardiologo. I lividi estesi comparsi spontaneamente su braccia e gambe sono manifestazioni cutanee; il dermatologo è lo specialista più appropriato per valutare eventuali patologie della pelle o problemi di coagulazione visibili sulla cute. Non emergono altri sintomi che richiedano ulteriori specialisti.",
+    "specialists": ["cardiologist", "dermatologist"]
+}
+
+🚦 SUPERVISOR → ['cardiologist', 'dermatologist']
+   Checklist: {'cardiologist': True, 'dermatologist': True}
+🔀 ROUTER: turno di cardiologist (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 4741.88it/s]
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+   2. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   3. [cardio_fvg_pdta_stemi_2022, p. 54] complicanze meccaniche, gli interventi riperfusivi non modificano la prognosi quoad vitam.
+Arresto cardiaco
+I pazienti con arresto cardio -respiratori...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 9.5s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 6.9s
+{
+    "azione": "proponi",
+    "consulto_utile": "si",
+    "collega_da_consultare": "ematologo",
+    "domanda_per_il_collega": "Qual è la soglia di INR o dei parametri di coagulazione che giustifica l'interruzione temporanea degli anticoagulanti in un paziente con fibrillazione atriale che presenta ecchimosi estese?",
+    "diagnosi": "Fibrillazione atriale con risposta ventricolare rapida (tachicardia atriale) non controllata, associata a possibile sovradosaggio o eccessiva anticoagulazione (es. warfarin o DOAC) che ha provocato ecchimosi estese spontanee",
+    "urgenza": "ROSSO",
+    "esami_consigliati": ["ECG a riposo", "Holter 24h", "Emocromo completo", "Coagulazione (INR/PT, aPTT, dosaggio DOAC se in uso)", "Ecocardiografia transtoracica", "Dosaggio dei livelli plasmatici del farmaco anticoagulante (se DOAC)"],
+    "dettagli": "Il paziente, 65 anni, con fibrillazione atriale nota, presenta da due ore palpitazioni irregolari intense, tipiche di un ritmo atriale irregolare con possibile tachicardia ventricolare. La comparsa di ecchimosi estese senza trauma suggerisce una tendenza al sanguinamento, comune nei pazienti in terapia anticoagulante. La combinazione di questi due elementi rende prioritaria la valutazione del ritmo cardiaco (ECG, Holter) e del profilo di coagulazione per escludere un eccessivo anticoagulante che possa richiedere sospensione o aggiustamento della dose. L'ecocardiografia è indicata per valutare la funzione ventricolare e la presenza di trombi atriali, soprattutto se si considera una possibile cardioembolia. ",
+    "ipotesi_alternativa_scartata": "Embolia polmonare acuta",
+    "motivo_scarto": "L'embolia polmonare può causare palpitazioni e dispnea, ma il paziente non riferisce sintomi respiratori, dolore toracico o segni di ipossia; inoltre, le ecchimosi estese non sono tipiche dell'embolia polmonare e sono più coerenti con un disturbo della coagulazione.",
+    "fonti_consultate": "nessuna pertinente",
+    "message": "Propongo di considerare una fibrillazione atriale con risposta ventricolare rapida non adeguatamente controllata, associata a possibile sovradosaggio anticoagulante che ha provocato ecchimosi estese. Dobbiamo eseguire ECG, Holter, valutare il profilo di coagulazione (INR/PT, aPTT, livelli DOAC) e un'ecocardiografia per definire la funzione cardiaca e la presenza di eventuali trombi. Propongo anche di consultare l'ematologo per definire la soglia di INR/parametri di coagulazione che richiedono la sospensione temporanea dell'anticoagulante."
+}
+
+🔀 cardiologist: consulto_utile=si verso 'ematologo' (non nel roster) -> reindirizzato a general_practitioner
+🔀 cardiologist: consulto_utile=si -> mini-consulto verso general_practitioner, in aggiunta all'azione 'proponi'
+🔀 ROUTER: general_practitioner coinvolto nella discussione su richiesta di un collega
+🔀 ROUTER: turno di general_practitioner (battuta 2/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 48] (vertigine obiettiva) oppure come se se la persona stesse girando attorno nello spazio (vertigine soggettiva).
+§ Capogiro : Disturbi dell’orientamento...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 34] sempre obiettivabile. Può essere equivalente anginoso. La segnalazione può anche essere riferita solo dopo richiesta
+dell’interrogante con la modalità...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 36.8s
+{
+    "azione": "rivedi",
+    "valutazione_indipendente": "Da zero, osservando i dati del paziente (fibrillazione atriale nota, palpitazioni recenti e ecchimosi estese spontanee), la prima ipotesi è una fibrillazione atriale con risposta ventricolare rapida non adeguatamente controllata, associata a un eccesso di anticoagulazione che spiega le ecchimosi.",
+    "coincide_con_gruppo": "si",
+    "consulto_utile": "no",
+    "collega_da_consultare": null,
+    "domanda_per_il_collega": null,
+    "to": null,
+    "diagnosi": "Fibrillazione atriale con risposta ventricolare rapida non controllata, associata a possibile sovradosaggio o eccessiva anticoagulazione (warfarin o DOAC) che ha provocato ecchimosi estese spontanee",
+    "urgenza": "ROSSO",
+    "esami_consigliati": [
+        "ECG a riposo",
+        "Holter 24h",
+        "Emocromo completo",
+        "Coagulazione: INR, PT, aPTT, dosaggio dei DOAC (se in uso)",
+        "Ecocardiografia transtoracica"
+    ],
+    "dettagli": "Per quanto riguarda la soglia di INR che giustifica l’interruzione temporanea degli anticoagulanti in un paziente con fibrillazione atriale, le linee guida internazionali (ESC, ACC/AHA) indicano che un INR >3.0 (o >3.5 in alcuni protocolli) è associato a un rischio di sanguinamento maggiore e richiede la sospensione o la riduzione della dose di warfarin, soprattutto in presenza di segni di sanguinamento attivo come ecchimosi estese. Per i DOAC, l’interruzione è consigliata se si riscontrano valori plasmatici superiori al picco terapeutico (es. dabigatran >250 ng/mL, rivaroxaban >500 ng/mL, apixaban >500 ng/mL) o se l’aPTT è significativamente prolungato (>1,5 volte il valore di controllo). In assenza di valori di laboratorio, la presenza di sanguinamento clinicamente significativo (ecchimosi estese, epistassi, sanguinamento gastrointestinale) è di per sé indicatore per sospendere temporaneamente l’anticoagulante e valutare la necessità di reversal agents.",
+    "motivazione": "L'ipotesi di gruppo è corretta; aggiungo la soglia di INR >3.0 (o >3.5 secondo alcune linee guida) come criterio per l’interruzione temporanea, e fornisco indicazioni analoghe per i DOAC basate sui livelli plasmatici e sul aPTT.",
+    "ipotesi_alternativa_scartata": "Trombocitopenia acquisita (es. indotta da farmaci) come causa principale delle ecchimosi",
+    "motivo_scarto": "Il paziente non ha riferito farmaci che causano trombocitopenia, né è presente una conta piastrinica ridotta nota; le ecchimosi sono più tipicamente associate a eccessiva anticoagulazione in un soggetto con fibrillazione atriale in terapia anticoagulante.",
+    "fonti_consultate": "nessuna pertinente",
+    "message": "Confermo la diagnosi di fibrillazione atriale con risposta ventricolare rapida non controllata e possibile eccesso di anticoagulazione. Per la soglia di INR, si considera indicata l’interruzione temporanea quando l'INR supera 3.0 (o 3.5 in alcuni protocolli). Per i DOAC, si sospende se i livelli plasmatici superano i picchi terapeutici o se l’aPTT è >1,5 volte il valore di controllo. Propongo di eseguire i test di coagulazione indicati e, in caso di valori sopra le soglie, di sospendere l'anticoagulante e valutare eventuali reversal agents."
+}
+
+🔀 ROUTER: turno di cardiologist (battuta 3/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_fvg_pdta_stemi_2022, p. 54] complicanze meccaniche, gli interventi riperfusivi non modificano la prognosi quoad vitam.
+Arresto cardiaco
+I pazienti con arresto cardio -respiratori...
+   2. [cardio_fvg_pdta_stemi_2022, p. 44] altro farmaco deve essere aggiunto alla soluzione per iniezione.
+rTPA (Actilyse, Alteplase, Actiplase)2
+sulla base del peso corporeo
+65 kg 15 mg in bo...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 38] possibilità di effettuare il trattamento trombolitico.
+Se sono presenti i seguenti fattori che controindicano la trombolisi la scheda non deve essere ...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 54.6s
+{
+    "azione": "conferma",
+    "valutazione_indipendente": "Dai sintomi riportati (palpitazioni irregolari di forte intensità da 2 ore) e dalla storia di fibrillazione atriale nota, la prima ipotesi è una fibrillazione atriale con risposta ventricolare rapida non adeguatamente controllata. Le ecchimosi estese spontanee su arti, in assenza di trauma, suggeriscono un possibile eccesso di anticoagulazione, tipico nei pazienti in terapia anticoagulante per AF. Pertanto, la diagnosi di AF con risposta ventricolare rapida + possibile sovradosaggio anticoagulante è la più plausibile.",
+    "coincide_con_gruppo": "si",
+    "consulto_utile": "no",
+    "collega_da_consultare": null,
+    "domanda_per_il_collega": null,
+    "to": null,
+    "motivazione": "La valutazione indipendente coincide con l'ipotesi di gruppo: la combinazione di palpitazioni irregolari e ecchimosi spontanee in un paziente con AF nota è coerente con una risposta ventricolare rapida non controllata e un possibile eccesso di anticoagulazione. Non vi sono elementi che suggeriscano altre cause più probabili.",
+    "ipotesi_alternativa_scartata": "Embolia polmonare acuta",
+    "motivo_scarto": "Il paziente non presenta sintomi respiratori (dispnea, dolore toracico, tachipnea) né segni di ipossia; le ecchimosi non sono tipiche dell'embolia polmonare, rendendo questa ipotesi meno probabile.",
+    "fonti_consultate": "nessuna pertinente",
+    "message": "Confermo l'ipotesi di gruppo: fibrillazione atriale con risposta ventricolare rapida non controllata, associata a possibile sovradosaggio anticoagulante che ha provocato le ecchimosi estese. L'urgenza resta ROSSO e gli esami consigliati (ECG, Holter, emocromo, coagulazione, ecocardiografia) sono appropriati."
+}
+
+🔀 ROUTER: turno di dermatologist (battuta 4/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [dermatologia_sidemast_micosi, p. 23] soprattutto da Pseudomonas
+aeruginosa, determina la comparsa di un colorito giallo-brunastro o francamente verdastro
+del letto ungueale.
+• Onicomicosi...
+   3. [dermatologia_sidemast_micosi, p. 9] e l’onicogrifosi. Considerando la contagiosità delle dermatofitosi e i costi sanitari per il loro
+trattamento è necessario che la diagnosi sia quanto ...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 46.6s
+{
+    "azione": "conferma",
+    "valutazione_indipendente": "Da un punto di vista dermatologico, le ecchimosi estese e spontanee in un uomo di 65 anni con fibrillazione atriale sono più plausibilmente dovute a un'eccessiva anticoagulazione (warfarin o DOAC) piuttosto che a una purpura senile o a una vasculite, soprattutto in assenza di lesioni cutanee tipiche di vasculite (palpare, dolorose, con possibile necrosi).",
+    "coincide_con_gruppo": "si",
+    "consulto_utile": "no",
+    "collega_da_consultare": null,
+    "domanda_per_il_collega": null,
+    "to": null,
+    "motivazione": "Concordo con l'ipotesi di fibrillazione atriale con risposta ventricolare rapida non controllata e possibile sovradosaggio anticoagulante come causa principale delle ecchimosi. Dal punto di vista cutaneo, non vi sono segni di vasculite o di altre dermatosi emorragiche; le ecchimosi sono tipiche di un disturbo della coagulazione in un paziente anticoagulato.",
+    "ipotesi_alternativa_scartata": "Purpura senile (senile purpura) o vasculite cutanea",
+    "motivo_scarto": "La purpura senile è solitamente associata a trauma minimo e si presenta come ecchimosi di piccole dimensioni su dorsali delle mani; la vasculite cutanea presenta lesioni dolorose, palpable purpura, spesso con ulcerazione, che non sono riportate dal paziente.",
+    "fonti_consultate": "nessuna pertinente",
+    "message": "Confermo l'ipotesi di gruppo: fibrillazione atriale con risposta ventricolare rapida non adeguatamente controllata, associata a possibile eccesso di anticoagulazione che ha provocato le ecchimosi estese. Dal punto di vista dermatologico, le lesioni cutanee sono coerenti con un disturbo della coagulazione piuttosto che con una purpura senile o una vascolitide. Propongo di mantenere gli esami già indicati (ECG, Holter, emocromo, INR/PT/aPTT, dosaggio DOAC, ecocardiografia) e di aggiungere, se necessario, una valutazione dermatologica per escludere eventuali segni di vasculite (esame obiettivo dettagliato, eventuale biopsia cutanea solo se le lesioni evolvono o presentano caratteristiche vascolari)."
+}
+
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di cardiologist (battuta 5/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_cardarelli_pdta_dolore_toracico, p. 17] POSSIBILE CAUSA
+Dolore oppressivo/costrittivo con o senza irradiazione.
+Segni e sintomi di allarme : dispnea, angoscia, pallore
+cutaneo, sudorazione a...
+   2. [cardio_fvg_pdta_stemi_2022, p. 54] elettrocardiografica di STEMI, ma con un elevato sospetto clinico di infarto miocardico (dolore toracico
+prima dell’ACR, coronaropatia nota). In quest...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+⚠️ cardiologist: errore API (Error code: 413 - {'error': {'message': 'Request too large for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested 8117, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}), nessun aggiornamento - turno fallito
+🔀 ROUTER: giro di verifica, turno di dermatologist (battuta 6/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [dermatologia_sidemast_micosi, p. 23] soprattutto da Pseudomonas
+aeruginosa, determina la comparsa di un colorito giallo-brunastro o francamente verdastro
+del letto ungueale.
+• Onicomicosi...
+   3. [dermatologia_sidemast_micosi, p. 9] e l’onicogrifosi. Considerando la contagiosità delle dermatofitosi e i costi sanitari per il loro
+trattamento è necessario che la diagnosi sia quanto ...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 53.2s
+{
+    "azione": "conferma",
+    "valutazione_indipendente": "Considerando solo i dati dermatologici (ecchimosi estese spontanee su arti senza trauma, assenza di segni di vasculite o purpura senile), la spiegazione più plausibile è un disturbo della coagulazione, tipicamente dovuto a eccessiva anticoagulazione in un paziente con fibrillazione atriale in terapia anticoagulante.",
+    "coincide_con_gruppo": "si",
+    "consulto_utile": "no",
+    "collega_da_consultare": null,
+    "domanda_per_il_collega": null,
+    "to": null,
+    "motivazione": "Le ecchimosi sono diffuse, di dimensioni moderate e compaiono senza trauma, coerenti con un eccesso di anticoagulazione. Non ci sono segni cutanei di vasculite (purpura palpabile, ulcerazioni) né caratteristiche tipiche della purpura senile (piccole ecchimosi su dorsali delle mani). Pertanto l'ipotesi di fibrillazione atriale con risposta ventricolare rapida non controllata e possibile sovradosaggio anticoagulante rimane la più adeguata.",
+    "ipotesi_alternativa_scartata": "Purpura senile o vasculite cutanea",
+    "motivo_scarto": "Purpura senile si presenta con piccole ecchimosi su zone di pressione e in soggetti più anziani, ma le lesioni del paziente sono estese e non correlate a trauma. La vasculite cutanea mostrerebbe lesioni dolorose, palpabili, possibili ulcerazioni, assenti in questo caso.",
+    "fonti_consultate": "nessuna pertinente",
+    "message": "Confermo l'ipotesi di gruppo: fibrillazione atriale con risposta ventricolare rapida non controllata, associata a possibile eccesso di anticoagulazione che ha provocato le ecchimosi estese. L'urgenza resta ROSSO e gli esami proposti (ECG, Holter, emocromo, coagulazione, ecocardiografia) sono appropriati."
+}
+
+🔀 ROUTER: giro di verifica, turno di general_practitioner (battuta 7/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 48] VIOLENZA DI GENERE: la persona riferisce aggressione verbale, minacce, strattonamenti, vessazioni, situazioni di mobbing
+sul posto di lavoro, al domic...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 53.2s
+⚠️ general_practitioner: errore API (Error code: 413 - {'error': {'message': 'Request too large for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested 8006, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}), nessun aggiornamento - turno fallito
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+{
+    "diagnosis": "Fibrillazione atriale con risposta ventricolare rapida non controllata, associata a possibile eccesso di anticoagulazione che ha provocato ecchimosi estese spontanee",
+    "urgency_level": "ROSSO",
+    "operational_guidance": "Recarsi immediatamente al pronto soccorso per valutazione urgente: ECG a riposo, monitoraggio continuo, prelievo di sangue per emocromo, INR/PT, aPTT e dosaggio dei DOAC, e ecocardiografia transtoracica. Sospendere temporaneamente l’anticoagulante finché non siano disponibili i risultati di laboratorio e, se necessario, somministrare agenti di reversal.",
+    "recommendations": "Il paziente presenta palpitazioni irregolari di forte intensità da 2 ore, compatibili con una risposta ventricolare rapida in un contesto di fibrillazione atriale nota. Inoltre, da una settimana sono comparsi ecchimosi estesi su braccia e gambe senza trauma, segno tipico di un disturbo della coagulazione, più probabile in un soggetto in terapia anticoagulante. Gli specialisti (Cardiologia, Medicina, Dermatologia) hanno concordato che la combinazione di questi dati clinici è più coerente con un possibile sovradosaggio o eccessiva anticoagulazione piuttosto che con altre ipotesi (trombocitopenia, embolia polmonare, vasculite). \n\nLe linee guida internazionali indicano che un INR >3.0 (o >3.5 in alcuni protocolli) o livelli plasmatici dei DOAC superiori ai picchi terapeutici giustificano la sospensione temporanea dell’anticoagulante, soprattutto in presenza di sanguinamento attivo come le ecchimosi estese. Poiché non sono ancora disponibili i valori di laboratorio, è necessario valutare urgentemente la coagulazione e, se i parametri superano le soglie indicate, interrompere l’anticoagulante e considerare l’uso di reversal agents. \n\nData l’urgenza rossa, è fondamentale l’accesso immediato al pronto soccorso per eseguire ECG, Holter 24 h, emocromo completo, test di coagulazione (INR, PT, aPTT, dosaggio DOAC) ed ecocardiografia, al fine di confermare la diagnosi, valutare la necessità di terapia anti‑aritmica o di controllo della risposta ventricolare e gestire il rischio emorragico."
+}
+
+👨‍⚕️ PRIMARIO → diagnosi='Fibrillazione atriale con risposta ventricolare rapida non controllata, associata a possibile eccesso di anticoagulazione che ha provocato ecchimosi estese spontanee' | urgenza=ROSSO
+
+####################################################################################################
+CASO 4: Palpitazioni + lividi: 65 anni, fibrillazione atriale nota   [groq/openai/gpt-oss-120b (ragionamento low)]   tempo 289 s
+specialisti: ['cardiologist', 'dermatologist', 'general_practitioner']
+
+  [cardiologist -> tutti] proponi urgenza=ROSSO
+    Propongo di considerare una fibrillazione atriale con risposta ventricolare rapida non adeguatamente controllata, associata a possibile sovradosaggio anticoagulante che ha provocato ecchimosi estese. Dobbiamo eseguire ECG, Holter, valutare il profilo di coagulazione (INR/PT, aPTT, livelli DOAC) e un'ecocardiografia per definire la funzione cardiaca e la presenza di eventuali trombi. Propongo anche di consultare l'ematologo per definire la soglia di INR/parametri di coagulazione che richiedono la sospensione temporanea dell'anticoagulante. — Ho considerato anche 'Embolia polmonare acuta' ma l'ho esclusa (L'embolia polmonare può causare palpitazioni e dispnea, ma il paziente non riferisce sintomi respiratori, dolore toracico o segni di ipossia; inoltre, le ecchimosi estese non sono tipiche dell'embolia polmonare e sono più coerenti con un disturbo della coagulazione.).
+
+  [cardiologist -> general_practitioner] consulta
+    Qual è la soglia di INR o dei parametri di coagulazione che giustifica l'interruzione temporanea degli anticoagulanti in un paziente con fibrillazione atriale che presenta ecchimosi estese?
+
+  [general_practitioner -> cardiologist] rivedi urgenza=ROSSO
+    L'ipotesi di gruppo è corretta; aggiungo la soglia di INR >3.0 (o >3.5 secondo alcune linee guida) come criterio per l’interruzione temporanea, e fornisco indicazioni analoghe per i DOAC basate sui livelli plasmatici e sul aPTT. — Confermo la diagnosi di fibrillazione atriale con risposta ventricolare rapida non controllata e possibile eccesso di anticoagulazione. Per la soglia di INR, si considera indicata l’interruzione temporanea quando l'INR supera 3.0 (o 3.5 in alcuni protocolli). Per i DOAC, si sospende se i livelli plasmatici superano i picchi terapeutici o se l’aPTT è >1,5 volte il valore di controllo. Propongo di eseguire i test di coagulazione indicati e, in caso di valori sopra le soglie, di sospendere l'anticoagulante e valutare eventuali reversal agents. — Ho considerato anche 'Trombocitopenia acquisita (es. indotta da farmaci) come causa principale delle ecchimosi' ma l'ho esclusa (Il paziente non ha riferito farmaci che causano trombocitopenia, né è presente una conta piastrinica ridotta nota; le ecchimosi sono più tipicamente associate a eccessiva anticoagulazione in un soggetto con fibrillazione atriale in terapia anticoagulante.).
+
+  [cardiologist -> general_practitioner] conferma urgenza=ROSSO
+    La valutazione indipendente coincide con l'ipotesi di gruppo: la combinazione di palpitazioni irregolari e ecchimosi spontanee in un paziente con AF nota è coerente con una risposta ventricolare rapida non controllata e un possibile eccesso di anticoagulazione. Non vi sono elementi che suggeriscano altre cause più probabili. — Confermo l'ipotesi di gruppo: fibrillazione atriale con risposta ventricolare rapida non controllata, associata a possibile sovradosaggio anticoagulante che ha provocato le ecchimosi estese. L'urgenza resta ROSSO e gli esami consigliati (ECG, Holter, emocromo, coagulazione, ecocardiografia) sono appropriati. — Ho considerato anche 'Embolia polmonare acuta' ma l'ho esclusa (Il paziente non presenta sintomi respiratori (dispnea, dolore toracico, tachipnea) né segni di ipossia; le ecchimosi non sono tipiche dell'embolia polmonare, rendendo questa ipotesi meno probabile.).
+
+  [dermatologist -> cardiologist] conferma urgenza=ROSSO
+    Concordo con l'ipotesi di fibrillazione atriale con risposta ventricolare rapida non controllata e possibile sovradosaggio anticoagulante come causa principale delle ecchimosi. Dal punto di vista cutaneo, non vi sono segni di vasculite o di altre dermatosi emorragiche; le ecchimosi sono tipiche di un disturbo della coagulazione in un paziente anticoagulato. — Confermo l'ipotesi di gruppo: fibrillazione atriale con risposta ventricolare rapida non adeguatamente controllata, associata a possibile eccesso di anticoagulazione che ha provocato le ecchimosi estese. Dal punto di vista dermatologico, le lesioni cutanee sono coerenti con un disturbo della coagulazione piuttosto che con una purpura senile o una vascolitide. Propongo di mantenere gli esami già indicati (ECG, Holter, emocromo, INR/PT/aPTT, dosaggio DOAC, ecocardiografia) e di aggiungere, se necessario, una valutazione dermatologica per escludere eventuali segni di vasculite (esame obiettivo dettagliato, eventuale biopsia cutanea solo se le lesioni evolvono o presentano caratteristiche vascolari). — Ho considerato anche 'Purpura senile (senile purpura) o vasculite cutanea' ma l'ho esclusa (La purpura senile è solitamente associata a trauma minimo e si presenta come ecchimosi di piccole dimensioni su dorsali delle mani; la vasculite cutanea presenta lesioni dolorose, palpable purpura, spesso con ulcerazione, che non sono riportate dal paziente.).
+
+  [dermatologist -> cardiologist] conferma [VERIFICA] urgenza=ROSSO
+    Le ecchimosi sono diffuse, di dimensioni moderate e compaiono senza trauma, coerenti con un eccesso di anticoagulazione. Non ci sono segni cutanei di vasculite (purpura palpabile, ulcerazioni) né caratteristiche tipiche della purpura senile (piccole ecchimosi su dorsali delle mani). Pertanto l'ipotesi di fibrillazione atriale con risposta ventricolare rapida non controllata e possibile sovradosaggio anticoagulante rimane la più adeguata. — Confermo l'ipotesi di gruppo: fibrillazione atriale con risposta ventricolare rapida non controllata, associata a possibile eccesso di anticoagulazione che ha provocato le ecchimosi estese. L'urgenza resta ROSSO e gli esami proposti (ECG, Holter, emocromo, coagulazione, ecocardiografia) sono appropriati. — Ho considerato anche 'Purpura senile o vasculite cutanea' ma l'ho esclusa (Purpura senile si presenta con piccole ecchimosi su zone di pressione e in soggetti più anziani, ma le lesioni del paziente sono estese e non correlate a trauma. La vasculite cutanea mostrerebbe lesioni dolorose, palpabili, possibili ulcerazioni, assenti in questo caso.).
+
+IPOTESI DI GRUPPO: {'diagnosis': 'Fibrillazione atriale con risposta ventricolare rapida non controllata, associata a possibile sovradosaggio o eccessiva anticoagulazione (warfarin o DOAC) che ha provocato ecchimosi estese spontanee', 'urgency_level': 'ROSSO', 'recommended_exams': ['ECG a riposo', 'Holter 24h', 'Emocromo completo', 'Coagulazione: INR, PT, aPTT, dosaggio dei DOAC (se in uso)', 'Ecocardiografia transtoracica'], 'confirmed_by': ['cardiologist', 'dermatologist', 'general_practitioner']}
+passati senza confermare: [] | turni falliti: {'cardiologist': 1, 'general_practitioner': 1} | battute: 7
+DIAGNOSI FINALE: {'diagnosis': 'Fibrillazione atriale con risposta ventricolare rapida non controllata, associata a possibile eccesso di anticoagulazione che ha provocato ecchimosi estese spontanee', 'urgency_level': 'ROSSO', 'specialists_involved': ['cardiologist', 'dermatologist', 'general_practitioner'], 'operational_guidance': 'Recarsi immediatamente al pronto soccorso per valutazione urgente: ECG a riposo, monitoraggio continuo, prelievo di sangue per emocromo, INR/PT, aPTT e dosaggio dei DOAC, e ecocardiografia transtoracica. Sospendere temporaneamente l’anticoagulante finché non siano disponibili i risultati di laboratorio e, se necessario, somministrare agenti di reversal.', 'recommendations': 'Il paziente presenta palpitazioni irregolari di forte intensità da 2 ore, compatibili con una risposta ventricolare rapida in un contesto di fibrillazione atriale nota. Inoltre, da una settimana sono comparsi ecchimosi estesi su braccia e gambe senza trauma, segno tipico di un disturbo della coagulazione, più probabile in un soggetto in terapia anticoagulante. Gli specialisti (Cardiologia, Medicina, Dermatologia) hanno concordato che la combinazione di questi dati clinici è più coerente con un possibile sovradosaggio o eccessiva anticoagulazione piuttosto che con altre ipotesi (trombocitopenia, embolia polmonare, vasculite). \n\nLe linee guida internazionali indicano che un INR >3.0 (o >3.5 in alcuni protocolli) o livelli plasmatici dei DOAC superiori ai picchi terapeutici giustificano la sospensione temporanea dell’anticoagulante, soprattutto in presenza di sanguinamento attivo come le ecchimosi estese. Poiché non sono ancora disponibili i valori di laboratorio, è necessario valutare urgentemente la coagulazione e, se i parametri superano le soglie indicate, interrompere l’anticoagulante e considerare l’uso di reversal agents. \n\nData l’urgenza rossa, è fondamentale l’accesso immediato al pronto soccorso per eseguire ECG, Holter 24\u202fh, emocromo completo, test di coagulazione (INR, PT, aPTT, dosaggio DOAC) ed ecocardiografia, al fine di confermare la diagnosi, valutare la necessità di terapia anti‑aritmica o di controllo della risposta ventricolare e gestire il rischio emorragico.'}

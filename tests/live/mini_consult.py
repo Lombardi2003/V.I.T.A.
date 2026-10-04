@@ -1,18 +1,8 @@
-# Live script (NOT a unit test with asserts: the discussion is free text
-# written by the model). It checks whether the MINI-CONSULT works: a
-# specialist at the table calls in a colleague the supervisor did NOT choose
-# ("consulta" action, see specialist_node in specialist.py and the router in
-# router.py).
-#
-# Only ONE specialist is seated on purpose (cardiologist), on a
-# safety-critical case: known atrial fibrillation (the cardiologist would
-# recommend an anticoagulant) plus large bruises appearing without trauma (a
-# possible clotting disorder). A careful cardiologist should not start an
-# anticoagulant without asking. Two earlier cases never triggered the consult:
-# the model always felt confident enough on its own, so this one makes the
-# missing opinion a SAFETY issue, not just "useful". It USES API QUOTA.
-#
-# Usage: python -m tests.live.mini_consult
+"""Live script: does a lone cardiologist call in a colleague before recommending an anticoagulant? Uses API quota.
+
+Usage: python -m tests.live.mini_consult
+"""
+
 import asyncio
 
 from src.state import PatientCard, SymptomProfile, Symptom

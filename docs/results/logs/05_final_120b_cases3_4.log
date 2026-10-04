@@ -1,0 +1,680 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+Text model for this run: groq/openai/gpt-oss-120b (ragionamento low)
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "dolore addominale tipo crampi",
+            "specialists": ["gastroenterologist"]
+        },
+        {
+            "symptom": "eruzione cutanea con macchie rosse pruriginose",
+            "specialists": ["dermatologist"]
+        }
+    ],
+    "reasoning": "Il dolore addominale a tipo crampi, forte e di durata di 6 ore, è tipico di patologie gastrointestinali, quindi è indicato il gastroenterologist. L'eruzione cutanea con macchie rosse pruriginose è un problema cutaneo visibile, perciò è pertinente il dermatologist. Non ci sono allergie, patologie pregresse o altri fattori che richiedano ulteriori specialisti.",
+    "specialists": ["gastroenterologist", "dermatologist"]
+}
+
+🚦 SUPERVISOR → ['gastroenterologist', 'dermatologist']
+   Checklist: {'gastroenterologist': True, 'dermatologist': True}
+🔀 ROUTER: turno di gastroenterologist (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 3827.36it/s]
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+   3. [gastro_aopisa_dolore_addominale, p. 4] Cause Extra-Addominali
+Patologie Toraciche (IMA, Polmoniti, Pleuriti, TEP, PNX, Patologie Esofagee)
+µ Compressione o Flogosi di radici o nervi spinali...
+{
+  "azione": "proponi",
+  "consulto_utile": "si",
+  "collega_da_consultare": "rheumatologist",
+  "domanda_per_il_collega": "In un adulto con dolore addominale crampiforme acuto e rash cutaneo eritematoso pruriginoso, quali criteri clinici e di laboratorio ci orientano verso una vasculite IgA (Henoch‑Schönlein) rispetto a una reazione allergica sistemica?",
+  "diagnosi": "Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale",
+  "urgenza": "ARANCIONE",
+  "esami_consigliati": ["CBC con formula leucocitaria", "ESR/CRP", "Dosaggio delle immunoglobuline A", "Urinalisi per ematuria/proteine", "Ecografia addominale", "Biopsia cutanea se il rash è palpabile"],
+  "dettagli": "Il dolore addominale crampiforme forte di 6 h associato a rash cutaneo eritematoso pruriginoso suggerisce una possibile vasculite sistemica. L'HSP in età adulta può presentarsi con dolore addominale dovuto a edema della parete intestinale e rash cutaneo (purpura palpabile). L'assenza di allergeni noti rende meno probabile una semplice anafilassi. È necessario escludere altre cause addominali acute (perforazione, ostruzione) ma la combinazione con rash orienta verso una patologia vascolare.",
+  "ipotesi_alternativa_scartata": "Reazione allergica/anafilassi sistemica",
+  "motivo_scarto": "Mancanza di trigger allergico, durata del rash più breve e assenza di segni di compromissione respiratoria o emodinamica rendono meno probabile una anafilassi grave.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Propongo di considerare una vasculite IgA (Henoch‑Schönlein) come diagnosi principale, data la coesistenza di dolore addominale crampiforme e rash cutaneo. Suggerisco esami di laboratorio e imaging per confermare e un consulto reumatologico per valutare la necessità di terapia immunosoppressiva."
+}
+
+🔀 gastroenterologist: consulto_utile=si verso 'rheumatologist' (non nel roster) -> reindirizzato a general_practitioner
+🔀 gastroenterologist: consulto_utile=si -> mini-consulto verso general_practitioner, in aggiunta all'azione 'proponi'
+🔀 ROUTER: general_practitioner coinvolto nella discussione su richiesta di un collega
+🔀 ROUTER: turno di general_practitioner (battuta 2/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_simeu_triage_percorsi, p. 7] Triage avanzato dolore
+addominale
+Valutazione sulla porta(ABC)
+
+Compromissione
+Valutazione oggettiva parametri
+Valutazione dell’addome
+C.V.P . ed esam...
+   2. [generale_umbria_sepsi, p. 21] Le Aziende Sanitarie Regionali dovranno:
+ predisporre una procedura/istruzione di lavoro per l’utilizzo di farmaci vasoattivi e di
+inotropi (con indi...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 41] 3.2.10 Dolore Addominale
+
+* DOLORE EPIGASTRICO
+* VAI ALLA SCHEDA DOLORE TORACICO
+2 IN ATTO, SEVERO
+2 ANAMNESI PER ANEURISMA AORTA ADDOMINALE
+2 EMATEME...
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Con i soli dati (dolore addominale crampiforme forte, rash eritematoso pruriginoso) la combinazione suggerisce una vasculite sistemica più che una reazione allergica; la presenza di rash cutaneo non specifico ma potenzialmente palpabile orienta verso IgA vasculite.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "I criteri clinici per HSP includono: rash purpurico palpabile (tipico su glutei/estremità), dolore addominale crampiforme con possibile sanguinamento intestinale, e/o segni renali (ematuria/proteine). In assenza di questi, si cercano segni di allergia: prurito intenso, edema angioedematoso, broncospasmo, ipotensione, aumento dei tryptasi sieriche, eosinofilia. Laboratori: aumento PCR/ESR, IgA elevata, negatività di tryptasi e eosinofili, urina con ematuria. Imaging: ecografia addominale per edema intestinale. Questi elementi distinguono HSP da reazione allergica sistemica.",
+  "ipotesi_alternativa_scartata": "Reazione allergica/anafilassi sistemica",
+  "motivo_scarto": "Mancanza di trigger allergico, assenza di segni di compromissione respiratoria/emodinamica, rash non tipicamente urticario né angioedema, e dolore addominale non comune nelle allergie acute.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA (HSP) e riassumo i criteri clinici e di laboratorio che la distinguono da una reazione allergica sistemica."
+}
+
+🔀 ROUTER: turno di gastroenterologist (battuta 3/12)
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [gastro_fvg_pdta_emorragie_digestive, p. 37] 2. Ricovero in degenza ordinaria
+3. Ritorno all’ospedale Spoke di provenienza
+Fase post-ospedaliera-dimissione e Follow up
+La dimissione ospedaliera p...
+   2. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   3. [generale_triage_piemonte, p. 22] http://www.doh.gov.uk/emergencycare/index.htm, ultimo aggiornamento 14/7/2003, ultima
+consultazione 29/11/2003
+* Derlet R.W, Richards J.R. “Overcrowdi...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 35.0s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 3.5s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Con i dati (dolore addominale crampiforme forte, rash eritematoso pruriginoso, assenza di segni di anafilassi) la combinazione più probabile è una vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "I criteri clinici (rash cutaneo, dolore addominale) e i pattern di laboratorio suggeriti (PCR/ESR elevati, IgA aumentata, assenza di eosinofilia/tryptasi) orientano verso HSP; l'assenza di trigger allergico, broncospasmo o ipotensione rende improbabile un'anafilassi.",
+  "ipotesi_alternativa_scartata": "Reazione allergica/anafilassi sistemica",
+  "motivo_scarto": "Mancanza di trigger, assenza di segni respiratori/emodinamici, rash non urticario, dolore addominale non tipico delle allergie acute.",
+  "fonti_consultate": "[Medicina, p. –] criteri clinici e di laboratorio per HSP vs allergia, indicati nella discussione corrente.",
+  "message": "Confermo la diagnosi di vasculite IgA (HSP) con urgenza arancione e gli esami proposti."
+}
+
+🔀 ROUTER: turno di dermatologist (battuta 4/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 15] distanza dal bordo. Per le diagnosi differenziali confrontare con tinea cruris.
+A partire da una forma intertriginosa, le lesioni vescico-pustolose po...
+   2. [dermatologia_aopisa_orticaria_angioedema, p. 4] 1. PREMESSA
+Il termine orticaria comprende un gruppo eterogeneo di malattie tutte caratterizzate da una tipica lesione cutanea: il
+pomfo con o senza a...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 19] - parestesie/insensibilità: alterazioni della sensibilità tattile, percettiva, dolorifica che assumono significato soprattutto
+se distrettuali;
+- trem...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 33.2s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Con rash eritematoso pruriginoso associato a dolore addominale crampiforme forte, la combinazione suggerisce una vasculite sistemica; l'assenza di segni di anafilassi (nessun edema angioedematoso, broncospasmo, ipotensione) rende più probabile una vasculite IgA (Henoch‑Schönlein).",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Ritengo che i dati clinici (rash non tipico urticario, dolore addominale intenso) e la mancanza di trigger allergico supportino la diagnosi di HSP, in linea con il ragionamento del tavolo.",
+  "ipotesi_alternativa_scartata": "Urticaria/angioedema acuta",
+  "motivo_scarto": "L'urticaria presenta pomfi di breve durata (<24 h), spesso migratori, e non è tipicamente associata a dolore addominale crampiforme prolungato; inoltre il rash descritto è più maculoso e pruriginoso, non palpabile.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA (Henoch‑Schönlein) con urgenza arancione e gli esami proposti."
+}
+
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di gastroenterologist (battuta 5/12)
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   2. [generale_triage_piemonte, p. 22] http://www.doh.gov.uk/emergencycare/index.htm, ultimo aggiornamento 14/7/2003, ultima
+consultazione 29/11/2003
+* Derlet R.W, Richards J.R. “Overcrowdi...
+   3. [gastro_fvg_pdta_emorragie_digestive, p. 25] ● Per i pazienti a basso rischio (GBS<1, stratificazione precisa) programmare EGDS non urgente ma differita,
+ovvero primo appuntamento possibile nell’...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 37.3s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Dolore addominale crampiforme forte associato a rash eritematoso pruriginoso, senza segni di emergenza emodinamica o respiratoria, orienta verso una vasculite sistemica, in particolare IgA (Henoch‑Schönlein).",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "I criteri clinici (rash purpurico non urticario, dolore addominale colico) e la necessità di escludere coinvolgimento renale rendono l'ipotesi di HSP la più plausibile; i dati di laboratorio suggeriti (CBC, ESR/CRP, IgA, urinalisi) sono coerenti con la diagnosi e con la gestione proposta dal tavolo.",
+  "ipotesi_alternativa_scartata": "Infezione gastrointestinale acuta (es. gastroenterite batterica)",
+  "motivo_scarto": "L'assenza di sintomi tipici (diarrea, vomito, febbre) e la presenza di rash cutaneo non correlato a infezioni rende improbabile questa alternativa.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA (Henoch‑Schönlein) con urgenza arancione e gli esami proposti; la valutazione è in linea con i criteri clinici e di laboratorio discussi."
+}
+
+🔀 ROUTER: giro di verifica, turno di dermatologist (battuta 6/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 24] Criteri diagnostici
+Vedi dermatofitosi.
+Accertamenti diagnostici di laboratorio
+Dopo l’anamnesi e l’esame clinico il sospetto diagnostico va sempre co...
+   2. [dermatologia_sidemast_micosi, p. 9] e l’onicogrifosi. Considerando la contagiosità delle dermatofitosi e i costi sanitari per il loro
+trattamento è necessario che la diagnosi sia quanto ...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 56] 3.2.8 Problema Specifico - Chirurgico / Gastrointestinale
+
+2 SOSPETTA ISCHEMIA ACUTA DI UN ARTO
+3 CORPO ESTRANEO IN ESOFAGO / BOLO ALIMENTARE / DISFAG...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 38.2s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Rash maculoso pruriginoso non urticario associato a dolore addominale crampiforme forte suggerisce una vasculite IgA (Henoch‑Schönlein) piuttosto che una reazione allergica o urticaria.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "si",
+  "collega_da_consultare": "nefrologist",
+  "domanda_per_il_collega": "Quali parametri di urinalisi (ematuria, proteinuria, cilindri) e quali soglie indicano la necessità di biopsia renale in un adulto con sospetta HSP?",
+  "to": null,
+  "motivazione": "Il rash non è tipico di urticaria/angioedema e la combinazione con dolore addominale è classica per HSP; i criteri clinici e i test proposti (CBC, ESR/CRP, IgA, urinalisi) sono coerenti con la diagnosi di gruppo.",
+  "ipotesi_alternativa_scartata": "Urticaria/angioedema acuta",
+  "motivo_scarto": "Rash maculoso, pruriginoso e non palpabile, assenza di edema angioedematoso, broncospasmo o ipotensione rende improbabile una reazione allergica acuta.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA (Henoch‑Schönlein) con urgenza arancione; suggerisco di includere il nefrologo per valutare il coinvolgimento renale e definire eventuali indicazioni di biopsia."
+}
+
+🔀 dermatologist: consulto_utile=si verso 'nefrologist' (non nel roster) -> reindirizzato a general_practitioner
+🔀 dermatologist: consulto_utile=si -> mini-consulto verso general_practitioner, in aggiunta all'azione 'conferma'
+🔀 ROUTER: general_practitioner chiamato in causa dopo aver gia' confermato, una battuta di reazione
+🔀 ROUTER: turno di general_practitioner (battuta 7/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_simeu_triage_percorsi, p. 7] Triage avanzato dolore
+addominale
+Valutazione sulla porta(ABC)
+
+Compromissione
+Valutazione oggettiva parametri
+Valutazione dell’addome
+C.V.P . ed esam...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 41] 3.2.10 Dolore Addominale
+
+* DOLORE EPIGASTRICO
+* VAI ALLA SCHEDA DOLORE TORACICO
+2 IN ATTO, SEVERO
+2 ANAMNESI PER ANEURISMA AORTA ADDOMINALE
+2 EMATEME...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 38.4s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Con i soli dati (dolore addominale crampiforme forte e rash maculoso pruriginoso) la diagnosi più plausibile è una vasculite IgA (Henoch‑Schönlein).",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Concordo con il gruppo: i sintomi cutanei non urticari e il dolore addominale tipico orientano verso HSP; è necessario valutare il coinvolgimento renale tramite urinalisi.",
+  "ipotesi_alternativa_scartata": "Urticaria/angioedema acuta",
+  "motivo_scarto": "Rash maculoso, pruriginoso e non palpabile, assenza di edema angioedematoso o broncospasmo rende improbabile una reazione allergica acuta.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Urinalisi: cercare ematuria (microscopica o macroscopica) e proteinuria. In un adulto con HSP, la presenza di ematuria >5 RBC/HPF o proteinuria >0,5 g/24 h (o rapporto proteinuria/creatinina >0,5) indica coinvolgimento renale significativo. La biopsia renale è consigliata se: (1) proteinuria >1 g/24 h, (2) ematuria persistente con cilindri eritrocitari, (3) riduzione della funzionalità renale (creatinina >1,5 mg/dL) o (4) rapido deterioramento della funzione renale. Questi criteri guidano la decisione di biopsia in adulti con sospetta HSP."
+}
+
+🔀 ROUTER: dermatologist chiamato in causa dopo aver gia' confermato, una battuta di reazione
+🔀 ROUTER: turno di dermatologist (battuta 8/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 15] distanza dal bordo. Per le diagnosi differenziali confrontare con tinea cruris.
+A partire da una forma intertriginosa, le lesioni vescico-pustolose po...
+   2. [dermatologia_sidemast_micosi, p. 22] coloro che immergono frequentemente le mani in acqua e/o deter -
+genti. Possono presentarsi con 4
+tipi di manifestazioni cliniche
+7:
+• Perionissi cron...
+   3. [generale_triage_piemonte, p. 22] nazionale FIMUPS, Torino, 25-28 /11/1996: 297-301
+* Boni D. Differenti modelli di triage e loro applicazione in Italia in atti I° Convegno
+Internazion...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 44.2s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Il rash maculoso pruriginoso non urticario associato a dolore addominale crampiforme suggerisce una vasculite IgA (Henoch‑Schönlein); la valutazione renale con urinalisi è fondamentale.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Concordo con il gruppo: i criteri cutanei e gastrointestinali sono tipici di HSP; l'urinalisi è indicata per identificare coinvolgimento renale, e i limiti proposti (ematuria >5 RBC/HPF, proteinuria >0,5 g/24 h) sono appropriati.",
+  "ipotesi_alternativa_scartata": "Urticaria/angioedema acuta",
+  "motivo_scarto": "Il rash non è edematoso né migratorio, manca broncospasmo o ipotensione, e il dolore addominale non è tipico di reazioni allergiche acute.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA con urgenza arancione e gli esami proposti, inclusa l'urinalisi con i criteri indicati per valutare la necessità di biopsia renale."
+}
+
+🔀 ROUTER: giro di verifica, turno di general_practitioner (battuta 9/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 66] - “La sepsi: riconoscimento precoce in Pronto Soccorso e gestione della fase i niziale nell’adulto” 2017. Rete Cure Sicure
+FVG
+https://egas.sanita.fvg...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 16] bru ciore alla minzione, dolore addominale o in altre sedi, paziente ospite in comunità) considera anche la scheda “ Sospetta
+sepsi e alterazione temp...
+   3. [generale_simeu_triage_percorsi, p. 7] Triage avanzato dolore
+addominale
+Valutazione sulla porta(ABC)
+
+Compromissione
+Valutazione oggettiva parametri
+Valutazione dell’addome
+C.V.P . ed esam...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 36.6s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 5.0s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Dolore addominale crampiforme forte associato a rash maculoso pruriginoso in una donna giovane suggerisce vasculite IgA (Henoch‑Schönlein); l'assenza di segni allergici acuti e la tipica presentazione cutanea supportano questa ipotesi.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "si",
+  "collega_da_consultare": "nefrologo",
+  "domanda_per_il_collega": "Quali criteri di urinalisi e soglie di proteinuria/creatinina indicano la necessità di biopsia renale in un adulto con sospetta HSP?",
+  "to": null,
+  "motivazione": "I dati clinici (rash non urticario, dolore addominale colico) e l'assenza di trigger allergico rendono la vasculite IgA la diagnosi più plausibile; gli esami proposti (CBC, ESR/CRP, IgA, urinalisi, ecografia) sono coerenti con la valutazione di gruppo.",
+  "ipotesi_alternativa_scartata": "Urticaria/angioedema acuta",
+  "motivo_scarto": "Rash maculoso, pruriginoso e non edematoso, assenza di broncospasmo, ipotensione o edema, e dolore addominale non tipico delle reazioni allergiche acute.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA (HSP) con urgenza arancione; includiamo il nefrologo per valutare il coinvolgimento renale e le indicazioni di biopsia."
+}
+
+🔀 general_practitioner: consulto_utile=si verso 'nefrologo' (non nel roster) -> reindirizzato a general_practitioner
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 26.5s
+{
+    "diagnosis": "Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale, ipotesi preliminare da confermare",
+    "urgency_level": "ARANCIONE",
+    "recommended_exams": [
+        "Emocromo completo con formula leucocitaria",
+        "Velocità di eritrosedimentazione (VES) e Proteina C-reattiva (PCR)",
+        "Dosaggio delle immunoglobuline A (IgA)",
+        "Urinalisi con ricerca di ematuria, proteinuria e cilindri",
+        "Ecografia addominale (valutazione edema della parete intestinale, eventuali segni di emorragia)",
+        "Biopsia cutanea (se il rash è palpabile) o biopsia renale (se i criteri di coinvolgimento renale sono soddisfatti)"
+    ],
+    "to_verify": [
+        "Aspetto preciso del rash (presenza di purpura palpabile, localizzazione su glutei/estremità) – chiedere al paziente o al personale di osservare la lesione",
+        "Presenza di sangue nelle feci o vomito ematico – indagare anamnesi e, se necessario, eseguire test fecali",
+        "Segni di coinvolgimento renale (edema, ipertensione) – misurare pressione arteriosa e valutare edema periferico",
+        "Eventuali sintomi respiratori o cutanei tipici di anafilassi (bronchospasmo, angioedema) – chiedere al paziente se ha avuto difficoltà respiratorie o gonfiore",
+        "Storia di farmaci o esposizione a possibili allergeni recenti – interrogare il paziente su assunzione di farmaci, cibi o contatti recenti"
+    ],
+    "operational_guidance": "1. Trasferire la paziente in zona di osservazione con monitoraggio continuo dei parametri vitali (pressione, frequenza cardiaca, saturazione). 2. Iniziare l'esecuzione immediata degli esami di laboratorio richiesti (emocromo, VES/CRP, IgA, urinalisi). 3. Richiedere ecografia addominale urgente. 4. Attivare consulto dermatologico per valutare la possibilità di biopsia cutanea e consulto nefrologico per eventuale coinvolgimento renale. 5. Tenere la paziente a digiuno finché non saranno disponibili i risultati ecografici e di laboratorio. 6. Rivalutare clinicamente entro 2 ore o prima se i parametri vitali peggiorano.",
+    "recommendations": "Il tavolo multidisciplinare ha concordato che la combinazione di dolore addominale crampiforme forte di 6 ore e rash cutaneo eritematoso pruriginoso in una donna di 34 anni è più tipica di una vasculite IgA (Henoch‑Schönlein) rispetto a una reazione allergica o a un’altra patologia addominale acuta. La presenza di rash non urticario, l'assenza di trigger allergico, di broncospasmo, ipotensione o edema angioedematoso rende improbabile un'anafilassi. La discussione ha escluso altre cause (infezione gastrointestinale, perforazione, ostruzione) per mancanza di sintomi tipici (diarrea, vomito, febbre, segni peritonali). Tutti gli specialisti (Gastroenterologia, Medicina, Dermatologia) hanno confermato l'ipotesi e l'urgenza ARANCIONE, indicando gli esami necessari per confermare la diagnosi e valutare il coinvolgimento renale. Non sono emersi dubbi irrisolti che richiedano un rialzo di priorità; pertanto il livello ARANCIONE è mantenuto. È fondamentale completare gli esami indicati, monitorare i parametri vitali e coinvolgere dermatologia e nefrologia per eventuali biopsie, con rivalutazione clinica rapida."
+}
+
+👨‍⚕️ PRIMARIO → diagnosi='Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale, ipotesi preliminare da confermare' | urgenza=ARANCIONE
+
+####################################################################################################
+CASE 3: Abdomen + rash: 34 years old   [groq/openai/gpt-oss-120b (ragionamento low)]   time 328 s
+specialists: ['gastroenterologist', 'dermatologist', 'general_practitioner'] | second opinion: -
+
+  [gastroenterologist -> everyone] proponi urgency=ARANCIONE
+    Propongo di considerare una vasculite IgA (Henoch‑Schönlein) come diagnosi principale, data la coesistenza di dolore addominale crampiforme e rash cutaneo. Suggerisco esami di laboratorio e imaging per confermare e un consulto reumatologico per valutare la necessità di terapia immunosoppressiva. — Ho considerato anche 'Reazione allergica/anafilassi sistemica' ma l'ho esclusa (Mancanza di trigger allergico, durata del rash più breve e assenza di segni di compromissione respiratoria o emodinamica rendono meno probabile una anafilassi grave.).
+
+  [gastroenterologist -> general_practitioner] consulta
+    In un adulto con dolore addominale crampiforme acuto e rash cutaneo eritematoso pruriginoso, quali criteri clinici e di laboratorio ci orientano verso una vasculite IgA (Henoch‑Schönlein) rispetto a una reazione allergica sistemica?
+
+  [general_practitioner -> gastroenterologist] conferma urgency=ARANCIONE
+    I criteri clinici per HSP includono: rash purpurico palpabile (tipico su glutei/estremità), dolore addominale crampiforme con possibile sanguinamento intestinale, e/o segni renali (ematuria/proteine). In assenza di questi, si cercano segni di allergia: prurito intenso, edema angioedematoso, broncospasmo, ipotensione, aumento dei tryptasi sieriche, eosinofilia. Laboratori: aumento PCR/ESR, IgA elevata, negatività di tryptasi e eosinofili, urina con ematuria. Imaging: ecografia addominale per edema intestinale. Questi elementi distinguono HSP da reazione allergica sistemica. — Confermo la diagnosi di vasculite IgA (HSP) e riassumo i criteri clinici e di laboratorio che la distinguono da una reazione allergica sistemica. — Ho considerato anche 'Reazione allergica/anafilassi sistemica' ma l'ho esclusa (Mancanza di trigger allergico, assenza di segni di compromissione respiratoria/emodinamica, rash non tipicamente urticario né angioedema, e dolore addominale non comune nelle allergie acute.).
+
+  [gastroenterologist -> general_practitioner] conferma urgency=ARANCIONE
+    I criteri clinici (rash cutaneo, dolore addominale) e i pattern di laboratorio suggeriti (PCR/ESR elevati, IgA aumentata, assenza di eosinofilia/tryptasi) orientano verso HSP; l'assenza di trigger allergico, broncospasmo o ipotensione rende improbabile un'anafilassi. — Confermo la diagnosi di vasculite IgA (HSP) con urgenza arancione e gli esami proposti. — Ho considerato anche 'Reazione allergica/anafilassi sistemica' ma l'ho esclusa (Mancanza di trigger, assenza di segni respiratori/emodinamici, rash non urticario, dolore addominale non tipico delle allergie acute.).
+
+  [dermatologist -> gastroenterologist] conferma urgency=ARANCIONE
+    Ritengo che i dati clinici (rash non tipico urticario, dolore addominale intenso) e la mancanza di trigger allergico supportino la diagnosi di HSP, in linea con il ragionamento del tavolo. — Confermo la diagnosi di vasculite IgA (Henoch‑Schönlein) con urgenza arancione e gli esami proposti. — Ho considerato anche 'Urticaria/angioedema acuta' ma l'ho esclusa (L'urticaria presenta pomfi di breve durata (<24 h), spesso migratori, e non è tipicamente associata a dolore addominale crampiforme prolungato; inoltre il rash descritto è più maculoso e pruriginoso, non palpabile.).
+
+  [gastroenterologist -> dermatologist] conferma [VERIFICATION] urgency=ARANCIONE
+    I criteri clinici (rash purpurico non urticario, dolore addominale colico) e la necessità di escludere coinvolgimento renale rendono l'ipotesi di HSP la più plausibile; i dati di laboratorio suggeriti (CBC, ESR/CRP, IgA, urinalisi) sono coerenti con la diagnosi e con la gestione proposta dal tavolo. — Confermo la diagnosi di vasculite IgA (Henoch‑Schönlein) con urgenza arancione e gli esami proposti; la valutazione è in linea con i criteri clinici e di laboratorio discussi. — Ho considerato anche 'Infezione gastrointestinale acuta (es. gastroenterite batterica)' ma l'ho esclusa (L'assenza di sintomi tipici (diarrea, vomito, febbre) e la presenza di rash cutaneo non correlato a infezioni rende improbabile questa alternativa.).
+
+  [dermatologist -> gastroenterologist] conferma [VERIFICATION] urgency=ARANCIONE
+    Il rash non è tipico di urticaria/angioedema e la combinazione con dolore addominale è classica per HSP; i criteri clinici e i test proposti (CBC, ESR/CRP, IgA, urinalisi) sono coerenti con la diagnosi di gruppo. — Confermo la diagnosi di vasculite IgA (Henoch‑Schönlein) con urgenza arancione; suggerisco di includere il nefrologo per valutare il coinvolgimento renale e definire eventuali indicazioni di biopsia. — Ho considerato anche 'Urticaria/angioedema acuta' ma l'ho esclusa (Rash maculoso, pruriginoso e non palpabile, assenza di edema angioedematoso, broncospasmo o ipotensione rende improbabile una reazione allergica acuta.).
+
+  [dermatologist -> general_practitioner] consulta
+    Quali parametri di urinalisi (ematuria, proteinuria, cilindri) e quali soglie indicano la necessità di biopsia renale in un adulto con sospetta HSP?
+
+  [general_practitioner -> dermatologist] conferma urgency=ARANCIONE
+    Concordo con il gruppo: i sintomi cutanei non urticari e il dolore addominale tipico orientano verso HSP; è necessario valutare il coinvolgimento renale tramite urinalisi. — Urinalisi: cercare ematuria (microscopica o macroscopica) e proteinuria. In un adulto con HSP, la presenza di ematuria >5 RBC/HPF o proteinuria >0,5 g/24 h (o rapporto proteinuria/creatinina >0,5) indica coinvolgimento renale significativo. La biopsia renale è consigliata se: (1) proteinuria >1 g/24 h, (2) ematuria persistente con cilindri eritrocitari, (3) riduzione della funzionalità renale (creatinina >1,5 mg/dL) o (4) rapido deterioramento della funzione renale. Questi criteri guidano la decisione di biopsia in adulti con sospetta HSP. — Ho considerato anche 'Urticaria/angioedema acuta' ma l'ho esclusa (Rash maculoso, pruriginoso e non palpabile, assenza di edema angioedematoso o broncospasmo rende improbabile una reazione allergica acuta.).
+
+  [dermatologist -> general_practitioner] conferma urgency=ARANCIONE
+    Concordo con il gruppo: i criteri cutanei e gastrointestinali sono tipici di HSP; l'urinalisi è indicata per identificare coinvolgimento renale, e i limiti proposti (ematuria >5 RBC/HPF, proteinuria >0,5 g/24 h) sono appropriati. — Confermo la diagnosi di vasculite IgA con urgenza arancione e gli esami proposti, inclusa l'urinalisi con i criteri indicati per valutare la necessità di biopsia renale. — Ho considerato anche 'Urticaria/angioedema acuta' ma l'ho esclusa (Il rash non è edematoso né migratorio, manca broncospasmo o ipotensione, e il dolore addominale non è tipico di reazioni allergiche acute.).
+
+  [general_practitioner -> dermatologist] conferma [VERIFICATION] urgency=ARANCIONE
+    I dati clinici (rash non urticario, dolore addominale colico) e l'assenza di trigger allergico rendono la vasculite IgA la diagnosi più plausibile; gli esami proposti (CBC, ESR/CRP, IgA, urinalisi, ecografia) sono coerenti con la valutazione di gruppo. — Confermo la diagnosi di vasculite IgA (HSP) con urgenza arancione; includiamo il nefrologo per valutare il coinvolgimento renale e le indicazioni di biopsia. — Ho considerato anche 'Urticaria/angioedema acuta' ma l'ho esclusa (Rash maculoso, pruriginoso e non edematoso, assenza di broncospasmo, ipotensione o edema, e dolore addominale non tipico delle reazioni allergiche acute.).
+
+GROUP HYPOTHESIS: {'diagnosis': 'Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale', 'urgency_level': 'ARANCIONE', 'recommended_exams': ['CBC con formula leucocitaria', 'ESR/CRP', 'Dosaggio delle immunoglobuline A', 'Urinalisi per ematuria/proteine', 'Ecografia addominale', 'Biopsia cutanea se il rash è palpabile'], 'confirmed_by': ['dermatologist', 'gastroenterologist', 'general_practitioner']}
+passed without confirming: [] | failed turns: {} | turns: 9
+
+REPORT SHOWN IN THE CHAT:
+**Report di sintesi**
+**Codice** ARANCIONE · **Ipotesi diagnostica preliminare** Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale, ipotesi preliminare da confermare
+
+**Specialisti coinvolti** Gastroenterologia, Dermatologia, Medicina · **Hanno confermato** Dermatologia, Gastroenterologia, Medicina
+
+**Esami e accertamenti** Emocromo completo con formula leucocitaria; Velocità di eritrosedimentazione (VES) e Proteina C-reattiva (PCR); Dosaggio delle immunoglobuline A (IgA); Urinalisi con ricerca di ematuria, proteinuria e cilindri; Ecografia addominale (valutazione edema della parete intestinale, eventuali segni di emorragia); Biopsia cutanea (se il rash è palpabile) o biopsia renale (se i criteri di coinvolgimento renale sono soddisfatti)
+
+**Da verificare** Aspetto preciso del rash (presenza di purpura palpabile, localizzazione su glutei/estremità) – chiedere al paziente o al personale di osservare la lesione; Presenza di sangue nelle feci o vomito ematico – indagare anamnesi e, se necessario, eseguire test fecali; Segni di coinvolgimento renale (edema, ipertensione) – misurare pressione arteriosa e valutare edema periferico; Eventuali sintomi respiratori o cutanei tipici di anafilassi (bronchospasmo, angioedema) – chiedere al paziente se ha avuto difficoltà respiratorie o gonfiore; Storia di farmaci o esposizione a possibili allergeni recenti – interrogare il paziente su assunzione di farmaci, cibi o contatti recenti
+
+**Indicazioni operative** 1. Trasferire la paziente in zona di osservazione con monitoraggio continuo dei parametri vitali (pressione, frequenza cardiaca, saturazione). 2. Iniziare l'esecuzione immediata degli esami di laboratorio richiesti (emocromo, VES/CRP, IgA, urinalisi). 3. Richiedere ecografia addominale urgente. 4. Attivare consulto dermatologico per valutare la possibilità di biopsia cutanea e consulto nefrologico per eventuale coinvolgimento renale. 5. Tenere la paziente a digiuno finché non saranno disponibili i risultati ecografici e di laboratorio. 6. Rivalutare clinicamente entro 2 ore o prima se i parametri vitali peggiorano.
+
+**Motivazione** Il tavolo multidisciplinare ha concordato che la combinazione di dolore addominale crampiforme forte di 6 ore e rash cutaneo eritematoso pruriginoso in una donna di 34 anni è più tipica di una vasculite IgA (Henoch‑Schönlein) rispetto a una reazione allergica o a un’altra patologia addominale acuta. La presenza di rash non urticario, l'assenza di trigger allergico, di broncospasmo, ipotensione o edema angioedematoso rende improbabile un'anafilassi. La discussione ha escluso altre cause (infezione gastrointestinale, perforazione, ostruzione) per mancanza di sintomi tipici (diarrea, vomito, febbre, segni peritonali). Tutti gli specialisti (Gastroenterologia, Medicina, Dermatologia) hanno confermato l'ipotesi e l'urgenza ARANCIONE, indicando gli esami necessari per confermare la diagnosi e valutare il coinvolgimento renale. Non sono emersi dubbi irrisolti che richiedano un rialzo di priorità; pertanto il livello ARANCIONE è mantenuto. È fondamentale completare gli esami indicati, monitorare i parametri vitali e coinvolgere dermatologia e nefrologia per eventuali biopsie, con rivalutazione clinica rapida.
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 11.7s
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "palpitazioni irregolari",
+            "specialists": ["cardiologist"]
+        },
+        {
+            "symptom": "lividi estesi comparsi da soli sulle braccia e sulle gambe",
+            "specialists": ["dermatologist"]
+        }
+    ],
+    "reasoning": "Il paziente ha 65 anni, è maschio e ha una fibrillazione atriale nota, perciò le palpitazioni irregolari richiedono una valutazione cardiologica urgente. I lividi estesi senza trauma sono un problema cutaneo; la dermatologia è lo specialista più indicato per escludere patologie vascolari o coagulative della pelle. Non emergono altri sintomi che richiedano ulteriori specialisti, quindi si indirizza al cardiologo per le palpitazioni e al dermatologo per i lividi.",
+    "specialists": ["cardiologist", "dermatologist"]
+}
+
+🚦 SUPERVISOR → ['cardiologist', 'dermatologist']
+   Checklist: {'cardiologist': True, 'dermatologist': True}
+🔀 ROUTER: turno di cardiologist (battuta 1/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+   2. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   3. [cardio_fvg_pdta_stemi_2022, p. 54] complicanze meccaniche, gli interventi riperfusivi non modificano la prognosi quoad vitam.
+Arresto cardiaco
+I pazienti con arresto cardio -respiratori...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 27.2s
+{
+  "azione": "proponi",
+  "consulto_utile": "si",
+  "collega_da_consultare": "ematologo",
+  "domanda_per_il_collega": "Quali indagini ematologiche specifiche (es. test della coagulazione, valutazione di trombocitopenia o disordini della coagulazione) consigli per un paziente con fibrillazione atriale e lividi estesi spontanei?",
+  "diagnosi": "Sospetta complicanza emorragica legata a terapia anticoagulante (es. warfarin/NOAC) in paziente con fibrillazione atriale, associata a possibile aritmia atriale attiva (palpitazioni irregolari).",
+  "urgenza": "ARANCIONE",
+  "esami_consigliati": ["ECG a riposo", "Ecocardiografia transtoracica", "Emocromo completo con conta piastrinica", "Tempo di protrombina (PT/INR) o test specifici per NOAC", "Dosaggio dei livelli plasmatici del farmaco anticoagulante se noto"],
+  "dettagli": "Il paziente presenta palpitazioni intense di breve durata, tipiche di una possibile tachiaritmia atriale, e lividi estesi senza trauma, suggerendo una tendenza al sanguinamento. Con la storia di fibrillazione atriale, è probabile che sia in terapia anticoagulante, il che spiega i lividi. È necessario confermare l'aritmia con ECG e valutare la funzione cardiaca con eco, ma anche escludere una coagulopatia o un eccessivo anticoagulante con esami ematologici.",
+  "ipotesi_alternativa_scartata": "Infarto miocardico acuto",
+  "motivo_scarto": "Assenza di dolore toracico, sintomi tipici di ischemia e nessuna evidenza di alterazioni ECG riportate; i lividi non sono correlati a infarto.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Propongo di considerare una complicanza emorragica da anticoagulante in paziente con fibrillazione atriale, con aritmia possibile. Richiedo un consulto ematologico per definire il profilo coagulativo e indicare eventuali aggiustamenti terapeutici."
+}
+
+🔀 cardiologist: consulto_utile=si verso 'ematologo' (non nel roster) -> reindirizzato a general_practitioner
+🔀 cardiologist: consulto_utile=si -> mini-consulto verso general_practitioner, in aggiunta all'azione 'proponi'
+🔀 ROUTER: general_practitioner coinvolto nella discussione su richiesta di un collega
+🔀 ROUTER: turno di general_practitioner (battuta 2/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] (vertigine obiettiva) oppure come se se la persona stesse girando attorno nello spazio (vertigine soggettiva).
+§ Capogiro : Disturbi dell’orientamento...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   3. [generale_triage_piemonte, p. 8] interazione con utente ed accompagnatori. Essa deve prevedere una raccolta dati relativa alle
+condizioni di salute della persona rapida, ma adegu ata ...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 31.2s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Sospetto una complicanza emorragica da anticoagulante in paziente con fibrillazione atriale, con lividi spontanei e palpitazioni recenti.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Concordo con l'ipotesi di sanguinamento da terapia anticoagulante; è necessario valutare lo stato della coagulazione.",
+  "ipotesi_alternativa_scartata": "Trombocitopenia idiopatica primaria",
+  "motivo_scarto": "Mancano segni di malattia ematologica cronica (es. splenomegalia, sintomi sistemici) e la presenza di fibrillazione atriale rende più probabile un effetto dell'anticoagulante.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Per escludere o confermare una complicanza emorragica da anticoagulante consiglierei: emocromo completo con conta piastrinica, PT/INR (se warfarin), aPTT, dosaggio anti‑Xa (se LMWH o DOAC), test di funzionalità piastrinica (aggregazione o PFA‑100) e, se INR elevato, valutare eventuale terapia di reversal. Questi esami permettono di quantificare l'intensità dell'anticoagulazione e di identificare eventuali disordini della coagulazione o trombocitopenia.",
+  "dettagli": "Gli esami sopra elencati forniscono una panoramica completa: emocromo per trombocitopenia, PT/INR per warfarin, aPTT per monitorare eventuali coagulopatie intrinseche, anti‑Xa per DOAC/LMWH, e test di aggregazione per disfunzione piastrinica. In caso di valori alterati, si potrà valutare la sospensione o la riduzione del farmaco anticoagulante e, se necessario, terapia di reversal."
+}
+
+🔀 ROUTER: turno di cardiologist (battuta 3/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_fvg_pdta_stemi_2022, p. 19] - protocolli terapeutici che prevedano un singolo antiaggregante in associazione alla terapia
+anticoagulante (Clopidogrel + Warfarin/nuovi anticoagula...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 44] evidenti. Considera la possibilità di SCA anche nel paziente giovane in particolare in caso di intossicazione da cocaina.
+Sintomatologia in atto:
+§ Di...
+   3. [cardio_fvg_pdta_stemi_2022, p. 18] - un trattamento con ACE-Inibitori (o sartani nei pazienti intolleranti) è indicato in tutti i pazienti con
+particolare riferimento a coloro che prese...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 32.4s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "In un paziente 65 anni con fibrillazione atriale nota, palpitazioni intense di breve durata e lividi estesi spontanei, la prima ipotesi è una complicanza emorragica da terapia anticoagulante, con possibile aritmia atriale attiva.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "I sintomi riferiti (palpitazioni irregolari) suggeriscono una recidiva di fibrillazione atriale o tachiaritmia correlata; i lividi senza trauma sono tipici di eccessiva anticoagulazione. L'assenza di dolore toracico o segni ischemici rende improbabile un infarto. Pertanto concordo con la necessità di valutare lo stato della coagulazione e l'aritmia con ECG, eco e test di laboratorio.",
+  "ipotesi_alternativa_scartata": "Trombocitopenia idiopatica primaria",
+  "motivo_scarto": "Mancano segni di malattia ematologica cronica (splenomegalia, sintomi sistemici) e la presenza di fibrillazione atriale rende più plausibile un effetto dell'anticoagulante.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo l'ipotesi di sanguinamento da anticoagulante associato a possibile aritmia atriale; gli esami proposti sono adeguati per confermare e guidare la terapia."
+}
+
+🔀 ROUTER: turno di dermatologist (battuta 4/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [dermatologia_sidemast_micosi, p. 23] soprattutto da Pseudomonas
+aeruginosa, determina la comparsa di un colorito giallo-brunastro o francamente verdastro
+del letto ungueale.
+• Onicomicosi...
+   3. [dermatologia_aopisa_orticaria_angioedema, p. 2] La presente procedura è stata elaborata a cura di:
+• Dott.ssa Isabella Del Corso , dirigente medico U.O. Immunoallergologia clinica U.
+• Dott.ssa Vale...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 34.0s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "I lividi estesi spontanei in un paziente anziano con fibrillazione atriale suggeriscono una coagulopatia indotta da terapia anticoagulante; le palpitazioni indicano possibile recidiva aritmica. Non vi sono segni cutanei tipici di vasculite o di altre dermatosi emorragiche.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Concordo con l'ipotesi di sanguinamento da anticoagulante associato a possibile aritmia; la presentazione cutanea è coerente con ecchimosi da eccessiva anticoagulazione e non vi sono elementi per altre dermatosi emorragiche.",
+  "ipotesi_alternativa_scartata": "Vasculite cutanea (petechiae/purpura)",
+  "motivo_scarto": "Assenza di lesioni purpuriche, dolore, o segni sistemici tipici di vasculite; i lividi sono più ampi e localizzati su arti, tipici di ecchimosi.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Ritengo che la diagnosi di complicanza emorragica da anticoagulante sia corretta anche dal punto di vista dermatologico; i lividi sono compatibili con ecchimosi da eccessiva anticoagulazione."
+}
+
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di cardiologist (battuta 5/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_fvg_pdta_stemi_2022, p. 58] - Nei pazienti presentatisi con shock, come supporto all a rivascolarizzazione meccanica, ove
+giudicato clinicamente utile
+- Nei pazienti con shock ca...
+   2. [cardio_fvg_pdta_stemi_2022, p. 35] 2017)
+- Far mantenere al Paziente il riposo assoluto per 12 h; evitare
+Valsalva; far mantenere al paziente la postura obbligata a letto
+(mettere in at...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 35.2s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "In un paziente 65 anni con fibrillazione atriale nota, palpitazioni irregolari recenti e ecchimosi estese spontanee, sospetto una recidiva di aritmia atriale associata a eccessiva anticoagulazione, probabilmente da terapia anticoagulante in corso.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Le palpitazioni indicano possibile riattivazione della fibrillazione atriale; i lividi senza trauma sono tipici di sanguinamento da anticoagulante. Non vi sono segni di infarto, vasculite o altre dermatosi. Gli esami proposti (ECG, eco, emocromo, PT/INR, anti‑Xa) sono adeguati per confermare l'aritmia e valutare l'intensità dell'anticoagulazione.",
+  "ipotesi_alternativa_scartata": "Vasculite cutanea (petechiae/purpura)",
+  "motivo_scarto": "Assenza di lesioni purpuriche dolorose, segni sistemici o coinvolgimento di altri organi; i lividi sono ampi e localizzati su arti, tipici di ecchimosi da anticoagulante.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo l'ipotesi di sanguinamento da anticoagulante con possibile recidiva di fibrillazione atriale; gli esami indicati sono appropriati per guidare la gestione."
+}
+
+🔀 ROUTER: giro di verifica, turno di dermatologist (battuta 6/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_emiliaromagna_erisipela_cellulite, p. 1] (es. dermatite da stasi venosa, trombosi venosa
+profonda/tromboflebite, linfedema, dermatite da contatto.
+Terapia sintomatica
+Se interessamento di est...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 34] sempre obiettivabile. Può essere equivalente anginoso. La segnalazione può anche essere riferita solo dopo richiesta
+dell’interrogante con la modalità...
+   3. [dermatologia_emiliaromagna_erisipela_cellulite, p. 1] raccolte profonde (cellulite purulenta). Spesso è
+associata a una interruzione dell'integrità cutanea.
+Criteri clinici
+Si sospetta un’infezione in cas...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 40.7s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Con i soli dati dermatologici (ecchimosi estese su arti senza trauma) la causa più probabile è un'emorragia secondaria a terapia anticoagulante, soprattutto in un paziente con fibrillazione atriale nota.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Le lesioni cutanee sono tipiche ecchimosi da eccessiva anticoagulazione; non vi sono segni di vasculite (petechie dolorose, lesioni purpuriche) né di infezione. L'ipotesi di sanguinamento da anticoagulante è quindi coerente con l'esame cutaneo e con la storia di fibrillazione atriale.",
+  "ipotesi_alternativa_scartata": "Vasculite cutanea (petechiae/purpura)",
+  "motivo_scarto": "Assenza di lesioni purpuriche dolorose, di segni sistemici o di coinvolgimento di altri organi; i lividi sono ampi, non palpabili e localizzati su arti, tipici di ecchimosi da anticoagulante.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo l'ipotesi di gruppo: complicanza emorragica da anticoagulante con possibile riattivazione della fibrillazione atriale; gli esami proposti sono adeguati."
+}
+
+🔀 ROUTER: giro di verifica, turno di general_practitioner (battuta 7/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 48] VIOLENZA DI GENERE: la persona riferisce aggressione verbale, minacce, strattonamenti, vessazioni, situazioni di mobbing
+sul posto di lavoro, al domic...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 39.0s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "In un paziente anziano con fibrillazione atriale nota, palpitazioni irregolari di breve durata e ecchimosi estese spontanee, la prima ipotesi è una complicanza emorragica da terapia anticoagulante associata a possibile recidiva aritmica.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Le ecchimosi senza trauma sono tipiche di eccessiva anticoagulazione; le palpitazioni suggeriscono riattivazione della fibrillazione atriale. Non vi sono segni di infarto, vasculite o altre dermatosi. Gli esami proposti (ECG, eco, emocromo, PT/INR, anti‑Xa) sono adeguati per confermare l'aritmia e valutare l'intensità dell'anticoagulazione.",
+  "ipotesi_alternativa_scartata": "Trombocitopenia idiopatica primaria",
+  "motivo_scarto": "Mancano segni di malattia ematologica cronica (splenomegalia, sintomi sistemici) e la presenza di fibrillazione atriale rende più plausibile un effetto dell'anticoagulante.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo l'ipotesi di gruppo: complicanza emorragica da anticoagulante con possibile riattivazione della fibrillazione atriale; gli esami indicati sono appropriati."
+}
+
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 26.3s
+{
+    "diagnosis": "Complicanza emorragica da terapia anticoagulante in paziente con fibrillazione atriale, associata a possibile riattivazione aritmica.",
+    "urgency_level": "ARANCIONE",
+    "recommended_exams": [
+        "Elettrocardiogramma a riposo (ECG)",
+        "Ecocardiografia transtoracica",
+        "Emocromo completo con conta piastrinica",
+        "Tempo di protrombina (PT/INR) o test specifici per NOAC",
+        "Dosaggio plasmatico del farmaco anticoagulante (es. anti‑Xa se LMWH/DOAC, livello di warfarin se in uso)"
+    ],
+    "to_verify": [
+        "Verificare se il paziente sta assumendo un anticoagulante (tipo, dose, data ultima assunzione) chiedendo al paziente o al caregiver e consultando la cartella clinica.",
+        "Accertare eventuali segni di sanguinamento attivo (es. ematomi in evoluzione, epistassi, ematuria) mediante esame obiettivo.",
+        "Controllare la pressione arteriosa e la frequenza cardiaca per valutare stabilità emodinamica."
+    ],
+    "operational_guidance": "Portare il paziente in area di monitoraggio continuo (monitor cardiaco + saturazione). Eseguire subito ECG a riposo e prelevare sangue per gli esami di laboratorio indicati (emocromo, PT/INR, anti‑Xa o test specifici NOAC). Attivare consulto ematologico e cardiologico entro 30 minuti. Se l'INR o i valori anti‑Xa risultano elevati, predisporre terapia di reversal (vitamina K, protamina, idarucizumab o andexanet alfa a seconda del farmaco). Monitorare segni vitali ogni 15 minuti e rivalutare clinicamente entro 1 ora o prima se peggiorano."
+    ,
+    "recommendations": "Il tavolo specialistico, basandosi sui dati forniti (palpitazioni irregolari di forte intensità da 2 ore e ecchimosi estese comparsi spontaneamente da una settimana) e sulla storia di fibrillazione atriale, ha ritenuto più probabile una complicanza emorragica legata a terapia anticoagulante, con possibile riattivazione dell'aritmia. L'assenza di dolore toracico, sintomi ischemici e di alterazioni ECG note esclude, per ora, l'infarto miocardico acuto. Tutti gli specialisti (Cardiologia, Medicina, Dermatologia) hanno confermato l'ipotesi e l'urgenza ARANCIONE, ritenendo necessario un rapido accertamento della coagulazione e della funzione cardiaca. Non emergono dubbi irrisolti che richiedano un innalzamento del codice di priorità; pertanto il livello ARANCIONE è confermato. Si raccomanda di verificare la terapia anticoagulante in corso, di escludere sanguinamento attivo e di monitorare i parametri vitali, avviando contestualmente gli esami indicati e il consulto ematologico per eventuale reversal terapeutico."
+}
+
+👨‍⚕️ PRIMARIO → diagnosi='Complicanza emorragica da terapia anticoagulante in paziente con fibrillazione atriale, associata a possibile riattivazione aritmica.' | urgenza=ARANCIONE
+
+####################################################################################################
+CASE 4: Palpitations + bruises: 65 years old, known atrial fibrillation   [groq/openai/gpt-oss-120b (ragionamento low)]   time 295 s
+specialists: ['cardiologist', 'dermatologist', 'general_practitioner'] | second opinion: -
+
+  [cardiologist -> everyone] proponi urgency=ARANCIONE
+    Propongo di considerare una complicanza emorragica da anticoagulante in paziente con fibrillazione atriale, con aritmia possibile. Richiedo un consulto ematologico per definire il profilo coagulativo e indicare eventuali aggiustamenti terapeutici. — Ho considerato anche 'Infarto miocardico acuto' ma l'ho esclusa (Assenza di dolore toracico, sintomi tipici di ischemia e nessuna evidenza di alterazioni ECG riportate; i lividi non sono correlati a infarto.).
+
+  [cardiologist -> general_practitioner] consulta
+    Quali indagini ematologiche specifiche (es. test della coagulazione, valutazione di trombocitopenia o disordini della coagulazione) consigli per un paziente con fibrillazione atriale e lividi estesi spontanei?
+
+  [general_practitioner -> cardiologist] conferma urgency=ARANCIONE
+    Concordo con l'ipotesi di sanguinamento da terapia anticoagulante; è necessario valutare lo stato della coagulazione. — Per escludere o confermare una complicanza emorragica da anticoagulante consiglierei: emocromo completo con conta piastrinica, PT/INR (se warfarin), aPTT, dosaggio anti‑Xa (se LMWH o DOAC), test di funzionalità piastrinica (aggregazione o PFA‑100) e, se INR elevato, valutare eventuale terapia di reversal. Questi esami permettono di quantificare l'intensità dell'anticoagulazione e di identificare eventuali disordini della coagulazione o trombocitopenia. — Ho considerato anche 'Trombocitopenia idiopatica primaria' ma l'ho esclusa (Mancano segni di malattia ematologica cronica (es. splenomegalia, sintomi sistemici) e la presenza di fibrillazione atriale rende più probabile un effetto dell'anticoagulante.).
+
+  [cardiologist -> general_practitioner] conferma urgency=ARANCIONE
+    I sintomi riferiti (palpitazioni irregolari) suggeriscono una recidiva di fibrillazione atriale o tachiaritmia correlata; i lividi senza trauma sono tipici di eccessiva anticoagulazione. L'assenza di dolore toracico o segni ischemici rende improbabile un infarto. Pertanto concordo con la necessità di valutare lo stato della coagulazione e l'aritmia con ECG, eco e test di laboratorio. — Confermo l'ipotesi di sanguinamento da anticoagulante associato a possibile aritmia atriale; gli esami proposti sono adeguati per confermare e guidare la terapia. — Ho considerato anche 'Trombocitopenia idiopatica primaria' ma l'ho esclusa (Mancano segni di malattia ematologica cronica (splenomegalia, sintomi sistemici) e la presenza di fibrillazione atriale rende più plausibile un effetto dell'anticoagulante.).
+
+  [dermatologist -> cardiologist] conferma urgency=ARANCIONE
+    Concordo con l'ipotesi di sanguinamento da anticoagulante associato a possibile aritmia; la presentazione cutanea è coerente con ecchimosi da eccessiva anticoagulazione e non vi sono elementi per altre dermatosi emorragiche. — Ritengo che la diagnosi di complicanza emorragica da anticoagulante sia corretta anche dal punto di vista dermatologico; i lividi sono compatibili con ecchimosi da eccessiva anticoagulazione. — Ho considerato anche 'Vasculite cutanea (petechiae/purpura)' ma l'ho esclusa (Assenza di lesioni purpuriche, dolore, o segni sistemici tipici di vasculite; i lividi sono più ampi e localizzati su arti, tipici di ecchimosi.).
+
+  [cardiologist -> dermatologist] conferma [VERIFICATION] urgency=ARANCIONE
+    Le palpitazioni indicano possibile riattivazione della fibrillazione atriale; i lividi senza trauma sono tipici di sanguinamento da anticoagulante. Non vi sono segni di infarto, vasculite o altre dermatosi. Gli esami proposti (ECG, eco, emocromo, PT/INR, anti‑Xa) sono adeguati per confermare l'aritmia e valutare l'intensità dell'anticoagulazione. — Confermo l'ipotesi di sanguinamento da anticoagulante con possibile recidiva di fibrillazione atriale; gli esami indicati sono appropriati per guidare la gestione. — Ho considerato anche 'Vasculite cutanea (petechiae/purpura)' ma l'ho esclusa (Assenza di lesioni purpuriche dolorose, segni sistemici o coinvolgimento di altri organi; i lividi sono ampi e localizzati su arti, tipici di ecchimosi da anticoagulante.).
+
+  [dermatologist -> cardiologist] conferma [VERIFICATION] urgency=ARANCIONE
+    Le lesioni cutanee sono tipiche ecchimosi da eccessiva anticoagulazione; non vi sono segni di vasculite (petechie dolorose, lesioni purpuriche) né di infezione. L'ipotesi di sanguinamento da anticoagulante è quindi coerente con l'esame cutaneo e con la storia di fibrillazione atriale. — Confermo l'ipotesi di gruppo: complicanza emorragica da anticoagulante con possibile riattivazione della fibrillazione atriale; gli esami proposti sono adeguati. — Ho considerato anche 'Vasculite cutanea (petechiae/purpura)' ma l'ho esclusa (Assenza di lesioni purpuriche dolorose, di segni sistemici o di coinvolgimento di altri organi; i lividi sono ampi, non palpabili e localizzati su arti, tipici di ecchimosi da anticoagulante.).
+
+  [general_practitioner -> dermatologist] conferma [VERIFICATION] urgency=ARANCIONE
+    Le ecchimosi senza trauma sono tipiche di eccessiva anticoagulazione; le palpitazioni suggeriscono riattivazione della fibrillazione atriale. Non vi sono segni di infarto, vasculite o altre dermatosi. Gli esami proposti (ECG, eco, emocromo, PT/INR, anti‑Xa) sono adeguati per confermare l'aritmia e valutare l'intensità dell'anticoagulazione. — Confermo l'ipotesi di gruppo: complicanza emorragica da anticoagulante con possibile riattivazione della fibrillazione atriale; gli esami indicati sono appropriati. — Ho considerato anche 'Trombocitopenia idiopatica primaria' ma l'ho esclusa (Mancano segni di malattia ematologica cronica (splenomegalia, sintomi sistemici) e la presenza di fibrillazione atriale rende più plausibile un effetto dell'anticoagulante.).
+
+GROUP HYPOTHESIS: {'diagnosis': 'Sospetta complicanza emorragica legata a terapia anticoagulante (es. warfarin/NOAC) in paziente con fibrillazione atriale, associata a possibile aritmia atriale attiva (palpitazioni irregolari).', 'urgency_level': 'ARANCIONE', 'recommended_exams': ['ECG a riposo', 'Ecocardiografia transtoracica', 'Emocromo completo con conta piastrinica', 'Tempo di protrombina (PT/INR) o test specifici per NOAC', 'Dosaggio dei livelli plasmatici del farmaco anticoagulante se noto'], 'confirmed_by': ['cardiologist', 'dermatologist', 'general_practitioner']}
+passed without confirming: [] | failed turns: {} | turns: 7
+
+REPORT SHOWN IN THE CHAT:
+**Report di sintesi**
+**Codice** ARANCIONE · **Ipotesi diagnostica preliminare** Complicanza emorragica da terapia anticoagulante in paziente con fibrillazione atriale, associata a possibile riattivazione aritmica.
+
+**Specialisti coinvolti** Cardiologia, Dermatologia, Medicina · **Hanno confermato** Cardiologia, Dermatologia, Medicina
+
+**Esami e accertamenti** Elettrocardiogramma a riposo (ECG); Ecocardiografia transtoracica; Emocromo completo con conta piastrinica; Tempo di protrombina (PT/INR) o test specifici per NOAC; Dosaggio plasmatico del farmaco anticoagulante (es. anti‑Xa se LMWH/DOAC, livello di warfarin se in uso)
+
+**Da verificare** Verificare se il paziente sta assumendo un anticoagulante (tipo, dose, data ultima assunzione) chiedendo al paziente o al caregiver e consultando la cartella clinica.; Accertare eventuali segni di sanguinamento attivo (es. ematomi in evoluzione, epistassi, ematuria) mediante esame obiettivo.; Controllare la pressione arteriosa e la frequenza cardiaca per valutare stabilità emodinamica.
+
+**Indicazioni operative** Portare il paziente in area di monitoraggio continuo (monitor cardiaco + saturazione). Eseguire subito ECG a riposo e prelevare sangue per gli esami di laboratorio indicati (emocromo, PT/INR, anti‑Xa o test specifici NOAC). Attivare consulto ematologico e cardiologico entro 30 minuti. Se l'INR o i valori anti‑Xa risultano elevati, predisporre terapia di reversal (vitamina K, protamina, idarucizumab o andexanet alfa a seconda del farmaco). Monitorare segni vitali ogni 15 minuti e rivalutare clinicamente entro 1 ora o prima se peggiorano.
+
+**Motivazione** Il tavolo specialistico, basandosi sui dati forniti (palpitazioni irregolari di forte intensità da 2 ore e ecchimosi estese comparsi spontaneamente da una settimana) e sulla storia di fibrillazione atriale, ha ritenuto più probabile una complicanza emorragica legata a terapia anticoagulante, con possibile riattivazione dell'aritmia. L'assenza di dolore toracico, sintomi ischemici e di alterazioni ECG note esclude, per ora, l'infarto miocardico acuto. Tutti gli specialisti (Cardiologia, Medicina, Dermatologia) hanno confermato l'ipotesi e l'urgenza ARANCIONE, ritenendo necessario un rapido accertamento della coagulazione e della funzione cardiaca. Non emergono dubbi irrisolti che richiedano un innalzamento del codice di priorità; pertanto il livello ARANCIONE è confermato. Si raccomanda di verificare la terapia anticoagulante in corso, di escludere sanguinamento attivo e di monitorare i parametri vitali, avviando contestualmente gli esami indicati e il consulto ematologico per eventuale reversal terapeutico.

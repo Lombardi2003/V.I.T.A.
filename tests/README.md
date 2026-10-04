@@ -1,40 +1,58 @@
-# V.I.T.A. tests
+<div align="center">
 
-Three folders, three different kinds of check. Every command runs from the
-project folder.
+# 🧪 V.I.T.A. — Tests
+
+</div>
+
+<div align="justify">
+
+Three folders, three different kinds of check. Every command runs from the project folder.
+
+</div>
 
 | Folder | What it checks | Model | API quota | Outcome |
 |---|---|---|---|---|
 | `unit/` | that **every node works** (flow, confirmations, fallbacks, formats, limits) | fake | no | automatic: pass / fail |
-| `benchmarks/` | the **retrieval quality** of the guidelines (RAG) | none | no | numbers to compare |
+| `benchmarks/` | the **retrieval quality** of the guidelines | none | no | numbers to compare |
 | `live/` | the table's **clinical reasoning** on real cases | real | **yes** | to be read |
 
-## One command for everything
+---
+
+## ▶️ One command for everything
 
 ```bash
 python -m tests.run all
 ```
 
-Runs the unit tests and then the benchmark, one after the other, and ends
-with a summary. Other forms:
+<div align="justify">
+
+Runs the unit tests and then the benchmark, one after the other, and ends with a summary. Other forms:
+
+</div>
 
 | Command | Runs |
 |---|---|
-| `python -m tests.run` or `python -m tests.run unit` | all unit tests (~20 s) |
+| `python -m tests.run` or `python -m tests.run unit` | all unit tests (about a minute) |
 | `python -m tests.run unit test_intake test_router` | only those unit test files |
-| `python -m tests.run benchmarks` | the RAG benchmark |
+| `python -m tests.run benchmarks` | the retrieval benchmark |
 | `python -m tests.run live` | every live script (**uses quota**) |
 | `python -m tests.run live correction` | only that live script |
 
+<div align="justify">
+
 `live` is never part of `all`: it has to be asked for explicitly.
 
-## `unit/`: run after every code change
+</div>
 
-Real graph, fake model: each test decides what the model "answers" and checks
-what the system does. Every test has a one-line description starting with
-`TEST`, shown next to its name when it runs. Shared tools (fake model, fake
-chat, temporary database, conversation on the real graph) are in
-`unit/helpers.py`.
+---
+
+## ✅ `unit/`: run after every code change
+
+<div align="justify">
+
+Real graph, fake model: each test decides what the model "answers" and checks what the system does. Every test has a one-line description starting with `TEST`, shown next to its name when it runs. Shared tools (fake model, fake chat, temporary database, conversation on the real graph) are in `unit/helpers.py`. The fake model is plugged in at a single point every agent goes through, so no test can reach the real model.
+
+</div>
 
 | File | Covers |
 |---|---|
@@ -53,17 +71,25 @@ chat, temporary database, conversation on the real graph) are in
 | `test_end_to_end.py` | whole conversations from the fiscal code to the report |
 | `test_resilience.py` | random malformed model answers, same input same result |
 
-They say nothing about clinical quality (the model is fake): that is what the
-live scripts are for.
+<div align="justify">
 
-## `benchmarks/`: run when the documents or the RAG change
+They say nothing about clinical quality (the model is fake): that is what the live scripts are for.
 
-`rag_retrieval.py`: for a fixed set of clinical cases it checks whether the
-retrieved chunks include the right specialty (hit@1, hit@3), the cases with
-mixed symptoms and the noise in the index. It works on a temporary copy of the
-index.
+</div>
 
-## `live/`: real model (uses quota)
+---
+
+## 📊 `benchmarks/`: run when the documents or the retrieval change
+
+<div align="justify">
+
+`rag_retrieval.py`: for a fixed set of clinical cases it checks whether the retrieved chunks include the right specialty (hit@1, hit@3), the cases with mixed symptoms and the noise in the index. Chunks that are only lists of authors never count as a hit. It works on a temporary copy of the index.
+
+</div>
+
+---
+
+## 🔴 `live/`: real model (uses quota)
 
 | Script | What it tries |
 |---|---|
@@ -73,5 +99,8 @@ index.
 | `correction.py` | correction of a wrong hypothesis injected on purpose |
 | `supervisor_selection.py` | choice of specialists with symptoms from different fields |
 
-The output has to be read: there is no automatic outcome, the content is
-written by the model. They use the model chosen in `src/llm/factory.py`.
+<div align="justify">
+
+The output has to be read: there is no automatic outcome, the content is written by the model. They use the model chosen in `src/llm/factory.py`. The logs of the runs made so far are in [docs/results/](../docs/results/RESULTS.md).
+
+</div>

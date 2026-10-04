@@ -1,0 +1,229 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "dolore al ginocchio",
+            "specialists": ["orthopedist", "dermatologist"]
+        }
+    ],
+    "reasoning": "Il paziente di 14 anni presenta dolore al ginocchio insopportabile dopo una caduta in bici, con caratteristiche di lesione sbucciata. Il dolore articolare e il trauma suggeriscono un consulto ortopedico per valutare possibili contusioni, lesioni legamentose o fratture. Inoltre la foto mostra un\'abrasione cutanea superficiale con erosioni e croste, perciò è opportuno coinvolgere anche un dermatologo per la gestione della ferita cutanea e prevenire infezioni. Non ci sono allergie o patologie pregresse che richiedano ulteriori specialisti.",
+    "specialists": ["orthopedist", "dermatologist"]
+}
+
+🚦 SUPERVISOR: errore lettura JSON, fallback su medico generale
+   Checklist: {'general_practitioner': True}
+🔀 ROUTER: turno di general_practitioner (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights:  99%|█████████▉| 197/199 [00:00<00:00, 1917.65it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 1937.12it/s]
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 53] 3.2.5 Problema Specifico - Odontoiatrico
+
+2 DISLOCAZIONE MANDIBOLA
+5 ODONTALGIA
+5 FRATTURA DI DENTE O DI PROTESI
+5 DOLORE / INFIAMMAZIONE DI GENGIVE E...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+{
+  "azione": "proponi",
+  "consulto_utile": "si",
+  "collega_da_consultare": "ortopedico",
+  "domanda_per_il_collega": "In presenza di un'ablazione cutanea superficiale al ginocchio dopo caduta, quali segni clinici indicano la necessità urgente di radiografia per escludere frattura di patella o tibia?",
+  "diagnosi": "Frattura acuta del ginocchio (possibile frattura della patella o della tibia prossimale) con abrasione cutanea associata",
+  "urgenza": "ARANCIONE",
+  "esami_consigliati": ["Radiografia AP e laterale del ginocchio", "Ecografia muscoloscheletrica se radiografia non conclusiva"],
+  "dettagli": "Il dolore è insopportabile, iniziato subito dopo caduta, con lesione cutanea abrasiva. La combinazione di trauma meccanico, dolore intenso e possibile edema suggerisce una frattura ossea. L'assenza di segni di infezione non esclude la frattura. È necessario escluderla rapidamente per gestire immobilizzazione e analgesia.",
+  "ipotesi_alternativa_scartata": "Contusione semplice del ginocchio senza frattura",
+  "motivo_scarto": "Il dolore è descritto come insopportabile e la caduta è stata significativa; una semplice contusione di solito produce dolore moderato e non richiede esami radiografici urgenti.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Propongo di considerare una frattura del ginocchio, dato il trauma, il dolore intenso e l'ablazione cutanea; suggerisco radiografia urgente e consulto ortopedico per conferma e gestione."
+}
+
+🔀 general_practitioner: consulto_utile=si -> mini-consulto verso orthopedist, in aggiunta all'azione 'proponi'
+🔀 ROUTER: orthopedist coinvolto nella discussione su richiesta di un collega
+🔀 ROUTER: turno di orthopedist (battuta 2/12)
+📚 RAG [orthopedist]: 3 pezzi recuperati
+   1. [ortopedia_fvg_pdta_femore_over65, p. 17] riguardo a:
+ valutazione presenza e intensità del dolore
+ documentazione pregressi ricoveri
+ farmaci assunti
+ allergie
+ patologie pregresse
+ pre...
+   2. [ortopedia_fvg_pdta_femore_over65, p. 7] - sottotrocanteriche
+Nelle fratture extracapsulari l’intervento chirurgico prevede riduzione e osteosintesi della frattura. Il tipo di
+osteosintesi vi...
+   3. [generale_triage_piemonte, p. 10] • Trauma minore (senza rischio di compromissione dello stato generale, riferito ad un
+segmento corporeo isolato –ustione-)
+• Problema psicosociale
+• F...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 5.3s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Frattura acuta del ginocchio (patella o tibia prossimale) con abrasione cutanea associata",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Il trauma meccanico, dolore insopportabile, edema locale e incapacità di caricare il peso sono segni tipici di frattura; l'ablazione cutanea non esclude lesione ossea.",
+  "ipotesi_alternativa_scartata": "Contusione semplice del ginocchio",
+  "motivo_scarto": "Dolore insopportabile e impossibilità di appoggiare il peso sono discordanti con una semplice contusione, che di solito causa dolore moderato e permette il carico parziale.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Segni clinici che richiedono radiografia urgente: dolore intenso e persistente, edema evidente, incapacità di appoggiare il peso, deformità o instabilità palpabile, limitazione attiva del movimento, e presenza di ematoma o abrasione che mascherano il contorno osseo. Questi elementi suggeriscono frattura di patella o tibia prossimale e giustificano l'esame radiografico immediato."
+}
+
+🔀 ROUTER: general_practitioner chiamato in causa dopo aver gia' confermato, una battuta di reazione
+🔀 ROUTER: turno di general_practitioner (battuta 3/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 27] DEFORMITÀ OSSA LUNGHE E GROSSE ARTICOLAZIONI: lesione a carico di omero e femore con deformazione evidente.
+Sospetta lussazione a carico di spalla, go...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 22] oggetti acuminati, il vasto distacco della cute e sottocute dalla teca cranica.
+SEGNI DI FRATTURA CRANIO: ecchimosi periorbitaria, retromastoidea (seg...
+   3. [generale_triage_piemonte, p. 10] • Trauma minore (senza rischio di compromissione dello stato generale, riferito ad un
+segmento corporeo isolato –ustione-)
+• Problema psicosociale
+• F...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 31.0s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 2.3s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Con i dati disponibili (dolore insopportabile, incapacità di caricare peso, edema locale e abrasione cutanea dopo caduta), sospetto una frattura acuta del ginocchio (patella o tibia prossimale) e ritengo urgente una radiografia.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "I segni clinici indicati (dolore intenso, edema, impossibilità di appoggiare il peso, ematoma/abrasione) sono tipici di frattura; la presenza di lesione cutanea non esclude danno osseo. L'urgenza arancione è adeguata per escludere frattura e avviare immobilizzazione/analgesia.",
+  "ipotesi_alternativa_scartata": "Contusione semplice del ginocchio",
+  "motivo_scarto": "Il dolore è descritto come insopportabile e il paziente non riesce a caricare il peso, elementi incompatibili con una semplice contusione che di solito permette carico parziale.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di possibile frattura del ginocchio e l'urgenza arancione, come già proposto dal gruppo."
+}
+
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di general_practitioner (battuta 4/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 53] 3.2.5 Problema Specifico - Odontoiatrico
+
+2 DISLOCAZIONE MANDIBOLA
+5 ODONTALGIA
+5 FRATTURA DI DENTE O DI PROTESI
+5 DOLORE / INFIAMMAZIONE DI GENGIVE E...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 33.1s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "In un adolescente con trauma diretto al ginocchio, dolore insopportabile, incapacità di caricare peso e abrasione cutanea, la prima ipotesi è una frattura acuta (patella o tibia prossimale) con lesione cutanea associata.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Il quadro clinico (dolore intenso, edema, impossibilità di appoggiare il peso) è tipico di frattura; l'assenza di segni di infezione non esclude danno osseo. L'urgenza arancione è adeguata per escludere frattura e avviare immobilizzazione/analgesia.",
+  "ipotesi_alternativa_scartata": "Contusione semplice del ginocchio senza frattura",
+  "motivo_scarto": "Il dolore insopportabile e l'incapacità di caricare il peso sono incompatibili con una semplice contusione, che di solito permette carico parziale.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di possibile frattura del ginocchio con urgenza arancione, come già proposto dal gruppo."
+}
+
+🔀 ROUTER: giro di verifica, turno di orthopedist (battuta 5/12)
+📚 RAG [orthopedist]: 3 pezzi recuperati
+   1. [ortopedia_fvg_pdta_femore_over65, p. 17] riguardo a:
+ valutazione presenza e intensità del dolore
+ documentazione pregressi ricoveri
+ farmaci assunti
+ allergie
+ patologie pregresse
+ pre...
+   2. [ortopedia_fvg_pdta_femore_over65, p. 17]  Se diagnosi di frattura chiudere il caso con ricovero presso
+degenza chirurgica ortopedica
+ Valutare se richiedere valutazione anestesiologica prim...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 27] DEFORMITÀ OSSA LUNGHE E GROSSE ARTICOLAZIONI: lesione a carico di omero e femore con deformazione evidente.
+Sospetta lussazione a carico di spalla, go...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 34.9s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Con i soli dati (dolore insopportabile, incapacità di caricare peso, edema locale, abrasione cutanea dopo caduta) sospetto una frattura acuta del ginocchio (patella o tibia prossimale) e richiedo radiografia urgente.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Il dolore intenso, l'impossibilità di appoggiare il peso e l'edema sono segni tipici di frattura; l'ablazione cutanea non esclude lesione ossea. L'urgenza arancione è adeguata per escludere frattura e avviare immobilizzazione/analgesia.",
+  "ipotesi_alternativa_scartata": "Contusione semplice del ginocchio senza frattura",
+  "motivo_scarto": "Il dolore insopportabile e l'incapacità di caricare il peso sono incompatibili con una semplice contusione, che di solito permette carico parziale e dolore moderato.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di possibile frattura del ginocchio con urgenza arancione, come già proposto dal gruppo."
+}
+
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 20.4s
+{
+    "diagnosis": "Possibile frattura acuta del ginocchio (patella o tibia prossimale) associata a abrasione cutanea",
+    "urgency_level": "ARANCIONE",
+    "recommended_exams": [
+        "Radiografia AP e laterale del ginocchio",
+        "Ecografia muscoloscheletrica se la radiografia non è conclusiva"
+    ],
+    "to_verify": [
+        "Verificare la capacità del paziente di appoggiare il peso sul ginocchio (chiedere se riesce a stare in piedi o a camminare anche con assistenza)",
+        "Valutare la presenza di edema, deformità o instabilità palpabile (esame fisico mirato)",
+        "Controllare eventuali segni di ematoma profondo o lesioni vascolari nascoste (esame visivo e palpazione)",
+        "Accertare eventuali farmaci in corso o allergie non riportate (interrogare il paziente/parenti)"
+    ],
+    "operational_guidance": "Portare il paziente in area ortopedica del pronto soccorso. Eseguire immediatamente la radiografia AP e laterale del ginocchio. Nel frattempo avviare analgesia adeguata per età (paracetamolo 15 mg/kg VO, valutare aggiunta di NSAID se non controindicato). Immobilizzare il ginocchio con stecca o fasciatura leggera, mantenendo il segmento in posizione di riposo. Richiedere consulto ortopedico urgente (entro 30 min). Se la radiografia è inconcludente ma il sospetto clinico persiste, programmare ecografia muscoloscheletrica entro 1 h. Monitorare parametri vitali e dolore ogni 15 min finché non si ottengono i risultati radiologici.",
+    "recommendations": "Il tavolo specialistico, basandosi sul trauma meccanico (caduta in bici), sul dolore descritto come insopportabile e sull'incapacità di caricare il peso, ha ritenuto più probabile una frattura del ginocchio rispetto a una semplice contusione. L'assenza di segni di infezione non esclude la lesione ossea. Tutti gli specialisti (Medicina e Ortopedia) hanno confermato l'ipotesi e l'urgenza ARANCIONE, ritenendo necessario escludere rapidamente la frattura per avviare immobilizzazione e analgesia. Non emergono dati che giustifichino un innalzamento a codice ROSSO; pertanto il livello di urgenza rimane ARANCIONE. Rimangono da verificare i seguenti punti clinici: capacità di carico, presenza di edema/deformità palpabile e eventuali farmaci/allergie non dichiarati, per affinare la gestione e decidere eventuali ulteriori esami o interventi."
+}
+
+👨‍⚕️ PRIMARIO → diagnosi='Possibile frattura acuta del ginocchio (patella o tibia prossimale) associata a abrasione cutanea' | urgenza=ARANCIONE
+
+####################################################################################################
+CASO 1: Ginocchio: 14 anni, caduta in bici, abrasione, dolore insopportabile   [groq/openai/gpt-oss-120b (ragionamento low)]   tempo 148 s
+specialisti: ['general_practitioner', 'orthopedist']
+
+  [general_practitioner -> tutti] proponi urgenza=ARANCIONE
+    Propongo di considerare una frattura del ginocchio, dato il trauma, il dolore intenso e l'ablazione cutanea; suggerisco radiografia urgente e consulto ortopedico per conferma e gestione. — Ho considerato anche 'Contusione semplice del ginocchio senza frattura' ma l'ho esclusa (Il dolore è descritto come insopportabile e la caduta è stata significativa; una semplice contusione di solito produce dolore moderato e non richiede esami radiografici urgenti.).
+
+  [general_practitioner -> orthopedist] consulta
+    In presenza di un'ablazione cutanea superficiale al ginocchio dopo caduta, quali segni clinici indicano la necessità urgente di radiografia per escludere frattura di patella o tibia?
+
+  [orthopedist -> general_practitioner] conferma urgenza=ARANCIONE
+    Il trauma meccanico, dolore insopportabile, edema locale e incapacità di caricare il peso sono segni tipici di frattura; l'ablazione cutanea non esclude lesione ossea. — Segni clinici che richiedono radiografia urgente: dolore intenso e persistente, edema evidente, incapacità di appoggiare il peso, deformità o instabilità palpabile, limitazione attiva del movimento, e presenza di ematoma o abrasione che mascherano il contorno osseo. Questi elementi suggeriscono frattura di patella o tibia prossimale e giustificano l'esame radiografico immediato. — Ho considerato anche 'Contusione semplice del ginocchio' ma l'ho esclusa (Dolore insopportabile e impossibilità di appoggiare il peso sono discordanti con una semplice contusione, che di solito causa dolore moderato e permette il carico parziale.).
+
+  [general_practitioner -> orthopedist] conferma urgenza=ARANCIONE
+    I segni clinici indicati (dolore intenso, edema, impossibilità di appoggiare il peso, ematoma/abrasione) sono tipici di frattura; la presenza di lesione cutanea non esclude danno osseo. L'urgenza arancione è adeguata per escludere frattura e avviare immobilizzazione/analgesia. — Confermo la diagnosi di possibile frattura del ginocchio e l'urgenza arancione, come già proposto dal gruppo. — Ho considerato anche 'Contusione semplice del ginocchio' ma l'ho esclusa (Il dolore è descritto come insopportabile e il paziente non riesce a caricare il peso, elementi incompatibili con una semplice contusione che di solito permette carico parziale.).
+
+  [general_practitioner -> orthopedist] conferma [VERIFICA] urgenza=ARANCIONE
+    Il quadro clinico (dolore intenso, edema, impossibilità di appoggiare il peso) è tipico di frattura; l'assenza di segni di infezione non esclude danno osseo. L'urgenza arancione è adeguata per escludere frattura e avviare immobilizzazione/analgesia. — Confermo la diagnosi di possibile frattura del ginocchio con urgenza arancione, come già proposto dal gruppo. — Ho considerato anche 'Contusione semplice del ginocchio senza frattura' ma l'ho esclusa (Il dolore insopportabile e l'incapacità di caricare il peso sono incompatibili con una semplice contusione, che di solito permette carico parziale.).
+
+  [orthopedist -> general_practitioner] conferma [VERIFICA] urgenza=ARANCIONE
+    Il dolore intenso, l'impossibilità di appoggiare il peso e l'edema sono segni tipici di frattura; l'ablazione cutanea non esclude lesione ossea. L'urgenza arancione è adeguata per escludere frattura e avviare immobilizzazione/analgesia. — Confermo la diagnosi di possibile frattura del ginocchio con urgenza arancione, come già proposto dal gruppo. — Ho considerato anche 'Contusione semplice del ginocchio senza frattura' ma l'ho esclusa (Il dolore insopportabile e l'incapacità di caricare il peso sono incompatibili con una semplice contusione, che di solito permette carico parziale e dolore moderato.).
+
+IPOTESI DI GRUPPO: {'diagnosis': 'Frattura acuta del ginocchio (possibile frattura della patella o della tibia prossimale) con abrasione cutanea associata', 'urgency_level': 'ARANCIONE', 'recommended_exams': ['Radiografia AP e laterale del ginocchio', 'Ecografia muscoloscheletrica se radiografia non conclusiva'], 'confirmed_by': ['general_practitioner', 'orthopedist']}
+passati senza confermare: [] | turni falliti: {} | battute: 5
+DIAGNOSI FINALE: {'diagnosis': 'Possibile frattura acuta del ginocchio (patella o tibia prossimale) associata a abrasione cutanea', 'urgency_level': 'ARANCIONE', 'specialists_involved': ['general_practitioner', 'orthopedist'], 'recommended_exams': ['Radiografia AP e laterale del ginocchio', 'Ecografia muscoloscheletrica se la radiografia non è conclusiva'], 'to_verify': ['Verificare la capacità del paziente di appoggiare il peso sul ginocchio (chiedere se riesce a stare in piedi o a camminare anche con assistenza)', 'Valutare la presenza di edema, deformità o instabilità palpabile (esame fisico mirato)', 'Controllare eventuali segni di ematoma profondo o lesioni vascolari nascoste (esame visivo e palpazione)', 'Accertare eventuali farmaci in corso o allergie non riportate (interrogare il paziente/parenti)'], 'operational_guidance': 'Portare il paziente in area ortopedica del pronto soccorso. Eseguire immediatamente la radiografia AP e laterale del ginocchio. Nel frattempo avviare analgesia adeguata per età (paracetamolo 15\u202fmg/kg VO, valutare aggiunta di NSAID se non controindicato). Immobilizzare il ginocchio con stecca o fasciatura leggera, mantenendo il segmento in posizione di riposo. Richiedere consulto ortopedico urgente (entro 30\u202fmin). Se la radiografia è inconcludente ma il sospetto clinico persiste, programmare ecografia muscoloscheletrica entro 1\u202fh. Monitorare parametri vitali e dolore ogni 15\u202fmin finché non si ottengono i risultati radiologici.', 'recommendations': "Il tavolo specialistico, basandosi sul trauma meccanico (caduta in bici), sul dolore descritto come insopportabile e sull'incapacità di caricare il peso, ha ritenuto più probabile una frattura del ginocchio rispetto a una semplice contusione. L'assenza di segni di infezione non esclude la lesione ossea. Tutti gli specialisti (Medicina e Ortopedia) hanno confermato l'ipotesi e l'urgenza ARANCIONE, ritenendo necessario escludere rapidamente la frattura per avviare immobilizzazione e analgesia. Non emergono dati che giustifichino un innalzamento a codice ROSSO; pertanto il livello di urgenza rimane ARANCIONE. Rimangono da verificare i seguenti punti clinici: capacità di carico, presenza di edema/deformità palpabile e eventuali farmaci/allergie non dichiarati, per affinare la gestione e decidere eventuali ulteriori esami o interventi."}

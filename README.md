@@ -136,7 +136,7 @@ src/
 scripts/setup_env.py    creates or completes .env
 tests/                  unit tests, benchmark, live scripts
 data/                   guidelines (PDF), search index, patient database (not versioned)
-docs/                   architecture and design decisions
+docs/                   architecture, design decisions, results of the real runs
 public/, .chainlit/     interface: avatars, style, configuration
 chainlit.md             the "Leggimi" page shown inside the app
 ```
@@ -149,5 +149,6 @@ chainlit.md             the "Leggimi" page shown inside the app
 |---|---|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the system is built: flow, state, and what each file does. |
 | [docs/DESIGN.md](docs/DESIGN.md) | Why it is built that way: decisions, observations, discarded alternatives, known limits. |
+| [docs/results/RESULTS.md](docs/results/RESULTS.md) | What the runs with the real models showed, with their logs. |
 | [tests/README.md](tests/README.md) | How to run the tests and what each kind checks. |
 | [data/README.md](data/README.md) | How the guidelines are organised and how to rebuild the index. |

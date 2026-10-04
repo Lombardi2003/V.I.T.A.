@@ -1,0 +1,131 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "dolore addominale tipo crampi",
+            "specialists": ["gastroenterologist"]
+        },
+        {
+            "symptom": "eruzione cutanea con macchie rosse pruriginose",
+            "specialists": ["dermatologist"]
+        }
+    ],
+    "reasoning": "Il dolore addominale a tipo crampi, forte e di durata di 6 ore, è tipico di patologie gastrointestinali, quindi è opportuno un consulto con il gastroenterologist. L'eruzione cutanea con macchie rosse pruriginose è un problema cutaneo visibile, perciò è indicato il dermatologist. Non vi sono allergie, patologie pregresse o altri fattori che richiedano ulteriori specialisti.",
+    "specialists": ["gastroenterologist", "dermatologist"]
+}
+
+🚦 SUPERVISOR → ['gastroenterologist', 'dermatologist']
+   Checklist: {'gastroenterologist': True, 'dermatologist': True}
+🔀 ROUTER: turno di gastroenterologist (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights:  81%|████████  | 161/199 [00:00<00:00, 1599.19it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 1846.65it/s]
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+   3. [gastro_aopisa_dolore_addominale, p. 4] Cause Extra-Addominali
+Patologie Toraciche (IMA, Polmoniti, Pleuriti, TEP, PNX, Patologie Esofagee)
+µ Compressione o Flogosi di radici o nervi spinali...
+{
+  "azione": "proponi",
+  "consulto_utile": "si",
+  "collega_da_consultare": "dermatologist",
+  "domanda_per_il_collega": "Puoi valutare se l'eruzione cutanea è compatibile con una vasculite (petechie/palpabili) o con un'urticaria associata a reazione anafilattica?",
+  "diagnosi": "IgA vasculite (vasculite di Henoch‑Schönlein) con coinvolgimento gastrointestinale",
+  "urgenza": "ARANCIONE",
+  "esami_consigliati": ["emocromo con formula", "VSG/CRP", "esami di funzionalità renale", "esame delle urine per ematuria/proteine", "ecografia addominale", "biopsia cutanea se le lesioni sono palpabili"],
+  "dettagli": "Il dolore addominale crampiforme forte associato a rash cutaneo pruriginoso suggerisce una patologia vascolare sistemica. L'IgA vasculite può presentarsi in adulti con dolore addominale dovuto a edema intestinale e rash purpurico/urticariale. L'assenza di allergie note non esclude una reazione immunitaria. È necessario escludere altre cause infiammatorie o infettive.",
+  "ipotesi_alternativa_scartata": "Reazione anafilattica con sintomi gastrointestinali",
+  "motivo_scarto": "Mancano segni di compromissione respiratoria, ipotensione o edema angioedema; il rash è descritto come macchie rosse pruriginose, non tipico dell'orticaria diffusa.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Propongo IgA vasculite come ipotesi principale, con consulto dermatologico per caratterizzare l'eruzione."
+}
+
+🔀 gastroenterologist: consulto_utile=si -> mini-consulto verso dermatologist, in aggiunta all'azione 'proponi'
+🔀 ROUTER: turno di dermatologist (battuta 2/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 15] distanza dal bordo. Per le diagnosi differenziali confrontare con tinea cruris.
+A partire da una forma intertriginosa, le lesioni vescico-pustolose po...
+   2. [dermatologia_aopisa_orticaria_angioedema, p. 4] 1. PREMESSA
+Il termine orticaria comprende un gruppo eterogeneo di malattie tutte caratterizzate da una tipica lesione cutanea: il
+pomfo con o senza a...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 19] - parestesie/insensibilità: alterazioni della sensibilità tattile, percettiva, dolorifica che assumono significato soprattutto
+se distrettuali;
+- trem...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 21.0s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "L'eruzione descritta come macchie rosse pruriginose, di durata di 3 ore, è più tipica di petecchie/purpura palpabili tipiche di una vasculite cutanea piuttosto che di pomfi urticari, che solitamente compaiono e scompaiono entro 24 h senza lasciare segni residui.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Le lesioni vascolari sono spesso dolorose o pruriginose, di colore rosso-violaceo e persistono più a lungo rispetto all'orticaria; l'assenza di edema centrale rapido e la durata >24 h suggeriscono vasculite. L'urticaria acuta sarebbe caratterizzata da pomfi transitori, non da macchie fisse.",
+  "ipotesi_alternativa_scartata": "Urticaria associata a reazione anafilattica",
+  "motivo_scarto": "Mancanza di edema rapido, assenza di angioedema, durata prolungata delle lesioni e tipologia macchie rosse più coerenti con vasculite.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Ritengo che l'eruzione sia compatibile con vasculite (petechie/purpura palpabili) e non con urticaria anafilattica."
+}
+
+🔀 ROUTER: gastroenterologist chiamato in causa dopo aver gia' confermato, una battuta di reazione
+🔀 ROUTER: turno di gastroenterologist (battuta 3/12)
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   2. [gastro_fvg_pdta_emorragie_digestive, p. 12] Applicando questi dati alla Regione FVG (1.250.000 abitanti) l’incidenza attesa dovrebbe essere poco
+meno di 800 ricoveri/anno per emorragia digestiva...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 56] ISCHEMIA ACUTA DI UN ARTO: dolore, pallore, cute fredda, spesso impotenza funzionale insorti acutamente nel corso di
+alcune ore, sono segni di un prob...
+⚠️ gastroenterologist: errore API (Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 198054, Requested 4534. Please try again in 18m38.016s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}), nessun aggiornamento - turno fallito
+🔀 ROUTER: gastroenterologist chiamato in causa dopo aver gia' confermato, una battuta di reazione
+🔀 ROUTER: turno di gastroenterologist (battuta 4/12)
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   2. [gastro_fvg_pdta_emorragie_digestive, p. 12] Applicando questi dati alla Regione FVG (1.250.000 abitanti) l’incidenza attesa dovrebbe essere poco
+meno di 800 ricoveri/anno per emorragia digestiva...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 56] ISCHEMIA ACUTA DI UN ARTO: dolore, pallore, cute fredda, spesso impotenza funzionale insorti acutamente nel corso di
+alcune ore, sono segni di un prob...
+⚠️ gastroenterologist: errore API (Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 198053, Requested 4534. Please try again in 18m37.584s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}), nessun aggiornamento - turno fallito
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di dermatologist (battuta 5/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 15] distanza dal bordo. Per le diagnosi differenziali confrontare con tinea cruris.
+A partire da una forma intertriginosa, le lesioni vescico-pustolose po...
+   2. [dermatologia_aopisa_orticaria_angioedema, p. 4] 1. PREMESSA
+Il termine orticaria comprende un gruppo eterogeneo di malattie tutte caratterizzate da una tipica lesione cutanea: il
+pomfo con o senza a...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 19] - parestesie/insensibilità: alterazioni della sensibilità tattile, percettiva, dolorifica che assumono significato soprattutto
+se distrettuali;
+- trem...
+⚠️ dermatologist: errore API (Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 198052, Requested 4489. Please try again in 18m17.712s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}), nessun aggiornamento - turno fallito
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+⚠️ PRIMARIO: chiamata al modello fallita (Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_REDACTED` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 198052, Requested 2283. Please try again in 2m24.72s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}})
+⚠️ PRIMARIO: sintesi non disponibile, si riporta l'ipotesi di gruppo (nessuna risposta dal modello)
+👨‍⚕️ PRIMARIO → diagnosi='IgA vasculite (vasculite di Henoch‑Schönlein) con coinvolgimento gastrointestinale' | urgenza=ARANCIONE
+
+####################################################################################################
+CASO 3: Addome + eruzione: 34 anni   [groq/openai/gpt-oss-120b (ragionamento low)]   tempo 32 s
+specialisti: ['gastroenterologist', 'dermatologist']
+
+  [gastroenterologist -> tutti] proponi urgenza=ARANCIONE
+    Propongo IgA vasculite come ipotesi principale, con consulto dermatologico per caratterizzare l'eruzione. — Ho considerato anche 'Reazione anafilattica con sintomi gastrointestinali' ma l'ho esclusa (Mancano segni di compromissione respiratoria, ipotensione o edema angioedema; il rash è descritto come macchie rosse pruriginose, non tipico dell'orticaria diffusa.).
+
+  [gastroenterologist -> dermatologist] consulta
+    Puoi valutare se l'eruzione cutanea è compatibile con una vasculite (petechie/palpabili) o con un'urticaria associata a reazione anafilattica?
+
+  [dermatologist -> gastroenterologist] conferma urgenza=ARANCIONE
+    Le lesioni vascolari sono spesso dolorose o pruriginose, di colore rosso-violaceo e persistono più a lungo rispetto all'orticaria; l'assenza di edema centrale rapido e la durata >24 h suggeriscono vasculite. L'urticaria acuta sarebbe caratterizzata da pomfi transitori, non da macchie fisse. — Ritengo che l'eruzione sia compatibile con vasculite (petechie/purpura palpabili) e non con urticaria anafilattica. — Ho considerato anche 'Urticaria associata a reazione anafilattica' ma l'ho esclusa (Mancanza di edema rapido, assenza di angioedema, durata prolungata delle lesioni e tipologia macchie rosse più coerenti con vasculite.).
+
+IPOTESI DI GRUPPO: {'diagnosis': 'IgA vasculite (vasculite di Henoch‑Schönlein) con coinvolgimento gastrointestinale', 'urgency_level': 'ARANCIONE', 'recommended_exams': ['emocromo con formula', 'VSG/CRP', 'esami di funzionalità renale', 'esame delle urine per ematuria/proteine', 'ecografia addominale', 'biopsia cutanea se le lesioni sono palpabili'], 'confirmed_by': ['dermatologist', 'gastroenterologist']}
+passati senza confermare: [] | turni falliti: {'gastroenterologist': 2, 'dermatologist': 1} | battute: 5
+DIAGNOSI FINALE: {'diagnosis': 'IgA vasculite (vasculite di Henoch‑Schönlein) con coinvolgimento gastrointestinale', 'urgency_level': 'ARANCIONE', 'specialists_involved': ['gastroenterologist', 'dermatologist'], 'recommended_exams': ['emocromo con formula', 'VSG/CRP', 'esami di funzionalità renale', 'esame delle urine per ematuria/proteine', 'ecografia addominale', 'biopsia cutanea se le lesioni sono palpabili'], 'to_verify': [], 'operational_guidance': 'Valutazione medica diretta; avviare gli esami indicati dal tavolo.', 'recommendations': "Sintesi del primario non disponibile per un errore tecnico: si riporta l'ipotesi condivisa dal tavolo degli specialisti (confermata da: Dermatologia, Gastroenterologia). Il dolore addominale crampiforme forte associato a rash cutaneo pruriginoso suggerisce una patologia vascolare sistemica. L'IgA vasculite può presentarsi in adulti con dolore addominale dovuto a edema intestinale e rash purpurico/urticariale. L'assenza di allergie note non esclude una reazione immunitaria. È necessario escludere altre cause infiammatorie o infettive."}

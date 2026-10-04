@@ -1,0 +1,36 @@
+  cardio_cardarelli_pdta_dolore_toracico.pdf: 19 pagine -> 37 pezzi (scartati: 2 bibliografia, 1 pagina esclusa, 1 glossario)
+  cardio_fvg_pdta_stemi_2022.pdf: 58 pagine -> 180 pezzi (scartati: 8 sommario, 4 corto, 1 autori, 1 conflitto di interessi, 1 glossario)
+  cardio_protocollo_dolore_toracico.pdf: 6 pagine -> 23 pezzi (scartati: nessuno)
+  dermatologia_aniarti_ustioni_ps.pdf: 7 pagine -> 13 pezzi (scartati: 2 pagina esclusa)
+  dermatologia_aopisa_orticaria_angioedema.pdf: 7 pagine -> 24 pezzi (scartati: 1 pagina esclusa, 1 sommario)
+  dermatologia_emiliaromagna_erisipela_cellulite.pdf: 1 pagine -> 5 pezzi (scartati: nessuno)
+  dermatologia_sidemast_micosi.pdf: 32 pagine -> 103 pezzi (scartati: 3 sommario, 3 bibliografia)
+  ent_priorita_orl.pdf: 2 pagine -> 7 pezzi (scartati: nessuno)
+  gastro_aopisa_dolore_addominale.pdf: 8 pagine -> 13 pezzi (scartati: 2 sommario, 1 corto, 1 incollato)
+  gastro_fvg_pdta_emorragie_digestive.pdf: 72 pagine -> 142 pezzi (scartati: 11 sommario, 8 indicatori, 6 bibliografia, 4 incollato, 3 corto, 2 autori, 2 glossario)
+  generale_fvg_manuale_triage_adulto_2018.pdf: 65 pagine -> 182 pezzi (scartati: 10 corto, 3 sommario, 2 autori, 1 pagina esclusa)
+  generale_simeu_triage_percorsi.pdf: 14 pagine -> 13 pezzi (scartati: 1 corto)
+  generale_triage_piemonte.pdf: 46 pagine -> 138 pezzi (scartati: 5 incollato, 2 pagina esclusa)
+  generale_umbria_sepsi.pdf: 33 pagine -> 75 pezzi (scartati: 1 pagina esclusa, 1 sommario, 1 bibliografia)
+  neuro_ausl_bologna_cefalea.pdf: 19 pagine -> 73 pezzi (scartati: 1 glossario)
+  neuro_fvg_pdta_ictus_fase_acuta.pdf: 110 pagine -> 237 pezzi (scartati: 16 sommario, 15 corto, 4 glossario, 1 pagina esclusa, 1 bibliografia)
+  oftalmologia_soi_pronto_soccorso.pdf: 172 pagine -> 496 pezzi (scartati: 8 sommario, 8 bibliografia, 5 pagina esclusa, 3 corto)
+  oftalmologia_triage.pdf: 1 pagine -> 5 pezzi (scartati: nessuno)
+  ortopedia_fvg_pdta_femore_over65.pdf: 26 pagine -> 73 pezzi (scartati: 6 incollato, 3 sommario, 3 corto, 1 autori, 1 indicatori)
+  ortopedia_siot_trauma_maggiore.pdf: 126 pagine -> 289 pezzi (scartati: 22 strategia di ricerca, 8 conflitto di interessi, 7 bibliografia, 5 pagina esclusa, 5 corto, 3 sommario)
+  pneumo_campania_pdta_asma.pdf: 85 pagine -> 254 pezzi (scartati: 5 bibliografia, 3 sommario, 3 corto, 2 autori, 1 pagina esclusa)
+  pneumo_simeu_riacutizzazione_bpco.pdf: 18 pagine -> 43 pezzi (scartati: 1 bibliografia)
+  urologia_pdta_colica_renale.pdf: 12 pagine -> 18 pezzi (scartati: 2 corto, 2 sommario, 1 glossario, 1 bibliografia)
+
+Totale: 2443 pezzi da 23 documenti (scartati: 64 sommario, 50 corto, 35 bibliografia, 22 strategia di ricerca, 20 pagina esclusa, 16 incollato, 10 glossario, 9 conflitto di interessi, 9 indicatori, 8 autori)
+Carico il modello di embedding (intfloat/multilingual-e5-small)...
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 5693.53it/s]
+Costruisco l'indice in una cartella temporanea (C:\Users\lomba\AppData\Local\Temp\vita_chroma_build__558kt4f)...
+Verifico che l'indice sia leggibile prima di copiarlo...
+  [scrittura] leggibile dopo 5s
+Copio l'indice completato in C:\Users\lomba\Desktop\VITA\data\chroma_db...
+Verifico che l'indice copiato in data/ sia leggibile...
+  [copia in data/] leggibile dopo 5s
+Indice costruito con successo.

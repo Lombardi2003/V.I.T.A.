@@ -1,0 +1,510 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+Text model for this run: gemini/gemini-3.8-flash
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 1/2 tra 5.0s
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "dolore al petto",
+            "specialists": ["cardiologist"]
+        },
+        {
+            "symptom": "sudorazione",
+            "specialists": ["cardiologist"]
+        }
+    ],
+    "reasoning": "Il paziente presenta un quadro fortemente suggestivo di sindrome coronarica acuta, caratterizzato da dolore al petto oppressivo irradiato al braccio sinistro insorto da 30 minuti, accompagnato da sudorazione. L'età (63 anni) e la storia clinica di ipertensione aumentano significativamente il rischio cardiovascolare. Entrambi i sintomi, presentandosi congiuntamente in questo contesto clinico, sono di stretta pertinenza cardiologica.",
+    "specialists": ["cardiologist"]
+}
+
+🚦 SUPERVISOR → ['cardiologist']
+🚦 SUPERVISOR: un solo specialista, aggiunto general_practitioner per un secondo parere
+   Checklist: {'cardiologist': True, 'general_practitioner': True}
+🔀 ROUTER: turno di cardiologist (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 3184.41it/s]
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 35] perdita di coscienza. L’utente non ha ricordo dell’accadimento. Se convulsioni in atto usa la scheda “Alterazioni acute della
+coscienza” .
+DOLORE TORA...
+   3. [cardio_cardarelli_pdta_dolore_toracico, p. 9] Chest Pain Score: - > 4 → dolore tipico: medio/alta probabilità di angina pectoris.
+- < 4 → dolore atipico: bassa probabilità di angina pectoris;
+
+Ino...
+```json
+{
+ "azione": "proponi",
+ "consulto_utile": "no",
+ "collega_da_consultare": null,
+ "domanda_per_il_collega": null,
+ "diagnosi": "Sospetta Sindrome Coronarica Acuta (SCA)",
+ "urgenza": "ROSSO",
+ "esami_consigliati": [
+  "ECG a 12 derivazioni entro 10 minuti",
+  "Dosaggio seriale troponina ad alta sensibilità",
+  "Monitoraggio telemetrico continuo e parametri vitali",
+  "Esami ematochimici completi (emocromo, assetto coagulativo, funzionalità renale, elettroliti)",
+  "Radiografia del torace a letto del paziente"
+ ],
+ "dettagli": "Uomo di 63 anni con ipertensione arteriosa che presenta dolore toracico oppressivo irradiato all'arto superiore sinistro da 30 minuti associato a sudorazione profusa. La presentazione clinica e i fattori di rischio cardiovascolare sono altamente suggestivi per SCA; è imperativo eseguire tempestivamente ECG ed eventuale attivazione del percorso emodinamica.",
+ "ipotesi_alternativa_scartata": "Dissezione aortica acuta",
+ "motivo_scarto": "Meno probabile data la tipica irradiazione al braccio sinistro e il carattere oppressivo anziché lacerante/migrante o interscapolare, sebbene resti una diagnosi differenziale critica in caso di ECG non dirimente.",
+ "fonti_consultate": "[cardio_protocollo_dolore_toracico, p. 2] indicazione a posizionamento accessi venosi, prelievo ematico con profilo enzimatico, ECG/stabilizzazione e ASA; [cardio_cardarelli_pdta_dolore_toracico, p. 9] identificazione dei fattori di rischio cardiovascolare (età >45 anni maschio, ipertensione) e tipicità del dolore.",
+ "message": "Propongo di inquadrare il caso come sospetta Sindrome Coronarica Acuta a codice ROSSO. L'anamnesi e i sintomi neurovegetativi con dolore retrosternale irradiato impongono l'esecuzione immediata di un ECG e il monitoraggio continuo per escludere uno STEMI/NSTEMI."
+}
+```
+
+🔀 ROUTER: turno di general_practitioner (battuta 2/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 19] - parestesie/insensibilità: alterazioni della sensibilità tattile, percettiva, dolorifica che assumono significato soprattutto
+se distrettuali;
+- trem...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+```json
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Uomo di 63 anni con ipertensione nota che presenta dolore toracico oppressivo acuto da 30 minuti, irradiato all'arto superiore sinistro e associato a sudorazione. Il quadro è classicamente suggestivo per ischemia miocardica acuta (SCA) e richiede immediata presa in carico in emergenza a codice ROSSO.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "I dati anamnestici e semeiologici (carattere oppressivo, irradiazione all'arto superiore sinistro, durata e sintomi neurovegetativi concomitanti in soggetto iperteso) configurano un quadro ad altissima probabilità clinica di SCA, giustificando pienamente la massima urgenza e il percorso diagnostico proposto.",
+  "ipotesi_alternativa_scartata": "Embolia polmonare acuta",
+  "motivo_scarto": "Meno probabile per l'assenza di dispnea acuta o dolore a carattere pleuritico/puntorio, pur restando da considerare se l'ECG e i marker cardiaci non fossero dirimenti.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Concordo pienamente con l'inquadramento a codice ROSSO per sospetta SCA. La presentazione clinica e il profilo di rischio impongono l'esecuzione immediata dell'ECG entro 10 minuti e il monitoraggio continuo."
+}
+```
+
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di cardiologist (battuta 3/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_fvg_pdta_stemi_2022, p. 54] elettrocardiografica di STEMI, ma con un elevato sospetto clinico di infarto miocardico (dolore toracico
+prima dell’ACR, coronaropatia nota). In quest...
+   2. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 44] evidenti. Considera la possibilità di SCA anche nel paziente giovane in particolare in caso di intossicazione da cocaina.
+Sintomatologia in atto:
+§ Di...
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 1/2 tra 5.0s
+```json
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Uomo di 63 anni iperteso con dolore toracico oppressivo tipico da 30 minuti irradiato all'arto superiore sinistro e sudorazione: quadro ad altissima probabilità clinica di Sindrome Coronarica Acuta (SCA) che richiede codice ROSSO, ECG entro 10 minuti e monitoraggio continuo.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Rispondo a Medicina: concordo pienamente sia sulla priorità assoluta di esecuzione dell'ECG entro 10 minuti, sia sull'esclusione dell'embolia polmonare, resa improbabile dalla tipicità ischemica del dolore e dall'assenza di dispnea. L'inquadramento a codice ROSSO è impeccabile e definitivo.",
+  "ipotesi_alternativa_scartata": "Pericardite / Miocardite acuta",
+  "motivo_scarto": "Meno probabile per l'assenza di variazione posturale del dolore, anamnesi infettiva recente o febbre, a fronte di un quadro fortemente indicativo di evento ischemico acuto.",
+  "fonti_consultate": "[cardio_protocollo_dolore_toracico, p. 2] prelievo per profilo enzimatico cardiaco, monitoraggio e approccio rapido al dolore toracico critico.",
+  "message": "Rispondo a Medicina: concordo appieno con le tue considerazioni sulla priorità assoluta dell'ECG entro 10 minuti e sulla corretta esclusione dell'embolia polmonare per atipicità del quadro. Confermo l'ipotesi diagnostica condivisa e il codice ROSSO per la gestione immediata del paziente."
+}
+```
+
+🔀 ROUTER: giro di verifica, turno di general_practitioner (battuta 4/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 35] perdita di coscienza. L’utente non ha ricordo dell’accadimento. Se convulsioni in atto usa la scheda “Alterazioni acute della
+coscienza” .
+DOLORE TORA...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 34] 3.2.5 Cardiopalmo
+
+2 DOLORE TORACICO IN ATTO
+2 SINCOPE / PRE SINCOPE
+2 DISPNEA
+2 PORTATORE DI PACE-MAKER O ICD
+2 CARDIOPATIA ISCHEMICA
+2 FATTORI DI RI...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 5.0s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Uomo di 63 anni iperteso con dolore toracico oppressivo tipico a irradiazione all'arto superiore sinistro e sudorazione neurovegetativa in atto da 30 minuti: quadro clinico altamente suggestivo di Sindrome Coronarica Acuta da gestire in codice ROSSO con ECG immediato entro 10 minuti.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Ho considerato l'osservazione di Cardiologia sull'esclusione di miocardite e pericardite acuta: condivido che l'assenza di modificazioni posturali del dolore e di un contesto infettivo confermi la genesi ischemica pura, mantenendo intatta la diagnosi e la massima priorità d'intervento.",
+  "ipotesi_alternativa_scartata": "Spasmo esofageo diffuso",
+  "motivo_scarto": "Sebbene possa mimare l'oppressione retrosternale, non giustifica la sudorazione profusa né l'elevato rischio vascolare del paziente, che impongono l'approccio coronarico immediato.",
+  "fonti_consultate": "[generale_fvg_manuale_triage_adulto_2018, p. 35] La sensazione gravativa di peso-morsa orienta primitivamente verso l'ischemia miocardica acuta.",
+  "message": "Rispondo a Cardiologia: concordo pienamente sia sulla conferma dell'ECG entro 10 minuti sia sulla tua corretta esclusione di pericardite/miocardite, data la totale mancanza di caratteristiche posturali o flogistiche. L'inquadramento condiviso di SCA a codice ROSSO è solido e pronto per la gestione clinica immediata."
+}
+
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+```json
+{
+  "diagnosis": "Sospetta Sindrome Coronarica Acuta (SCA) in paziente di 63 anni iperteso con dolore toracico tipico in atto associato a sintomi neurovegetativi. Trattasi di ipotesi preliminare ad alto rischio evolutivo da confermare con tempestiva valutazione elettrocardiografica e laboratoristica.",
+  "urgency_level": "ROSSO",
+  "recommended_exams": [
+    "ECG a 12 derivazioni entro 10 minuti dall'ingresso",
+    "Dosaggio seriale della troponina ad alta sensibilità",
+    "Monitoraggio elettrocardiografico e dei parametri vitali continuo (PA, SpO2, FC)",
+    "Esami ematochimici completi (emocromo, assetto coagulativo, funzionalità renale, elettroliti)",
+    "Radiografia del torace a letto del paziente"
+  ],
+  "to_verify": [
+    "Verificare l'esatta sede di insorgenza del dolore (es. retrosternale, precordiale) chiedendo al paziente se il dolore è fisso o migrante verso il dorso o l'addome per escludere clinicamente patologia aortica acuta",
+    "Verificare la presenza di eventuale dispnea associata o dolore di tipo pleuritico/respiro-dipendente tramite anamnesi mirata per escludere embolia polmonare acuta",
+    "Verificare l'eventuale recente insorgenza di episodi febbrili o sindromi simil-influenzali nelle settimane
+
+⚠️ PRIMARIO: sintesi non disponibile, si riporta l'ipotesi di gruppo (Unterminated string starting at: line 14 column 5 (char 1131))
+👨‍⚕️ PRIMARIO → diagnosi='Sospetta Sindrome Coronarica Acuta (SCA)' | urgenza=ROSSO
+
+####################################################################################################
+CASE 2: Chest: 63 years old with hypertension, oppressive pain radiating to the left arm + sweating   [gemini/gemini-3.8-flash]   time 67 s
+specialists: ['cardiologist', 'general_practitioner'] | second opinion: general_practitioner
+
+  [cardiologist -> everyone] proponi urgency=ROSSO
+    Propongo di inquadrare il caso come sospetta Sindrome Coronarica Acuta a codice ROSSO. L'anamnesi e i sintomi neurovegetativi con dolore retrosternale irradiato impongono l'esecuzione immediata di un ECG e il monitoraggio continuo per escludere uno STEMI/NSTEMI. — Ho considerato anche 'Dissezione aortica acuta' ma l'ho esclusa (Meno probabile data la tipica irradiazione al braccio sinistro e il carattere oppressivo anziché lacerante/migrante o interscapolare, sebbene resti una diagnosi differenziale critica in caso di ECG non dirimente.).
+
+  [general_practitioner -> cardiologist] conferma urgency=ROSSO
+    I dati anamnestici e semeiologici (carattere oppressivo, irradiazione all'arto superiore sinistro, durata e sintomi neurovegetativi concomitanti in soggetto iperteso) configurano un quadro ad altissima probabilità clinica di SCA, giustificando pienamente la massima urgenza e il percorso diagnostico proposto. — Concordo pienamente con l'inquadramento a codice ROSSO per sospetta SCA. La presentazione clinica e il profilo di rischio impongono l'esecuzione immediata dell'ECG entro 10 minuti e il monitoraggio continuo. — Ho considerato anche 'Embolia polmonare acuta' ma l'ho esclusa (Meno probabile per l'assenza di dispnea acuta o dolore a carattere pleuritico/puntorio, pur restando da considerare se l'ECG e i marker cardiaci non fossero dirimenti.).
+
+  [cardiologist -> general_practitioner] conferma [VERIFICATION] urgency=ROSSO
+    Rispondo a Medicina: concordo pienamente sia sulla priorità assoluta di esecuzione dell'ECG entro 10 minuti, sia sull'esclusione dell'embolia polmonare, resa improbabile dalla tipicità ischemica del dolore e dall'assenza di dispnea. L'inquadramento a codice ROSSO è impeccabile e definitivo. — Rispondo a Medicina: concordo appieno con le tue considerazioni sulla priorità assoluta dell'ECG entro 10 minuti e sulla corretta esclusione dell'embolia polmonare per atipicità del quadro. Confermo l'ipotesi diagnostica condivisa e il codice ROSSO per la gestione immediata del paziente. — Ho considerato anche 'Pericardite / Miocardite acuta' ma l'ho esclusa (Meno probabile per l'assenza di variazione posturale del dolore, anamnesi infettiva recente o febbre, a fronte di un quadro fortemente indicativo di evento ischemico acuto.).
+
+  [general_practitioner -> cardiologist] conferma [VERIFICATION] urgency=ROSSO
+    Ho considerato l'osservazione di Cardiologia sull'esclusione di miocardite e pericardite acuta: condivido che l'assenza di modificazioni posturali del dolore e di un contesto infettivo confermi la genesi ischemica pura, mantenendo intatta la diagnosi e la massima priorità d'intervento. — Rispondo a Cardiologia: concordo pienamente sia sulla conferma dell'ECG entro 10 minuti sia sulla tua corretta esclusione di pericardite/miocardite, data la totale mancanza di caratteristiche posturali o flogistiche. L'inquadramento condiviso di SCA a codice ROSSO è solido e pronto per la gestione clinica immediata. — Ho considerato anche 'Spasmo esofageo diffuso' ma l'ho esclusa (Sebbene possa mimare l'oppressione retrosternale, non giustifica la sudorazione profusa né l'elevato rischio vascolare del paziente, che impongono l'approccio coronarico immediato.).
+
+GROUP HYPOTHESIS: {'diagnosis': 'Sospetta Sindrome Coronarica Acuta (SCA)', 'urgency_level': 'ROSSO', 'recommended_exams': ['ECG a 12 derivazioni entro 10 minuti', 'Dosaggio seriale troponina ad alta sensibilità', 'Monitoraggio telemetrico continuo e parametri vitali', 'Esami ematochimici completi (emocromo, assetto coagulativo, funzionalità renale, elettroliti)', 'Radiografia del torace a letto del paziente'], 'confirmed_by': ['cardiologist', 'general_practitioner']}
+passed without confirming: [] | failed turns: {} | turns: 4
+
+REPORT SHOWN IN THE CHAT:
+**Report di sintesi**
+**Codice** ROSSO · **Ipotesi diagnostica preliminare** Sospetta Sindrome Coronarica Acuta (SCA)
+
+**Specialisti coinvolti** Cardiologia, Medicina (secondo parere) · **Hanno confermato** Cardiologia, Medicina
+
+**Esami e accertamenti** ECG a 12 derivazioni entro 10 minuti; Dosaggio seriale troponina ad alta sensibilità; Monitoraggio telemetrico continuo e parametri vitali; Esami ematochimici completi (emocromo, assetto coagulativo, funzionalità renale, elettroliti); Radiografia del torace a letto del paziente
+
+**Indicazioni operative** Valutazione medica diretta; avviare gli esami indicati dal tavolo.
+
+**Motivazione** Sintesi del primario non disponibile per un errore tecnico: si riporta l'ipotesi condivisa dal tavolo degli specialisti (confermata da: Cardiologia, Medicina). Uomo di 63 anni con ipertensione arteriosa che presenta dolore toracico oppressivo irradiato all'arto superiore sinistro da 30 minuti associato a sudorazione profusa. La presentazione clinica e i fattori di rischio cardiovascolare sono altamente suggestivi per SCA; è imperativo eseguire tempestivamente ECG ed eventuale attivazione del percorso emodinamica.
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "palpitazioni irregolari",
+            "specialists": ["cardiologist"]
+        },
+        {
+            "symptom": "lividi estesi comparsi da soli sulle braccia e sulle gambe",
+            "specialists": ["general_practitioner", "dermatologist"]
+        }
+    ],
+    "reasoning": "Il paziente presenta palpitazioni irregolari con storia nota di fibrillazione atriale, condizione che richiede una prioritaria valutazione da parte del cardiologo ('cardiologist'). La comparsa spontanea di lividi estesi senza traumi, frequente spia di problemi della coagulazione o di un sovradosaggio della terapia anticoagulante tipicamente assunta per la fibrillazione atriale, richiede una valutazione da parte del medico di medicina generale ('general_practitioner') per esami ematici e controllo farmacologico, oltre a un possibile riscontro del dermatologo ('dermatologist') per la caratterizzazione delle lesioni cutanee visibili.",
+    "specialists": ["cardiologist", "general_practitioner", "dermatologist"]
+}
+
+🚦 SUPERVISOR → ['cardiologist', 'general_practitioner', 'dermatologist']
+   Checklist: {'cardiologist': True, 'general_practitioner': True, 'dermatologist': True}
+🔀 ROUTER: turno di cardiologist (battuta 1/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+   2. [cardio_protocollo_dolore_toracico, p. 2] - posizionamento di una o due linee di infusione endovenosa,
+- prelievo di campioni di sangue (emocromo, A8, quick-aPTT, profilo enzimatico cardiaco),...
+   3. [cardio_fvg_pdta_stemi_2022, p. 54] complicanze meccaniche, gli interventi riperfusivi non modificano la prognosi quoad vitam.
+Arresto cardiaco
+I pazienti con arresto cardio -respiratori...
+```json
+{
+ "azione": "proponi",
+ "consulto_utile": "si",
+ "collega_da_consultare": "hematologist",
+ "domanda_per_il_collega": "In caso di ecchimosi estese spontanee, quali esami ematochimici permettono di discriminare rapidamente una sovracoagulazione farmacologica da altre coagulopatie o piastrinopenie?",
+ "diagnosi": "Recidiva di fibrillazione atriale ad elevata risposta ventricolare in paziente con sospetta diatesi emorragica da terapia anticoagulante",
+ "urgenza": "ARANCIONE",
+ "esami_consigliati": [
+  "ECG 12 derivazioni con monitoraggio continuo",
+  "Emocromo completo con conta piastrinica",
+  "Assetto coagulativo (PT/INR, aPTT, fibrinogeno)",
+  "Elettroliti sierici, troponina e funzionalità renale"
+ ],
+ "dettagli": "Il paziente presenta recidiva aritmica acuta compatibile con FA nota. La comparsa recente di ecchimosi spontanee estese suggerisce un sovradosaggio o complicanza di terapia anticoagulante (da verificare) o altra coagulopatia concomitante, che aumenta il rischio emorragico.",
+ "ipotesi_alternativa_scartata": "Sindrome coronarica acuta con aritmia secondaria",
+ "motivo_scarto": "Assenza di dolore toracico o dispnea tipica; i sintomi cardinali sono l'irregolarità del ritmo e la sindrome emorragica cutanea spontanea.",
+ "fonti_consultate": "[generale_fvg_manuale_triage_adulto_2018, p. 34] Valutazione dell'irregolarità del battito cardiaco avvertita dal paziente e monitoraggio dei sintomi associati.",
+ "message": "Propongo come diagnosi principale recidiva di fibrillazione atriale sintomatica associata a sospetta complicanza emorragica/sovradosaggio da terapia anticoagulante. Data la presenza di ecchimosi estese spontanee, ritengo prioritario eseguire subito ECG ed esami coagulativi urgenti."
+}
+```
+
+🔀 cardiologist: consulto_utile=si verso 'hematologist' (non nel roster) -> reindirizzato a general_practitioner
+🔀 cardiologist: consulto_utile=si -> mini-consulto verso general_practitioner, in aggiunta all'azione 'proponi'
+🔀 ROUTER: turno di general_practitioner (battuta 2/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] (vertigine obiettiva) oppure come se se la persona stesse girando attorno nello spazio (vertigine soggettiva).
+§ Capogiro : Disturbi dell’orientamento...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   3. [generale_umbria_sepsi, p. 10] Per l’inquadramento clinico del paziente è utile la definizione di una procedura /istruzione
+operativa per la richiesta di esami di laboratorio , che ...
+```json
+{
+ "azione": "conferma",
+ "valutazione_indipendente": "Paziente con FA nota che presenta recidiva aritmica acuta e sindrome emorragica cutanea spontanea da una settimana. Il quadro depone prioritariamente per complicanza da terapia anticoagulante (AVK o DOAC, da verificare) o coagulopatia secondaria, in concomitanza con riacutizzazione dell'aritmia.",
+ "coincide_con_gruppo": "si",
+ "consulto_utile": "no",
+ "collega_da_consultare": null,
+ "domanda_per_il_collega": null,
+ "to": null,
+ "motivazione": "Concordo pienamente con l'inquadramento e l'urgenza ARANCIONE: l'aritmia acuta sintomatica associata a manifestazioni emorragiche spontanee richiede monitoraggio immediato e valutazione urgente dell'emostasi per prevenire complicanze emorragiche maggiori.",
+ "ipotesi_alternativa_scartata": "Piastrinopenia autoimmune o emopatia primitiva",
+ "motivo_scarto": "In un paziente con FA nota, la causa di gran lunga più frequente di ecchimosi spontanee recenti è l'effetto avverso da terapia anticoagulante prescritta per la profilassi tromboembolica, sebbene l'emocromo resti indispensabile.",
+ "fonti_consultate": "[generale_fvg_manuale_triage_adulto_2018, p. 48] valutazione delle problematiche correlate a terapia anticoagulante e manifestazioni emorragiche cutanee come lividi.",
+ "message": "Per rispondere al quesito di Cardiologia: il discrimine rapido richiede emocromo con conta piastrinica (esclude piastrinopenie primitive/secondarie), PT/INR (alterato in sovradosaggio da AVK o insufficienza epatica), aPTT, fibrinogeno e, se assume DOAC, test specifici come l'attività anti-Xa o dosaggio della funzionalità renale per ridotta clearance. Confermo in toto diagnosi, urgenza e pannello esami proposto."
+}
+```
+
+🔀 ROUTER: turno di cardiologist (battuta 3/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_fvg_pdta_stemi_2022, p. 54] complicanze meccaniche, gli interventi riperfusivi non modificano la prognosi quoad vitam.
+Arresto cardiaco
+I pazienti con arresto cardio -respiratori...
+   2. [cardio_fvg_pdta_stemi_2022, p. 45] Tabella IX: Controindicazioni alla terapia fibrinolitica:
+Controindicazioni Assolute
+emorragia intracranica pregressa in qualunque epoca;
+ictus ischem...
+   3. [generale_triage_piemonte, p. 22] http://www.doh.gov.uk/emergencycare/index.htm, ultimo aggiornamento 14/7/2003, ultima
+consultazione 29/11/2003
+* Derlet R.W, Richards J.R. “Overcrowdi...
+```json
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Recidiva acuta di fibrillazione atriale sintomatica in paziente con anamnesi positiva, associata a sindrome emorragica cutanea spontanea verosimilmente iatrogena da terapia anticoagulante orale in corso, meritevole di inquadramento urgente ARANCIONE con monitoraggio ed esami coagulativi completi.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "La risposta di Medicina chiarisce l'iter per guidare sia il profilo emorragico sia la sicurezza di eventuali interventi farmacologici cardiologici urgenti, per i quali è indispensabile conoscere l'assetto emocoagulativo prima di impostare farmaci che interferiscano con l'emostasi.",
+  "ipotesi_alternativa_scartata": "Flutter atriale o tachicardia ventricolare",
+  "motivo_scarto": "La storia di fibrillazione atriale nota associata all'insorgenza di palpitazioni descritte come marcatamente irregolari rende la recidiva di FA la diagnosi di gran lunga più coerente.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Ringrazio Medicina: condivido pienamente la specificazione dei test emocoagulativi (inclusi anti-Xa e funzionalità renale se in DOAC), essenziali prima di decidere l'eventuale gestione della frequenza o del ritmo in sicurezza. Confermo pertanto l'ipotesi diagnostica, l'urgenza ARANCIONE e l'impostazione concordata."
+}
+```
+
+🔀 ROUTER: turno di dermatologist (battuta 4/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [dermatologia_sidemast_micosi, p. 23] soprattutto da Pseudomonas
+aeruginosa, determina la comparsa di un colorito giallo-brunastro o francamente verdastro
+del letto ungueale.
+• Onicomicosi...
+   3. [dermatologia_aopisa_orticaria_angioedema, p. 2] La presente procedura è stata elaborata a cura di:
+• Dott.ssa Isabella Del Corso , dirigente medico U.O. Immunoallergologia clinica U.
+• Dott.ssa Vale...
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 1/2 tra 5.0s
+```json
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Le lesioni descritte come lividi estesi e spontanei corrispondono a suffusioni ecchimotiche non palpabili, tipica espressione cutanea di una diatesi emorragica sistemica (da coagulopatia o iatrogena) piuttosto che di una dermatosi primitiva o di una vasculite infiammatoria.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Dal punto di vista dermatologico, le ecchimosi piane ed estese depongono per uno stravaso ematico da difetto emostatico sistemico (molto verosimilmente iatrogeno da anticoagulanti, vista la FA nota) e non per patologie cutanee intrinseche. Condivido pienamente diagnosi, urgenza ARANCIONE ed esami emocoagulativi.",
+  "ipotesi_alternativa_scartata": "Vasculite leucocitoclastica / porpora palpabile",
+  "motivo_scarto": "La vasculite si manifesta con lesioni purpuriche palpabili ed eritematose, spesso declivi e associate a necrosi o infiltrato, quadro clinicamente diverso dalle ecchimosi piane spontanee qui descritte.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Dal punto di vista dermatologico confermo pienamente: i lividi spontanei sono ecchimosi piane suggestive di un disordine emostatico sistemico, verosimilmente correlato ad anticoagulanti per la FA, e non di una vasculite cutanea primitiva. Ottimale la priorità ARANCIONE e l'assetto coagulativo urgente."
+}
+```
+
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di cardiologist (battuta 5/12)
+📚 RAG [cardiologist]: 3 pezzi recuperati
+   1. [cardio_fvg_pdta_stemi_2022, p. 45] Tabella IX: Controindicazioni alla terapia fibrinolitica:
+Controindicazioni Assolute
+emorragia intracranica pregressa in qualunque epoca;
+ictus ischem...
+   2. [cardio_cardarelli_pdta_dolore_toracico, p. 17] POSSIBILE CAUSA
+Dolore oppressivo/costrittivo con o senza irradiazione.
+Segni e sintomi di allarme : dispnea, angoscia, pallore
+cutaneo, sudorazione a...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 48] (vertigine obiettiva) oppure come se se la persona stesse girando attorno nello spazio (vertigine soggettiva).
+§ Capogiro : Disturbi dell’orientamento...
+```json
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Uomo di 65 anni con fibrillazione atriale nota che presenta recidiva aritmica acuta associata a ecchimosi spontanee diffuse, indicative di alterazione emostatica sistemica verosimilmente secondaria a terapia anticoagulante. Urgenza ARANCIONE per rischio di sanguinamento maggiore concomitante ad aritmia acuta.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "La valutazione di Dermatologia esclude vasculiti primitive o cause dermatologiche locali, rafforzando l'origine sistemica ed emocoagulativa del sanguinamento da monitorare con urgenza. Questo elemento consolida pienamente l'ipotesi condivisa e non richiede modifiche né all'inquadramento né all'urgenza ARANCIONE.",
+  "ipotesi_alternativa_scartata": "Tachicardia atriale focale con conduzione variabile",
+  "motivo_scarto": "L'anamnesi di FA nota rende la recidiva della medesima aritmia la spiegazione di gran lunga più plausibile rispetto a un nuovo focolaio ectopico atriale.",
+  "fonti_consultate": "[generale_fvg_manuale_triage_adulto_2018, p. 48] Criteri di triage per pazienti in terapia anticoagulante con manifestazioni emorragiche e comorbilità aritmica acuta.",
+  "message": "Rispondo subito a Dermatologia: concordo pienamente sul fatto che l'aspetto piano delle ecchimosi escluda vasculiti cutanee e confermi una diatesi emorragica sistemica, verosimilmente iatrogena. Considerata questa concordanza unanime e l'esigenza di verificare subito assetto coagulativo ed ECG, confermo l'ipotesi di gruppo in chiusura."
+}
+```
+
+🔀 ROUTER: giro di verifica, turno di general_practitioner (battuta 6/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 48] VIOLENZA DI GENERE: la persona riferisce aggressione verbale, minacce, strattonamenti, vessazioni, situazioni di mobbing
+sul posto di lavoro, al domic...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 34] Usa la scheda in caso di irregolarità del battito cardiaco avvertita dal paziente, rilevata alla palpazione del polso da parte del
+paziente stesso o d...
+```json
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Uomo di 65 anni con FA nota che presenta recidiva di aritmia sintomatica acuta associata a ecchimosi spontanee estese recenti, quadro suggestivo di complicanza emorragica da terapia anticoagulante in corso di recidiva di FA. L'urgenza appropriata è ARANCIONE per il rischio di emorragia maggiore e instabilità emodinamica.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "L'analisi di Dermatologia ha chiarito che le lesioni piane depongono univocamente per una diatesi emorragica sistemica, escludendo processi vasculitici locali, mentre Cardiologia ha consolidato la necessità di una gestione sincronizzata tra emostasi e controllo del ritmo. Il quadro clinico e l'iter diagnostico-terapeutico restano perfettamente solidi e completi, motivando la conferma definitiva senza modifiche.",
+  "ipotesi_alternativa_scartata": "Coagulazione intravascolare disseminata (CID)",
+  "motivo_scarto": "Mancano contesti clinici scatenanti tipici come sepsi, politrauma o neoplasie avanzate note, così come segni di compromissione d'organo multipla o instabilità sistemica acuta.",
+  "fonti_consultate": "[generale_fvg_manuale_triage_adulto_2018, p. 48] Presenza di criteri specifici per coagulopatie/anticoagulanti e alterazioni del ritmo che supportano l'inquadramento urgente.",
+  "message": "Ho riesaminato l'intera discussione: la precisazione dermatologica sulla natura sistemica delle ecchimosi corrobora la diagnosi di diatesi iatrogena/coagulativa associata a recidiva di FA. Concordo pienamente sulla sintesi diagnostica, sull'urgenza ARANCIONE e sul pannello esami proposto per la chiusura del caso."
+}
+```
+
+🔀 ROUTER: giro di verifica, turno di dermatologist (battuta 7/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [generale_fvg_manuale_triage_adulto_2018, p. 48] 3.3.1 Problema Specifico - Medicina Generale
+
+2 VIOLENZA DI GENERE
+3 DOLORE E GONFIORE ARTO
+3 CONTRAZIONE DELLA DIURESI
+3 VERTIGINE / CAPOGIRO
+3 COAGU...
+   2. [dermatologia_sidemast_micosi, p. 23] soprattutto da Pseudomonas
+aeruginosa, determina la comparsa di un colorito giallo-brunastro o francamente verdastro
+del letto ungueale.
+• Onicomicosi...
+   3. [dermatologia_aopisa_orticaria_angioedema, p. 2] La presente procedura è stata elaborata a cura di:
+• Dott.ssa Isabella Del Corso , dirigente medico U.O. Immunoallergologia clinica U.
+• Dott.ssa Vale...
+
+⏳ LLM: errore temporaneo (InternalServerError), nuovo tentativo 1/2 tra 5.0s
+```json
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Ecchimosi cutanee piane ed estese a comparsa spontanea in paziente con fibrillazione atriale e palpitazioni acute: quadro dermatologico espressione di un disordine emostatico sistemico (da verificare sovradosaggio anticoagulante) e non di patologia cutanea primitiva.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "L'analisi di Medicina sulla diagnosi differenziale emocoagulativa e l'esclusione di una CID confermano che il quadro cutaneo è l'espressione di un'alterazione sistemica dell'emostasi, plausibilmente farmacologica. L'integrazione tra valutazione aritmica e coagulativa urgente è impeccabile e non richiede variazioni dermatologiche.",
+  "ipotesi_alternativa_scartata": "Porpora senile di Bateman (fragilità capillare attinica)",
+  "motivo_scarto": "La porpora di Bateman interessa cronicamente le superfici estensorie fotoesposte ed è paucisintomatica; la rapida comparsa di ecchimosi estese agli arti inferiori e superiori in concomitanza con palpitazioni impone di trattare la condizione come coagulopatia acuta sistemica.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo definitivamente l'ipotesi di gruppo. La discussione di Medicina e Cardiologia corrobora la natura secondaria delle lesioni cutanee ed esclude quadri sistemici complessi come la CID; l'inquadramento e l'urgenza ARANCIONE sono del tutto appropriati per la chiusura del caso."
+}
+```
+
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+{
+    "diagnosis": "Sospetta recidiva di fibrillazione atriale sintomatica associata a diatesi emorragica cutanea di natura da determinare, verosimilmente iatrogena da terapia anticoagulante.",
+    "urgency_level": "ARANCIONE",
+    "recommended_exams": [
+        "ECG a 12 derivazioni con monitoraggio elettrocardiografico continuo",
+        "Emocromo completo con conta piastrinica",
+        "Coagulazione di base (PT/INR, aPTT, fibrinogeno)",
+        "Funzionalità renale (creatinina, eGFR) ed elettroliti sierici",
+        "Troponina ad alta sensibilità",
+        "Test specifici per DOAC (es. attività anti-Xa o tempo di trombina diluito, se indicati dall'anamnesi farmacologica)"
+    ],
+    "to_verify": [
+        "Verificare la terapia farmacologica domiciliare attiva, in particolare l'assunzione di farmaci anticoagulanti (AVK o DOAC), antiaggreganti piastrinici o FANS, con relative dosi, orario dell'ultima assunzione ed eventuali errori posologici recenti.",
+        "Verificare la presenza di altri siti di sanguinamento attivo o pregresso recente (epistassi, gengivorragia, ematuria, melena, rettorragia, ematomi profondi).",
+        "Ispezionare direttamente le lesioni cutanee per confermare se si tratti di ecchimosi piane, ematomi sottocutanei o porpora palpabile.",
+        "Verificare i parametri vitali completi (pressione arteriosa, frequenza cardiaca, saturazione di O2) per escludere instabilità emodinamica correlata all'aritmia o a perdite ematiche occulte.",
+        "Verificare anamnesi per recenti malattie febbrili, calo ponderale o familiarità per diatesi emorragica."
+    ],
+    "operational_guidance": "Accogliere immediatamente il paziente in area ad alta-media intensità di cura (postazione monitorata). Eseguire ECG a 12 derivazioni entro pochi minuti e posizionare monitoraggio continuo di ritmo, frequenza cardiaca, pressione arteriosa e saturimetria. Reperire accesso venoso periferico ed eseguire prelievi ematici urgenti comprensivi di emocromo, profilo coagulativo completo, funzionalità renale, elettroliti e troponina. Sospendere cautelativamente qualsiasi somministrazione di farmaci antitrombotici o antiaritmici prima di aver visionato l'ECG e gli esami emocoagulativi. Allertare la consulenza cardiologica per la gestione del ritmo/frequenza e prevedere rivalutazione medica entro 15 minuti o immediata in caso di ipotensione, sincope o peggioramento clinico.",
+    "recommendations": "Il tavolo collegiale composto da Cardiologia, Medicina Interna e Dermatologia ha concordato all'unanimità per un codice di urgenza ARANCIONE. L'ipotesi diagnostica preliminare associa la recidiva acuta dell'aritmia nota (palpitazioni insorte da 2 ore descritte come intense e irregolari) a una sindrome emorragica cutanea spontanea (lividi estesi da una settimana). Sebbene nei dati iniziali non sia formalizzata la terapia in atto, la prassi clinica per la FA nota suggerisce con elevata probabilità l'assunzione di anticoagulanti, rendendo il sovradosaggio o l'accumulo farmacologico (iatrogenesi) la causa più plausibile delle ecchimosi spontanee, pur dovendo escludere piastrinopenie o coagulopatie acquisite. Gli specialisti hanno escluso la sindrome coronarica acuta per assenza di sintomatologia algica o dispnoica tipica, e patologie dermatologiche primitive (come vasculiti leucocitoclastiche o porpora di Bateman) data la natura piana ed estesa delle lesioni e la concomitanza sistemica. Si conferma l'urgenza ARANCIONE poiché la combinazione di aritmia acuta e potenziale coagulopatia grave espone il paziente a complicanze emodinamiche ed emorragiche maggiori a breve termine. Resta indispensabile la rapida conferma anamnestica dei farmaci domiciliari assunti e la valutazione dei parametri emocoagulativi prima di impostare qualunque strategia terapeutica cardiologica."
+}
+
+👨‍⚕️ PRIMARIO → diagnosi='Sospetta recidiva di fibrillazione atriale sintomatica associata a diatesi emorragica cutanea di natura da determinare, verosimilmente iatrogena da terapia anticoagulante.' | urgenza=ARANCIONE
+
+####################################################################################################
+CASE 4: Palpitations + bruises: 65 years old, known atrial fibrillation   [gemini/gemini-3.8-flash]   time 131 s
+specialists: ['cardiologist', 'general_practitioner', 'dermatologist'] | second opinion: -
+
+  [cardiologist -> everyone] proponi urgency=ARANCIONE
+    Propongo come diagnosi principale recidiva di fibrillazione atriale sintomatica associata a sospetta complicanza emorragica/sovradosaggio da terapia anticoagulante. Data la presenza di ecchimosi estese spontanee, ritengo prioritario eseguire subito ECG ed esami coagulativi urgenti. — Ho considerato anche 'Sindrome coronarica acuta con aritmia secondaria' ma l'ho esclusa (Assenza di dolore toracico o dispnea tipica; i sintomi cardinali sono l'irregolarità del ritmo e la sindrome emorragica cutanea spontanea.).
+
+  [cardiologist -> general_practitioner] consulta
+    In caso di ecchimosi estese spontanee, quali esami ematochimici permettono di discriminare rapidamente una sovracoagulazione farmacologica da altre coagulopatie o piastrinopenie?
+
+  [general_practitioner -> cardiologist] conferma urgency=ARANCIONE
+    Concordo pienamente con l'inquadramento e l'urgenza ARANCIONE: l'aritmia acuta sintomatica associata a manifestazioni emorragiche spontanee richiede monitoraggio immediato e valutazione urgente dell'emostasi per prevenire complicanze emorragiche maggiori. — Per rispondere al quesito di Cardiologia: il discrimine rapido richiede emocromo con conta piastrinica (esclude piastrinopenie primitive/secondarie), PT/INR (alterato in sovradosaggio da AVK o insufficienza epatica), aPTT, fibrinogeno e, se assume DOAC, test specifici come l'attività anti-Xa o dosaggio della funzionalità renale per ridotta clearance. Confermo in toto diagnosi, urgenza e pannello esami proposto. — Ho considerato anche 'Piastrinopenia autoimmune o emopatia primitiva' ma l'ho esclusa (In un paziente con FA nota, la causa di gran lunga più frequente di ecchimosi spontanee recenti è l'effetto avverso da terapia anticoagulante prescritta per la profilassi tromboembolica, sebbene l'emocromo resti indispensabile.).
+
+  [cardiologist -> general_practitioner] conferma urgency=ARANCIONE
+    La risposta di Medicina chiarisce l'iter per guidare sia il profilo emorragico sia la sicurezza di eventuali interventi farmacologici cardiologici urgenti, per i quali è indispensabile conoscere l'assetto emocoagulativo prima di impostare farmaci che interferiscano con l'emostasi. — Ringrazio Medicina: condivido pienamente la specificazione dei test emocoagulativi (inclusi anti-Xa e funzionalità renale se in DOAC), essenziali prima di decidere l'eventuale gestione della frequenza o del ritmo in sicurezza. Confermo pertanto l'ipotesi diagnostica, l'urgenza ARANCIONE e l'impostazione concordata. — Ho considerato anche 'Flutter atriale o tachicardia ventricolare' ma l'ho esclusa (La storia di fibrillazione atriale nota associata all'insorgenza di palpitazioni descritte come marcatamente irregolari rende la recidiva di FA la diagnosi di gran lunga più coerente.).
+
+  [dermatologist -> cardiologist] conferma urgency=ARANCIONE
+    Dal punto di vista dermatologico, le ecchimosi piane ed estese depongono per uno stravaso ematico da difetto emostatico sistemico (molto verosimilmente iatrogeno da anticoagulanti, vista la FA nota) e non per patologie cutanee intrinseche. Condivido pienamente diagnosi, urgenza ARANCIONE ed esami emocoagulativi. — Dal punto di vista dermatologico confermo pienamente: i lividi spontanei sono ecchimosi piane suggestive di un disordine emostatico sistemico, verosimilmente correlato ad anticoagulanti per la FA, e non di una vasculite cutanea primitiva. Ottimale la priorità ARANCIONE e l'assetto coagulativo urgente. — Ho considerato anche 'Vasculite leucocitoclastica / porpora palpabile' ma l'ho esclusa (La vasculite si manifesta con lesioni purpuriche palpabili ed eritematose, spesso declivi e associate a necrosi o infiltrato, quadro clinicamente diverso dalle ecchimosi piane spontanee qui descritte.).
+
+  [cardiologist -> dermatologist] conferma [VERIFICATION] urgency=ARANCIONE
+    La valutazione di Dermatologia esclude vasculiti primitive o cause dermatologiche locali, rafforzando l'origine sistemica ed emocoagulativa del sanguinamento da monitorare con urgenza. Questo elemento consolida pienamente l'ipotesi condivisa e non richiede modifiche né all'inquadramento né all'urgenza ARANCIONE. — Rispondo subito a Dermatologia: concordo pienamente sul fatto che l'aspetto piano delle ecchimosi escluda vasculiti cutanee e confermi una diatesi emorragica sistemica, verosimilmente iatrogena. Considerata questa concordanza unanime e l'esigenza di verificare subito assetto coagulativo ed ECG, confermo l'ipotesi di gruppo in chiusura. — Ho considerato anche 'Tachicardia atriale focale con conduzione variabile' ma l'ho esclusa (L'anamnesi di FA nota rende la recidiva della medesima aritmia la spiegazione di gran lunga più plausibile rispetto a un nuovo focolaio ectopico atriale.).
+
+  [general_practitioner -> cardiologist] conferma [VERIFICATION] urgency=ARANCIONE
+    L'analisi di Dermatologia ha chiarito che le lesioni piane depongono univocamente per una diatesi emorragica sistemica, escludendo processi vasculitici locali, mentre Cardiologia ha consolidato la necessità di una gestione sincronizzata tra emostasi e controllo del ritmo. Il quadro clinico e l'iter diagnostico-terapeutico restano perfettamente solidi e completi, motivando la conferma definitiva senza modifiche. — Ho riesaminato l'intera discussione: la precisazione dermatologica sulla natura sistemica delle ecchimosi corrobora la diagnosi di diatesi iatrogena/coagulativa associata a recidiva di FA. Concordo pienamente sulla sintesi diagnostica, sull'urgenza ARANCIONE e sul pannello esami proposto per la chiusura del caso. — Ho considerato anche 'Coagulazione intravascolare disseminata (CID)' ma l'ho esclusa (Mancano contesti clinici scatenanti tipici come sepsi, politrauma o neoplasie avanzate note, così come segni di compromissione d'organo multipla o instabilità sistemica acuta.).
+
+  [dermatologist -> general_practitioner] conferma [VERIFICATION] urgency=ARANCIONE
+    L'analisi di Medicina sulla diagnosi differenziale emocoagulativa e l'esclusione di una CID confermano che il quadro cutaneo è l'espressione di un'alterazione sistemica dell'emostasi, plausibilmente farmacologica. L'integrazione tra valutazione aritmica e coagulativa urgente è impeccabile e non richiede variazioni dermatologiche. — Confermo definitivamente l'ipotesi di gruppo. La discussione di Medicina e Cardiologia corrobora la natura secondaria delle lesioni cutanee ed esclude quadri sistemici complessi come la CID; l'inquadramento e l'urgenza ARANCIONE sono del tutto appropriati per la chiusura del caso. — Ho considerato anche 'Porpora senile di Bateman (fragilità capillare attinica)' ma l'ho esclusa (La porpora di Bateman interessa cronicamente le superfici estensorie fotoesposte ed è paucisintomatica; la rapida comparsa di ecchimosi estese agli arti inferiori e superiori in concomitanza con palpitazioni impone di trattare la condizione come coagulopatia acuta sistemica.).
+
+GROUP HYPOTHESIS: {'diagnosis': 'Recidiva di fibrillazione atriale ad elevata risposta ventricolare in paziente con sospetta diatesi emorragica da terapia anticoagulante', 'urgency_level': 'ARANCIONE', 'recommended_exams': ['ECG 12 derivazioni con monitoraggio continuo', 'Emocromo completo con conta piastrinica', 'Assetto coagulativo (PT/INR, aPTT, fibrinogeno)', 'Elettroliti sierici, troponina e funzionalità renale'], 'confirmed_by': ['cardiologist', 'dermatologist', 'general_practitioner']}
+passed without confirming: [] | failed turns: {} | turns: 7
+
+REPORT SHOWN IN THE CHAT:
+**Report di sintesi**
+**Codice** ARANCIONE · **Ipotesi diagnostica preliminare** Sospetta recidiva di fibrillazione atriale sintomatica associata a diatesi emorragica cutanea di natura da determinare, verosimilmente iatrogena da terapia anticoagulante.
+
+**Specialisti coinvolti** Cardiologia, Medicina, Dermatologia · **Hanno confermato** Cardiologia, Dermatologia, Medicina
+
+**Esami e accertamenti** ECG a 12 derivazioni con monitoraggio elettrocardiografico continuo; Emocromo completo con conta piastrinica; Coagulazione di base (PT/INR, aPTT, fibrinogeno); Funzionalità renale (creatinina, eGFR) ed elettroliti sierici; Troponina ad alta sensibilità; Test specifici per DOAC (es. attività anti-Xa o tempo di trombina diluito, se indicati dall'anamnesi farmacologica)
+
+**Da verificare** Verificare la terapia farmacologica domiciliare attiva, in particolare l'assunzione di farmaci anticoagulanti (AVK o DOAC), antiaggreganti piastrinici o FANS, con relative dosi, orario dell'ultima assunzione ed eventuali errori posologici recenti.; Verificare la presenza di altri siti di sanguinamento attivo o pregresso recente (epistassi, gengivorragia, ematuria, melena, rettorragia, ematomi profondi).; Ispezionare direttamente le lesioni cutanee per confermare se si tratti di ecchimosi piane, ematomi sottocutanei o porpora palpabile.; Verificare i parametri vitali completi (pressione arteriosa, frequenza cardiaca, saturazione di O2) per escludere instabilità emodinamica correlata all'aritmia o a perdite ematiche occulte.; Verificare anamnesi per recenti malattie febbrili, calo ponderale o familiarità per diatesi emorragica.
+
+**Indicazioni operative** Accogliere immediatamente il paziente in area ad alta-media intensità di cura (postazione monitorata). Eseguire ECG a 12 derivazioni entro pochi minuti e posizionare monitoraggio continuo di ritmo, frequenza cardiaca, pressione arteriosa e saturimetria. Reperire accesso venoso periferico ed eseguire prelievi ematici urgenti comprensivi di emocromo, profilo coagulativo completo, funzionalità renale, elettroliti e troponina. Sospendere cautelativamente qualsiasi somministrazione di farmaci antitrombotici o antiaritmici prima di aver visionato l'ECG e gli esami emocoagulativi. Allertare la consulenza cardiologica per la gestione del ritmo/frequenza e prevedere rivalutazione medica entro 15 minuti o immediata in caso di ipotensione, sincope o peggioramento clinico.
+
+**Motivazione** Il tavolo collegiale composto da Cardiologia, Medicina Interna e Dermatologia ha concordato all'unanimità per un codice di urgenza ARANCIONE. L'ipotesi diagnostica preliminare associa la recidiva acuta dell'aritmia nota (palpitazioni insorte da 2 ore descritte come intense e irregolari) a una sindrome emorragica cutanea spontanea (lividi estesi da una settimana). Sebbene nei dati iniziali non sia formalizzata la terapia in atto, la prassi clinica per la FA nota suggerisce con elevata probabilità l'assunzione di anticoagulanti, rendendo il sovradosaggio o l'accumulo farmacologico (iatrogenesi) la causa più plausibile delle ecchimosi spontanee, pur dovendo escludere piastrinopenie o coagulopatie acquisite. Gli specialisti hanno escluso la sindrome coronarica acuta per assenza di sintomatologia algica o dispnoica tipica, e patologie dermatologiche primitive (come vasculiti leucocitoclastiche o porpora di Bateman) data la natura piana ed estesa delle lesioni e la concomitanza sistemica. Si conferma l'urgenza ARANCIONE poiché la combinazione di aritmia acuta e potenziale coagulopatia grave espone il paziente a complicanze emodinamiche ed emorragiche maggiori a breve termine. Resta indispensabile la rapida conferma anamnestica dei farmaci domiciliari assunti e la valutazione dei parametri emocoagulativi prima di impostare qualunque strategia terapeutica cardiologica.

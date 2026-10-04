@@ -1,0 +1,281 @@
+🤖 Modelli attivi: testo = groq/openai/gpt-oss-120b (ragionamento low) | foto = groq/qwen/qwen3.8-27b
+✅ Database connection ready, tables verified! (C:\Users\lomba\Desktop\VITA\medical_database.db)
+{
+    "per_symptom_analysis": [
+        {
+            "symptom": "dolore addominale tipo crampi",
+            "specialists": ["gastroenterologist"]
+        },
+        {
+            "symptom": "eruzione cutanea con macchie rosse pruriginose",
+            "specialists": ["dermatologist"]
+        }
+    ],
+    "reasoning": "Il dolore addominale a tipo crampi, forte e di durata di 6 ore, è tipico di patologie gastrointestinali, quindi è opportuno un consulto con il gastroenterologist. L'eruzione cutanea con macchie rosse pruriginose è un problema cutaneo visibile, perciò è indicato il dermatologist. Non vi sono allergie, patologie pregresse o altri fattori che richiedano ulteriori specialisti.",
+    "specialists": ["gastroenterologist", "dermatologist"]
+}
+
+🚦 SUPERVISOR → ['gastroenterologist', 'dermatologist']
+   Checklist: {'gastroenterologist': True, 'dermatologist': True}
+🔀 ROUTER: turno di gastroenterologist (battuta 1/12)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2939.02it/s]
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+   3. [gastro_aopisa_dolore_addominale, p. 4] Cause Extra-Addominali
+Patologie Toraciche (IMA, Polmoniti, Pleuriti, TEP, PNX, Patologie Esofagee)
+µ Compressione o Flogosi di radici o nervi spinali...
+{
+  "azione": "proponi",
+  "consulto_utile": "si",
+  "collega_da_consultare": "rheumatologist",
+  "domanda_per_il_collega": "Considerando una paziente adulta con dolore addominale crampiforme acuto e rash cutaneo eritematoso pruriginoso, quali criteri clinici e di laboratorio suggeriscono una vasculite IgA (Henoch‑Schönlein) e quali esami specifici dovremmo richiedere?",
+  "diagnosi": "Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale",
+  "urgenza": "ARANCIONE",
+  "esami_consigliati": ["Emocolture e emocromo con formula", "Vesicoli di sangue occulto nelle feci", "Ecografia addominale", "Biopsia cutanea del rash", "Dosaggio delle immunoglobuline A sieriche"],
+  "dettagli": "Il dolore addominale crampiforme forte e l'eruzione cutanea eritematosa pruriginosa sono tipici di una vasculite a piccoli vasi con deposizione di IgA; l'assenza di allergie note o farmaci recenti rende meno probabile una reazione anafilattica. In adulti, la presentazione può includere sintomi gastrointestinali (dolore, sanguinamento occulto) e rash non purpurico. È necessario escludere altre cause infiammatorie o infettive.",
+  "ipotesi_alternativa_scartata": "Reazione allergica sistemica (anafilassi lieve) o gastroenterite virale con rash secondario",
+  "motivo_scarto": "Mancano segni di compromissione respiratoria, ipotensione o edema angioedematoso tipici dell'anafilassi; la rash non è tipica di urticaria e la durata del dolore è più prolungata rispetto a una semplice gastroenterite virale.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Propongo di considerare una vasculite IgA con coinvolgimento gastrointestinale; suggerisco esami di laboratorio e imaging, e richiedo il parere del reumatologo per conferma diagnostica e gestione."
+}
+
+🔀 gastroenterologist: consulto_utile=si verso 'rheumatologist' (non nel roster) -> reindirizzato a general_practitioner
+🔀 gastroenterologist: consulto_utile=si -> mini-consulto verso general_practitioner, in aggiunta all'azione 'proponi'
+🔀 ROUTER: general_practitioner coinvolto nella discussione su richiesta di un collega
+🔀 ROUTER: turno di general_practitioner (battuta 2/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_simeu_triage_percorsi, p. 7] Triage avanzato dolore
+addominale
+Valutazione sulla porta(ABC)
+
+Compromissione
+Valutazione oggettiva parametri
+Valutazione dell’addome
+C.V.P . ed esam...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+   3. [generale_umbria_sepsi, p. 6] Effettuare almeno due delle seguenti azioni:
+- Misura della pressione venosa centrale (PVC)
+- Misura della saturazione venosa centrale di ossigeno (Sc...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 9.9s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Dolore addominale crampiforme forte + rash eritematoso pruriginoso in giovane adulta suggeriscono vasculite a piccoli vasi; l'assenza di allergie o infezioni acute rende più probabile IgA vasculitis (Henoch‑Schönlein).",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "I criteri clinici (dolore addominale, rash cutaneo non urticario) e la tipica presentazione in adulti supportano la diagnosi di vasculite IgA; gli esami proposti (emocromo, IgA sieriche, biopsia cutanea, ecografia addominale, FOBT) sono appropriati per conferma.",
+  "ipotesi_alternativa_scartata": "Reazione allergica sistemica (anafilassi lieve)",
+  "motivo_scarto": "Mancano segni di coinvolgimento respiratorio, ipotensione o edema angioedematoso; il rash non è urticario e la durata del dolore è più prolungata rispetto a una reazione allergica.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA con urgenza arancione e gli esami suggeriti."
+}
+
+🔀 ROUTER: turno di gastroenterologist (battuta 3/12)
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [gastro_fvg_pdta_emorragie_digestive, p. 12] Applicando questi dati alla Regione FVG (1.250.000 abitanti) l’incidenza attesa dovrebbe essere poco
+meno di 800 ricoveri/anno per emorragia digestiva...
+   2. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 56] 3.2.8 Problema Specifico - Chirurgico / Gastrointestinale
+
+2 SOSPETTA ISCHEMIA ACUTA DI UN ARTO
+3 CORPO ESTRANEO IN ESOFAGO / BOLO ALIMENTARE / DISFAG...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 24.2s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 3.1s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Dolore addominale crampiforme forte associato a rash eritematoso pruriginoso in una giovane donna suggerisce una vasculite a piccoli vasi, tipicamente IgA, con possibile coinvolgimento gastrointestinale.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "I criteri clinici (dolore addominale acuto, rash non urticario) e l'assenza di segni di allergia o infezione supportano la diagnosi di vasculite IgA; gli esami proposti (emocromo, IgA sieriche, biopsia cutanea, ecografia addominale, FOBT) sono appropriati per conferma.",
+  "ipotesi_alternativa_scartata": "Reazione allergica sistemica (anafilassi lieve) o gastroenterite virale con rash secondario",
+  "motivo_scarto": "Mancano segni respiratori, ipotensione o edema angioedematoso tipici dell'anafilassi; il rash non è urticario e la durata del dolore è più prolungata rispetto a una semplice gastroenterite virale.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione; gli esami suggeriti sono adeguati per conferma diagnostica."
+}
+
+🔀 ROUTER: turno di dermatologist (battuta 4/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 15] distanza dal bordo. Per le diagnosi differenziali confrontare con tinea cruris.
+A partire da una forma intertriginosa, le lesioni vescico-pustolose po...
+   2. [dermatologia_sidemast_micosi, p. 23] soprattutto da Pseudomonas
+aeruginosa, determina la comparsa di un colorito giallo-brunastro o francamente verdastro
+del letto ungueale.
+• Onicomicosi...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 19] - parestesie/insensibilità: alterazioni della sensibilità tattile, percettiva, dolorifica che assumono significato soprattutto
+se distrettuali;
+- trem...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 29.7s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 3.4s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Con i soli dati (dolore addominale crampiforme forte di 6 h e rash eritematoso pruriginoso di 3 h) la combinazione suggerisce una vasculite a piccoli vasi, tipicamente IgA (Henoch‑Schönlein), soprattutto in assenza di allergie o infezioni evidenti.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Il quadro clinico è coerente con vasculite IgA: dolore addominale intenso, rash non urticario e pruriginoso, età adulta. Le alternative (anafilassi lieve, gastroenterite virale) sono meno probabili per mancanza di segni respiratori, edema o diarrea con febbre.",
+  "ipotesi_alternativa_scartata": "Reazione allergica sistemica (anafilassi lieve) o gastroenterite virale con rash secondario",
+  "motivo_scarto": "Assenza di compromissione respiratoria, ipotensione, edema angioedematoso e rash tipico urticario; durata del dolore più prolungata rispetto a una semplice gastroenterite virale.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione; gli esami proposti sono appropriati per conferma."
+}
+
+🔀 ROUTER: ipotesi confermata da tutti -> giro di verifica finale
+🔀 ROUTER: giro di verifica, turno di gastroenterologist (battuta 5/12)
+📚 RAG [gastroenterologist]: 3 pezzi recuperati
+   1. [gastro_aopisa_dolore_addominale, p. 4] 1. PREMESSA
+Si definisce Dolore Addominale non Traumatico una ma nifestazione dolorosa insorta acutamente, localizzata e/o
+riferita all'addome (ovvero...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 48] secondarie, oppure al trattamento antineoplastico (chemioterapia e radiote rapia in primis). Nausea, astenia, anoressia,
+disturbi digestivi non specif...
+   3. [gastro_fvg_pdta_emorragie_digestive, p. 25] ● Per i pazienti a basso rischio (GBS<1, stratificazione precisa) programmare EGDS non urgente ma differita,
+ovvero primo appuntamento possibile nell’...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 32.9s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 5.0s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Dolore addominale crampiforme forte + rash eritematoso pruriginoso in giovane adulta suggeriscono vasculite a piccoli vasi; la più probabile è IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "I criteri clinici (dolore addominale acuto, rash non urticario) e l'assenza di segni allergici o infettivi coincidono con la presentazione tipica della vasculite IgA; gli esami proposti (emocromo, IgA sieriche, biopsia cutanea, ecografia addominale, FOBT) sono adeguati per conferma.",
+  "ipotesi_alternativa_scartata": "Reazione allergica sistemica (anafilassi lieve) o gastroenterite virale con rash secondario",
+  "motivo_scarto": "Mancano segni respiratori, ipotensione, edema angioedematoso (anafilassi) e il rash non è urticario; la durata del dolore è più prolungata rispetto a una semplice gastroenterite virale.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione; gli esami suggeriti sono appropriati per conferma diagnostica."
+}
+
+🔀 ROUTER: giro di verifica, turno di dermatologist (battuta 6/12)
+📚 RAG [dermatologist]: 3 pezzi recuperati
+   1. [dermatologia_sidemast_micosi, p. 9] e l’onicogrifosi. Considerando la contagiosità delle dermatofitosi e i costi sanitari per il loro
+trattamento è necessario che la diagnosi sia quanto ...
+   2. [dermatologia_sidemast_micosi, p. 24] Criteri diagnostici
+Vedi dermatofitosi.
+Accertamenti diagnostici di laboratorio
+Dopo l’anamnesi e l’esame clinico il sospetto diagnostico va sempre co...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 56] ISCHEMIA ACUTA DI UN ARTO: dolore, pallore, cute fredda, spesso impotenza funzionale insorti acutamente nel corso di
+alcune ore, sono segni di un prob...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 30.3s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 5.0s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Con i soli dati (dolore addominale crampiforme forte, rash eritematoso pruriginoso, assenza di allergie o segni di infezione) la diagnosi più plausibile è una vasculite a piccoli vasi, tipicamente IgA (Henoch‑Schönlein).",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "Il rash non urticario, la forte crampi addominale e la durata di ore sono coerenti con vasculite IgA; le alternative (anafilassi lieve, gastroenterite virale) mancano dei criteri chiave (segni respiratori, febbre, diarrea). Gli esami proposti (emocromo, IgA sieriche, biopsia cutanea, ecografia addominale, FOBT) sono appropriati per conferma.",
+  "ipotesi_alternativa_scartata": "Reazione allergica sistemica (anafilassi lieve) o gastroenterite virale con rash secondario",
+  "motivo_scarto": "Mancano segni respiratori, ipotensione, edema angioedematoso (anafilassi) e il rash non è urticario; inoltre il dolore addominale è più prolungato e crampiforme rispetto a una semplice gastroenterite virale.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione; gli esami suggeriti sono adeguati per conferma diagnostica."
+}
+
+🔀 ROUTER: giro di verifica, turno di general_practitioner (battuta 7/12)
+📚 RAG [general_practitioner]: 3 pezzi recuperati
+   1. [generale_simeu_triage_percorsi, p. 7] Triage avanzato dolore
+addominale
+Valutazione sulla porta(ABC)
+
+Compromissione
+Valutazione oggettiva parametri
+Valutazione dell’addome
+C.V.P . ed esam...
+   2. [generale_fvg_manuale_triage_adulto_2018, p. 41] 3.2.10 Dolore Addominale
+
+* DOLORE EPIGASTRICO
+* VAI ALLA SCHEDA DOLORE TORACICO
+2 IN ATTO, SEVERO
+2 ANAMNESI PER ANEURISMA AORTA ADDOMINALE
+2 EMATEME...
+   3. [generale_fvg_manuale_triage_adulto_2018, p. 57] LOMBALGIA: dolore muscolo – scheletrico che si acuisce con il movimento del tronco. Escludere patologie potenzialmente
+gravi (aneurisma aorta addomina...
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 32.2s
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 2/2 tra 5.0s
+{
+  "azione": "conferma",
+  "valutazione_indipendente": "Dolore addominale crampiforme forte associato a rash eritematoso pruriginoso in giovane adulta suggerisce vasculite a piccoli vasi, tipicamente IgA (Henoch‑Schönlein). L'assenza di segni allergici o infezioni acute rende meno probabile altra eziologia.",
+  "coincide_con_gruppo": "si",
+  "consulto_utile": "no",
+  "collega_da_consultare": null,
+  "domanda_per_il_collega": null,
+  "to": null,
+  "motivazione": "I criteri clinici (dolore addominale intenso, rash non urticario) e la presentazione tipica in adulti supportano la vasculite IgA; gli esami proposti (emocromo, IgA sieriche, biopsia cutanea, ecografia addominale, FOBT) sono appropriati per conferma.",
+  "ipotesi_alternativa_scartata": "Reazione allergica sistemica (anafilassi lieve) o gastroenterite virale con rash secondario",
+  "motivo_scarto": "Mancano segni respiratori, ipotensione, edema angioedematoso (anafilassi) e il rash non è urticario; inoltre il dolore addominale è più prolungato e crampiforme rispetto a una semplice gastroenterite virale.",
+  "fonti_consultate": "nessuna pertinente",
+  "message": "Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione; gli esami suggeriti sono adeguati per conferma diagnostica."
+}
+
+🔀 ROUTER: ipotesi di gruppo confermata da tutti -> primario
+
+⏳ LLM: errore temporaneo (RateLimitError), nuovo tentativo 1/2 tra 17.7s
+{
+    "diagnosis": "Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale",
+    "urgency_level": "ARANCIONE",
+    "operational_guidance": "Recarsi immediatamente al pronto soccorso o a una struttura di emergenza per eseguire gli esami richiesti (emocromo con formula, dosaggio IgA sieriche, esame delle feci per sangue occulto, ecografia addominale e biopsia cutanea) e avviare, se necessario, terapia sintomatica e di supporto mentre si attende la conferma diagnostica.",
+    "recommendations": "La paziente presenta dolore addominale crampiforme forte di durata di 6 ore e un rash cutaneo eritematoso pruriginoso di 3 ore, senza allergie note né sintomi respiratori o emodinamici. Questi segni clinici sono tipici di una vasculite a piccoli vasi con deposizione di IgA, soprattutto quando coesistono sintomi gastrointestinali e cutanei non urticari. Tutti gli specialisti coinvolti (Gastroenterologia, Medicina, Dermatologia) hanno confermato l'ipotesi diagnostica e hanno assegnato un livello di urgenza ARANCIONE, indicando la necessità di valutazione rapida ma non di emergenza vitale immediata (come nel caso di shock anafilattico). \n\nSono stati proposti esami mirati a confermare la vascolite (emocromo, IgA sieriche, biopsia cutanea, ecografia addominale, ricerca di sangue occulto nelle feci) e a escludere altre cause infiammatorie o infettive. Non sono state riscontrate controindicazioni o segni di gravità tale da richiedere un livello di urgenza ROSSO. Pertanto, si mantiene l'urgenza ARANCIONE, con indicazione di valutazione urgente in struttura di pronto soccorso per completare gli esami e, se confermata, avviare terapia appropriata (es. corticosteroidi) sotto supervisione specialistica."
+}
+
+👨‍⚕️ PRIMARIO → diagnosi='Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale' | urgenza=ARANCIONE
+
+####################################################################################################
+CASO 3: Addome + eruzione: 34 anni   [groq/openai/gpt-oss-120b (ragionamento low)]   tempo 223 s
+specialisti: ['gastroenterologist', 'dermatologist', 'general_practitioner']
+
+  [gastroenterologist -> tutti] proponi urgenza=ARANCIONE
+    Propongo di considerare una vasculite IgA con coinvolgimento gastrointestinale; suggerisco esami di laboratorio e imaging, e richiedo il parere del reumatologo per conferma diagnostica e gestione. — Ho considerato anche 'Reazione allergica sistemica (anafilassi lieve) o gastroenterite virale con rash secondario' ma l'ho esclusa (Mancano segni di compromissione respiratoria, ipotensione o edema angioedematoso tipici dell'anafilassi; la rash non è tipica di urticaria e la durata del dolore è più prolungata rispetto a una semplice gastroenterite virale.).
+
+  [gastroenterologist -> general_practitioner] consulta
+    Considerando una paziente adulta con dolore addominale crampiforme acuto e rash cutaneo eritematoso pruriginoso, quali criteri clinici e di laboratorio suggeriscono una vasculite IgA (Henoch‑Schönlein) e quali esami specifici dovremmo richiedere?
+
+  [general_practitioner -> gastroenterologist] conferma urgenza=ARANCIONE
+    I criteri clinici (dolore addominale, rash cutaneo non urticario) e la tipica presentazione in adulti supportano la diagnosi di vasculite IgA; gli esami proposti (emocromo, IgA sieriche, biopsia cutanea, ecografia addominale, FOBT) sono appropriati per conferma. — Confermo la diagnosi di vasculite IgA con urgenza arancione e gli esami suggeriti. — Ho considerato anche 'Reazione allergica sistemica (anafilassi lieve)' ma l'ho esclusa (Mancano segni di coinvolgimento respiratorio, ipotensione o edema angioedematoso; il rash non è urticario e la durata del dolore è più prolungata rispetto a una reazione allergica.).
+
+  [gastroenterologist -> general_practitioner] conferma urgenza=ARANCIONE
+    I criteri clinici (dolore addominale acuto, rash non urticario) e l'assenza di segni di allergia o infezione supportano la diagnosi di vasculite IgA; gli esami proposti (emocromo, IgA sieriche, biopsia cutanea, ecografia addominale, FOBT) sono appropriati per conferma. — Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione; gli esami suggeriti sono adeguati per conferma diagnostica. — Ho considerato anche 'Reazione allergica sistemica (anafilassi lieve) o gastroenterite virale con rash secondario' ma l'ho esclusa (Mancano segni respiratori, ipotensione o edema angioedematoso tipici dell'anafilassi; il rash non è urticario e la durata del dolore è più prolungata rispetto a una semplice gastroenterite virale.).
+
+  [dermatologist -> gastroenterologist] conferma urgenza=ARANCIONE
+    Il quadro clinico è coerente con vasculite IgA: dolore addominale intenso, rash non urticario e pruriginoso, età adulta. Le alternative (anafilassi lieve, gastroenterite virale) sono meno probabili per mancanza di segni respiratori, edema o diarrea con febbre. — Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione; gli esami proposti sono appropriati per conferma. — Ho considerato anche 'Reazione allergica sistemica (anafilassi lieve) o gastroenterite virale con rash secondario' ma l'ho esclusa (Assenza di compromissione respiratoria, ipotensione, edema angioedematoso e rash tipico urticario; durata del dolore più prolungata rispetto a una semplice gastroenterite virale.).
+
+  [gastroenterologist -> dermatologist] conferma [VERIFICA] urgenza=ARANCIONE
+    I criteri clinici (dolore addominale acuto, rash non urticario) e l'assenza di segni allergici o infettivi coincidono con la presentazione tipica della vasculite IgA; gli esami proposti (emocromo, IgA sieriche, biopsia cutanea, ecografia addominale, FOBT) sono adeguati per conferma. — Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione; gli esami suggeriti sono appropriati per conferma diagnostica. — Ho considerato anche 'Reazione allergica sistemica (anafilassi lieve) o gastroenterite virale con rash secondario' ma l'ho esclusa (Mancano segni respiratori, ipotensione, edema angioedematoso (anafilassi) e il rash non è urticario; la durata del dolore è più prolungata rispetto a una semplice gastroenterite virale.).
+
+  [dermatologist -> gastroenterologist] conferma [VERIFICA] urgenza=ARANCIONE
+    Il rash non urticario, la forte crampi addominale e la durata di ore sono coerenti con vasculite IgA; le alternative (anafilassi lieve, gastroenterite virale) mancano dei criteri chiave (segni respiratori, febbre, diarrea). Gli esami proposti (emocromo, IgA sieriche, biopsia cutanea, ecografia addominale, FOBT) sono appropriati per conferma. — Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione; gli esami suggeriti sono adeguati per conferma diagnostica. — Ho considerato anche 'Reazione allergica sistemica (anafilassi lieve) o gastroenterite virale con rash secondario' ma l'ho esclusa (Mancano segni respiratori, ipotensione, edema angioedematoso (anafilassi) e il rash non è urticario; inoltre il dolore addominale è più prolungato e crampiforme rispetto a una semplice gastroenterite virale.).
+
+  [general_practitioner -> dermatologist] conferma [VERIFICA] urgenza=ARANCIONE
+    I criteri clinici (dolore addominale intenso, rash non urticario) e la presentazione tipica in adulti supportano la vasculite IgA; gli esami proposti (emocromo, IgA sieriche, biopsia cutanea, ecografia addominale, FOBT) sono appropriati per conferma. — Confermo la diagnosi di vasculite IgA con coinvolgimento gastrointestinale e l'urgenza arancione; gli esami suggeriti sono adeguati per conferma diagnostica. — Ho considerato anche 'Reazione allergica sistemica (anafilassi lieve) o gastroenterite virale con rash secondario' ma l'ho esclusa (Mancano segni respiratori, ipotensione, edema angioedematoso (anafilassi) e il rash non è urticario; inoltre il dolore addominale è più prolungato e crampiforme rispetto a una semplice gastroenterite virale.).
+
+IPOTESI DI GRUPPO: {'diagnosis': 'Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale', 'urgency_level': 'ARANCIONE', 'recommended_exams': ['Emocolture e emocromo con formula', 'Vesicoli di sangue occulto nelle feci', 'Ecografia addominale', 'Biopsia cutanea del rash', 'Dosaggio delle immunoglobuline A sieriche'], 'confirmed_by': ['dermatologist', 'gastroenterologist', 'general_practitioner']}
+passati senza confermare: [] | turni falliti: {} | battute: 7
+DIAGNOSI FINALE: {'diagnosis': 'Vasculite IgA (Henoch‑Schönlein) con coinvolgimento gastrointestinale', 'urgency_level': 'ARANCIONE', 'specialists_involved': ['gastroenterologist', 'dermatologist', 'general_practitioner'], 'operational_guidance': 'Recarsi immediatamente al pronto soccorso o a una struttura di emergenza per eseguire gli esami richiesti (emocromo con formula, dosaggio IgA sieriche, esame delle feci per sangue occulto, ecografia addominale e biopsia cutanea) e avviare, se necessario, terapia sintomatica e di supporto mentre si attende la conferma diagnostica.', 'recommendations': "La paziente presenta dolore addominale crampiforme forte di durata di 6 ore e un rash cutaneo eritematoso pruriginoso di 3 ore, senza allergie note né sintomi respiratori o emodinamici. Questi segni clinici sono tipici di una vasculite a piccoli vasi con deposizione di IgA, soprattutto quando coesistono sintomi gastrointestinali e cutanei non urticari. Tutti gli specialisti coinvolti (Gastroenterologia, Medicina, Dermatologia) hanno confermato l'ipotesi diagnostica e hanno assegnato un livello di urgenza ARANCIONE, indicando la necessità di valutazione rapida ma non di emergenza vitale immediata (come nel caso di shock anafilattico). \n\nSono stati proposti esami mirati a confermare la vascolite (emocromo, IgA sieriche, biopsia cutanea, ecografia addominale, ricerca di sangue occulto nelle feci) e a escludere altre cause infiammatorie o infettive. Non sono state riscontrate controindicazioni o segni di gravità tale da richiedere un livello di urgenza ROSSO. Pertanto, si mantiene l'urgenza ARANCIONE, con indicazione di valutazione urgente in struttura di pronto soccorso per completare gli esami e, se confermata, avviare terapia appropriata (es. corticosteroidi) sotto supervisione specialistica."}
