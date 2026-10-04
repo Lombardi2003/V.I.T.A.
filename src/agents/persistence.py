@@ -31,7 +31,7 @@ _CF_ODD_VALUES = dict(zip(
 # Codice di prova per lo sviluppo: sempre "paziente nuovo", mai salvato.
 TEST_FISCAL_CODE = "1234"
 # Inizio della diagnosi scritta quando ne' il tavolo ne' il primario hanno
-# prodotto un'ipotesi (vedi _fallback_final_diagnosis in clinical.py).
+# prodotto un'ipotesi (vedi _fallback_final_diagnosis in primary.py).
 UNDETERMINED_DIAGNOSIS_PREFIX = "Ipotesi diagnostica non determinata"
 
 

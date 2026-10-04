@@ -25,8 +25,9 @@ import chainlit as cl  # noqa: E402
 from chainlit.context import init_http_context  # noqa: E402
 from langchain_core.messages import HumanMessage  # noqa: E402
 
-import src.agents.clinical as clinical  # noqa: E402
-import src.agents.intake as intake  # noqa: E402
+import src.agents.common as common  # noqa: E402
+import src.agents.photography as photography  # noqa: E402
+import src.agents.specialist as specialist  # noqa: E402
 import src.agents.persistence as persistence  # noqa: E402
 import src.graph as graph  # noqa: E402
 from src.database import MedicalDatabase, PatientRecord  # noqa: E402
@@ -103,10 +104,11 @@ class VitaTestCase(unittest.TestCase):
         self.db = MedicalDatabase(str(Path(self._tmp.name) / "test.db"))
         patches = [
             mock.patch.object(cl, "Message", FakeMessage),
-            mock.patch.object(intake, "stream_response", self.llm),
-            mock.patch.object(clinical, "stream_response", self.llm),
-            mock.patch.object(intake, "llm_vision", self.vision),
-            mock.patch.object(clinical, "retrieve", lambda queries, role=None, k=3: []),
+            # Every agent calls the text model through common.stream_response, which calls
+            # common.stream_text: replacing that one name covers all of them.
+            mock.patch.object(common, "stream_text", self.llm),
+            mock.patch.object(photography, "llm_vision", self.vision),
+            mock.patch.object(specialist, "retrieve", lambda queries, role=None, k=3: []),
             mock.patch.object(persistence, "mdb", self.db),
         ]
         for p in patches:

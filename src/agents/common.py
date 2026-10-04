@@ -61,6 +61,14 @@ def as_text(value) -> str:
     return str(value).strip()
 
 
+def _mentions(text: str, keywords: list[str]) -> bool:
+    """Controllo grezzo indipendente dall'LLM: il testo contiene almeno una di
+    queste parole chiave - usato in più nodi come rete di sicurezza quando non
+    ci si puo' fidare al 100% di quello che l'LLM dichiara di aver estratto."""
+    lowered = text.lower()
+    return any(kw in lowered for kw in keywords)
+
+
 settings = get_settings()
 
 # "Ecco il tuo LLM": creati una volta sola, all'avvio.

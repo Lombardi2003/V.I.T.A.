@@ -21,7 +21,7 @@ class PatientRecord(SQLModel, table=True):
 class MedicalDatabase:
     """Class that handles all communication with the database."""
 
-    def __init__(self, db_name: str = "medical_database.db"):
+    def __init__(self, db_name: str = "data/medical_database.db"):
         """On startup, creates the engine and generates the tables if they don't exist."""
         db_path = Path(db_name)
         if not db_path.is_absolute():

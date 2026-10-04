@@ -6,7 +6,7 @@ try:
 except ImportError:
     import helpers
 
-from src.agents import clinical
+from src.agents import roundtable, specialist
 from src.rag.retriever import RetrievedChunk
 from src.state import MedicalState, PatientCard, SymptomProfile, Symptom, GroupHypothesis, RoundTableEntry
 
@@ -24,7 +24,7 @@ class TestSpecialist(helpers.VitaTestCase):
         self.llm.answers[:] = [answer]
         st = MedicalState(patient_card=card, group_hypothesis=gh, round_table=list(round_table),
                           needed_specialists={"pulmonologist": True, "general_practitioner": True}, **state)
-        out = helpers.run(clinical.specialist_node, st, role)
+        out = helpers.run(specialist.specialist_node, st, role)
         actions = [(e.azione, e.to) for e in out.get("round_table", [])]
         return out, actions
 
@@ -114,7 +114,7 @@ class TestSpecialist(helpers.VitaTestCase):
                  "pulmonologist.": "pulmonologist", "allergologo": None, None: None}
         for name, role in cases.items():
             with self.subTest(name=name):
-                self.assertEqual(clinical._role_from_name(name), role)
+                self.assertEqual(roundtable._role_from_name(name), role)
 
     # --- notes added to the prompt ---
     def test_pediatric_note_only_for_minors(self):
@@ -136,14 +136,14 @@ class TestSpecialist(helpers.VitaTestCase):
     def test_long_entries_cut_in_the_transcript(self):
         """TEST specialist: a very long entry is cut in the transcript read by colleagues."""
         long_entry = RoundTableEntry(author="pulmonologist", azione="conferma", content="parola " * 1000)
-        text = clinical._format_round_table([long_entry])
-        self.assertLess(len(text), clinical.MAX_ENTRY_CHARS_IN_TRANSCRIPT + 100)
+        text = roundtable._format_round_table([long_entry])
+        self.assertLess(len(text), roundtable.MAX_ENTRY_CHARS_IN_TRANSCRIPT + 100)
         self.assertTrue(text.endswith("[…]"))
 
     def test_guideline_chunks_reach_the_prompt_with_citation(self):
         """TEST specialist: retrieved guideline chunks appear in the prompt with document and page."""
         chunk = RetrievedChunk(text="La spirometria e' indicata...", source_file="pneumo_bpco_2023.pdf", page_number=12, score=0.2)
-        with helpers.mock.patch.object(clinical, "retrieve", lambda queries, role=None, k=3: [chunk]):
+        with helpers.mock.patch.object(specialist, "retrieve", lambda queries, role=None, k=3: [chunk]):
             self.turn(CONFIRM, role="pulmonologist")
         self.assertIn("[pneumo_bpco_2023, p. 12] La spirometria", self.llm.prompts[0])
 
@@ -156,7 +156,7 @@ class TestSpecialist(helpers.VitaTestCase):
         def fake_retrieve(queries, role=None, k=3):
             searched.extend(queries)
             return []
-        with helpers.mock.patch.object(clinical, "retrieve", fake_retrieve):
+        with helpers.mock.patch.object(specialist, "retrieve", fake_retrieve):
             self.turn(CONFIRM, round_table=[question])
         self.assertIn("Medicina - serve la profilassi antibiotica?", searched)
         self.assertIn("mini-consulto", self.llm.prompts[0])
@@ -189,7 +189,7 @@ class TestCompactPrompt(unittest.TestCase):
         colleagues = SPECIALIST_PROMPT.split("COLLEGHI DISPONIBILI")[1].split("\n")[0]
         for role in ALL_SPECIALISTS:
             with self.subTest(role=role):
-                self.assertIn(f"{role} ({clinical.SPECIALIST_DISPLAY_NAMES[role]})", colleagues)
+                self.assertIn(f"{role} ({roundtable.SPECIALIST_DISPLAY_NAMES[role]})", colleagues)
 
 
 if __name__ == "__main__":

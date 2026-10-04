@@ -1,7 +1,7 @@
 # RAG benchmark (NOT a unit test with asserts: it MEASURES retrieval quality,
 # it gives no pass/fail). For a fixed set of clinical cases, one or more for
 # each of the 10 specialists, it builds the search queries exactly as
-# specialist_node does (clinical.py) and checks whether the retrieved chunks
+# specialist_node does (specialist.py) and checks whether the retrieved chunks
 # include a guideline of the right specialty. It prints hit@1 (the first chunk
 # is from the right specialty) and hit@3 (at least one of the 3 is), per case,
 # per specialist and in total - so every change to corpus, indexing or
@@ -44,7 +44,7 @@ from src.rag.build_index import CHROMA_DIR  # noqa: E402
 
 K = 3
 
-# Same names as SPECIALIST_DISPLAY_NAMES in src/agents/clinical.py - copied
+# Same names as SPECIALIST_DISPLAY_NAMES in src/agents/roundtable.py - copied
 # instead of imported because importing src.agents creates the LLM clients and
 # the patient database connection, useless (and with side effects) here.
 DISPLAY_NAMES = {

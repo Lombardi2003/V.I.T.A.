@@ -10,7 +10,7 @@ try:
 except ImportError:
     import helpers
 
-from src.agents import clinical, intake
+from src.agents import intake, primary, reviewer, roundtable, specialist, supervisor
 from src.state import GroupHypothesis, MedicalState, PatientCard, Symptom, SymptomProfile
 
 ROUNDS = 25
@@ -65,12 +65,12 @@ class TestRandomAnswers(helpers.VitaTestCase):
         """TEST resilience: reviewer_node survives random malformed answers."""
         state = MedicalState(patient_card=CARD, reviewer_card_shown=True,
                              triage_history=[HumanMessage(content="tosse forte da 2 giorni")])
-        self.survive("reviewer", lambda: helpers.run(intake.reviewer_node, state))
+        self.survive("reviewer", lambda: helpers.run(reviewer.reviewer_node, state))
 
     def test_supervisor_never_crashes(self):
         """TEST resilience: supervisor_node survives random malformed answers and always seats someone."""
         def call():
-            out = helpers.run(clinical.supervisor_node, MedicalState(patient_card=CARD))
+            out = helpers.run(supervisor.supervisor_node, MedicalState(patient_card=CARD))
             self.assertTrue(out["needed_specialists"])
             return out
         self.survive("supervisor", call)
@@ -79,14 +79,14 @@ class TestRandomAnswers(helpers.VitaTestCase):
         """TEST resilience: specialist_node survives random malformed answers."""
         state = MedicalState(patient_card=CARD, group_hypothesis=GH,
                              needed_specialists={"pulmonologist": True, "general_practitioner": True})
-        self.survive("specialist", lambda: helpers.run(clinical.specialist_node, state, "general_practitioner"))
+        self.survive("specialist", lambda: helpers.run(specialist.specialist_node, state, "general_practitioner"))
 
     def test_primary_never_crashes(self):
         """TEST resilience: primary_node survives random malformed answers and always gives a valid urgency code."""
         def call():
-            out = helpers.run(clinical.primary_node, MedicalState(patient_card=CARD, group_hypothesis=GH,
+            out = helpers.run(primary.primary_node, MedicalState(patient_card=CARD, group_hypothesis=GH,
                                                                   needed_specialists={"pulmonologist": True}))
-            self.assertIn(helpers.as_dict(out["final_diagnosis"])["urgency_level"], clinical.URGENCY_LEVELS)
+            self.assertIn(helpers.as_dict(out["final_diagnosis"])["urgency_level"], roundtable.URGENCY_LEVELS)
             return out
         self.survive("primary", call)
 

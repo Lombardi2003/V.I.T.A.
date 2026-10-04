@@ -1,8 +1,8 @@
 # Live script (NOT a unit test with asserts: the discussion is free text
 # written by the model). It checks whether the MINI-CONSULT works: a
 # specialist at the table calls in a colleague the supervisor did NOT choose
-# ("consulta" action, see specialist_node in clinical.py and the router in
-# graph.py).
+# ("consulta" action, see specialist_node in specialist.py and the router in
+# router.py).
 #
 # Only ONE specialist is seated on purpose (cardiologist), on a
 # safety-critical case: known atrial fibrillation (the cardiologist would

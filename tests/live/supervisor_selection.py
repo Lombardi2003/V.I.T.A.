@@ -10,7 +10,7 @@ import asyncio
 
 from chainlit.context import init_http_context
 
-from src.agents.clinical import supervisor_node
+from src.agents.supervisor import supervisor_node
 from src.state import MedicalState, PatientCard, SymptomProfile, Symptom
 
 

@@ -1,4 +1,4 @@
-# Funzione di recupero usata da specialist_node (src/agents/clinical.py) ad
+# Funzione di recupero usata da specialist_node (src/agents/specialist.py) ad
 # ogni turno del tavolo rotondo - legge l'indice gia' costruito da
 # build_index.py, non lo ricostruisce. Se l'indice non esiste ancora (build_index
 # mai eseguito), retrieve() restituisce una lista vuota invece di sollevare un

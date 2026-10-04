@@ -9,7 +9,7 @@ try:
 except ImportError:
     import helpers
 
-from src.agents import clinical
+from src.agents import primary, roundtable
 from src.state import MedicalState, PatientCard, SymptomProfile, Symptom, GroupHypothesis, RoundTableEntry
 
 _req = httpx.Request("POST", "https://x")
@@ -36,7 +36,7 @@ class TestPrimary(helpers.VitaTestCase):
     def primary(self, ans, gh=GH, **state):
         """HELPER primary: runs primary_node with one fake answer and returns the final diagnosis."""
         self.llm.answers[:] = [ans]
-        out = helpers.run(clinical.primary_node, MedicalState(patient_card=CARD, group_hypothesis=gh, needed_specialists=SEATED, **state))
+        out = helpers.run(primary.primary_node, MedicalState(patient_card=CARD, group_hypothesis=gh, needed_specialists=SEATED, **state))
         return out["final_diagnosis"]
 
     def test_confirms_the_table_code(self):
@@ -97,7 +97,7 @@ class TestPrimary(helpers.VitaTestCase):
         self.assertIn("NON scrivere \"recarsi al pronto soccorso\"", self.llm.prompts[0])
         self.llm.prompts.clear()
         self.llm.answers[:] = [answer()]
-        helpers.run(clinical.primary_node, MedicalState(patient_card=CARD.model_copy(update={"age": "9"}), group_hypothesis=GH,
+        helpers.run(primary.primary_node, MedicalState(patient_card=CARD.model_copy(update={"age": "9"}), group_hypothesis=GH,
                                                          needed_specialists=SEATED))
         self.assertIn("PAZIENTE PEDIATRICO (9 anni)", self.llm.prompts[0])
 
@@ -108,10 +108,10 @@ class TestPrimary(helpers.VitaTestCase):
 
     def test_concordant_urgencies_have_no_warning(self):
         """TEST primary: when every urgency expressed is the same, no disagreement warning is added."""
-        text = clinical._format_urgencies([said("pulmonologist", "VERDE"), said("general_practitioner", "VERDE", "conferma")])
+        text = roundtable._format_urgencies([said("pulmonologist", "VERDE"), said("general_practitioner", "VERDE", "conferma")])
         self.assertNotIn("NON e' stato concorde", text)
         self.assertIn("- VERDE: Pneumologia (intervento 1, proponi)", text)
-        self.assertEqual(clinical._format_urgencies([]), "Nessuna urgenza espressa esplicitamente al tavolo.")
+        self.assertEqual(roundtable._format_urgencies([]), "Nessuna urgenza espressa esplicitamente al tavolo.")
 
 
 if __name__ == "__main__":

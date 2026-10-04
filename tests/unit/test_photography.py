@@ -14,8 +14,8 @@ try:
 except ImportError:
     import helpers
 
-from src.agents import intake
-from src.agents.intake import NO_PHOTO_PATTERN, _prepare_image
+from src.agents import photography
+from src.agents.photography import NO_PHOTO_PATTERN, _prepare_image
 
 OK = {"lesion_type": "escoriazione", "description": "Escoriazione superficiale sull'avambraccio."}
 NOT_ASSESSABLE = {"lesion_type": "NON VALUTABILE", "description": "NON VALUTABILE"}
@@ -78,7 +78,7 @@ class TestImagePreparation(Images):
         before = _md5(self.large_png)
         b64, kind = _prepare_image(str(self.large_png))
         self.assertEqual(kind, "image/jpeg")
-        self.assertLessEqual(len(b64), intake.MAX_IMAGE_BASE64_BYTES)
+        self.assertLessEqual(len(b64), photography.MAX_IMAGE_BASE64_BYTES)
         self.assertEqual(_md5(self.large_png), before)
 
     def test_non_image_or_missing_file(self):
@@ -95,7 +95,7 @@ class TestImagePreparation(Images):
     def test_exif_rotation_applied_to_the_copy(self):
         """TEST image preparation: when a copy is made, the EXIF rotation is applied so the photo is upright."""
         before = _md5(self.rotated_jpg)
-        with helpers.mock.patch.object(intake, "MAX_IMAGE_BASE64_BYTES", 100):  # force the copy
+        with helpers.mock.patch.object(photography, "MAX_IMAGE_BASE64_BYTES", 100):  # force the copy
             b64, _ = _prepare_image(str(self.rotated_jpg))
         self.assertEqual(_decode(b64).size, (200, 300))
         self.assertEqual(_md5(self.rotated_jpg), before)

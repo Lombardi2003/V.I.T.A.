@@ -7,8 +7,8 @@ try:
 except ImportError:
     import helpers
 
-from src.agents import clinical
-from src.graph import router
+from src.agents import roundtable
+from src.agents.router import router
 from src.state import MedicalState, PatientCard, SymptomProfile, Symptom, GroupHypothesis, RoundTableEntry
 
 BASE = {"consulto_utile": "no", "to": None, "ipotesi_alternativa_scartata": "alt", "motivo_scarto": "x",
@@ -37,7 +37,7 @@ def table(roles, confirmed=(), entries=(), **state):
 class TestRouter(unittest.TestCase):
     def test_total_turn_cap_goes_to_the_primary(self):
         """TEST router: at MAX_TOTAL_TURNS the discussion ends and the primary speaks, whatever the state."""
-        out = router(table([GASTRO, DERMA], total_turns=clinical.MAX_TOTAL_TURNS))
+        out = router(table([GASTRO, DERMA], total_turns=roundtable.MAX_TOTAL_TURNS))
         self.assertEqual(out["next_step"], "chief_physician")
 
     def test_at_most_one_recruited_colleague(self):
@@ -49,7 +49,7 @@ class TestRouter(unittest.TestCase):
         self.assertIn("cardiologist", out["needed_specialists"])
 
         full = router(table([GASTRO, DERMA], confirmed=[GASTRO], entries=[consult],
-                            recruited_specialists_count=clinical.MAX_RECRUITED_SPECIALISTS))
+                            recruited_specialists_count=roundtable.MAX_RECRUITED_SPECIALISTS))
         self.assertEqual(full["next_step"], DERMA)
         self.assertNotIn("cardiologist", full["needed_specialists"])
 
@@ -66,7 +66,7 @@ class TestRouter(unittest.TestCase):
                                  entries=[entry(GASTRO), entry(DERMA, to=GASTRO, explicit=False)]))
         self.assertTrue(automatic.get("verification_started"))
         exhausted = router(table([GASTRO, DERMA], confirmed=[GASTRO, DERMA],
-                                 entries=[entry(GASTRO)] * clinical.MAX_SPEAKS_PER_SPECIALIST + [entry(DERMA, to=GASTRO)]))
+                                 entries=[entry(GASTRO)] * roundtable.MAX_SPEAKS_PER_SPECIALIST + [entry(DERMA, to=GASTRO)]))
         self.assertTrue(exhausted.get("verification_started"))
 
     def test_open_consult_keeps_the_table_open(self):
@@ -77,13 +77,13 @@ class TestRouter(unittest.TestCase):
     def test_verification_round_skips_roles_with_failed_turns(self):
         """TEST router: the final verification round skips whoever used up their failed turns."""
         out = router(table([GASTRO, DERMA], confirmed=[GASTRO], entries=[entry(GASTRO, "proponi")],
-                           failed_turns={DERMA: clinical.MAX_FAILED_TURNS}))
+                           failed_turns={DERMA: roundtable.MAX_FAILED_TURNS}))
         self.assertEqual(out["passed_without_confirming"], [DERMA])
         self.assertEqual((out["next_step"], out["verification_queue"]), (GASTRO, []))
 
     def test_action_and_consult_in_the_same_turn_count_once(self):
         """TEST router: a confirmation followed by a consult in the same turn counts as one turn, not two."""
-        from src.graph import _turns_spoken
+        from src.agents.router import _turns_spoken
         entries = [entry(GASTRO, "proponi"), entry(GASTRO, "consulta", to=DERMA), entry(DERMA),
                    entry(GASTRO, verification=True)]
         self.assertEqual(_turns_spoken(entries, GASTRO), 1)
@@ -103,7 +103,7 @@ class Script:
             self.turns.append("PRIMARY")
             self.primary_prompt = prompt
             return json.dumps(PRIMARY)
-        for role, name in clinical.SPECIALIST_DISPLAY_NAMES.items():
+        for role, name in roundtable.SPECIALIST_DISPLAY_NAMES.items():
             if f"Sei uno specialista in {name} ({role})" in prompt:
                 self.turns.append(role + (" [VERIFY]" if "GIRO DI VERIFICA FINALE: tutti" in prompt else ""))
                 item = self.answers[role].pop(0)
@@ -115,7 +115,7 @@ class TestRoundTable(helpers.VitaTestCase):
     def discussion(self, seated, answers):
         """HELPER discussion: runs the table from the supervisor onwards (the seated roles are chosen by the test)."""
         script = Script(answers)
-        with helpers.mock.patch.object(clinical, "stream_response", script):
+        with helpers.mock.patch.object(helpers.common, "stream_text", script):
             app = helpers.graph.generate_graph()
             config = helpers.graph.thread_config("t")
             card = PatientCard(first_name="X", age="34", sex="donna", symptom=SymptomProfile(symptoms=[
@@ -179,7 +179,7 @@ class TestRoundTable(helpers.VitaTestCase):
         """TEST round table: two specialists who keep revising never exceed MAX_TOTAL_TURNS model calls."""
         c, s, gh = self.discussion([GASTRO, DERMA, GP], {GASTRO: [PROPOSE] + [REVISE] * 10,
                                                          DERMA: [REVISE] * 10, GP: [REVISE] * 10})
-        self.assertLessEqual(len(c.turns) - 1, clinical.MAX_TOTAL_TURNS)
+        self.assertLessEqual(len(c.turns) - 1, roundtable.MAX_TOTAL_TURNS)
         self.assertEqual(c.turns[-1], "PRIMARY")
 
 

@@ -3,7 +3,7 @@
 # IL SUPERVISORE
 # Il suo compito è SOLO di smistamento: sceglie quali specialisti siedono al
 # tavolo (il codice accetta anche i nomi italiani e tiene al massimo
-# MAX_SELECTED_SPECIALISTS, vedi supervisor_node in clinical.py).
+# MAX_SELECTED_SPECIALISTS, vedi supervisor_node in supervisor.py).
 SUPERVISOR_PROMPT = """
 Sei il Supervisore Medico. Analizza i dati del paziente e la foto (se presente).
 Indirizza il paziente ESCLUSIVAMENTE agli specialisti pertinenti tra quelli disponibili.
@@ -181,7 +181,7 @@ ALL_SPECIALISTS = [
 # caccia di fatti mancanti, perche' tutti vedono la stessa identica cartella.
 # Questo template viene formattato con {role_display}, {role}, {card},
 # {round_table}, {hypothesis}, {linee_guida}, {consulto_pendente} (vedi
-# specialist_node in clinical.py).
+# specialist_node in specialist.py).
 #
 # Scritto in forma compatta (circa 2.000 token di istruzioni fisse invece di
 # 3.700) a parita' di regole e di campi JSON: le istruzioni si pagano a OGNI
@@ -264,7 +264,7 @@ RISPONDI SOLO CON UNO DI QUESTI JSON (nessun altro testo), secondo l'azione:
 # referti indipendenti da confrontare lui stesso), l'elenco di tutte le urgenze
 # espresse al tavolo (non solo quella finale dell'ipotesi) + la trascrizione della
 # discussione come contesto/tracciabilita' di come ci si e' arrivati - vedi
-# GroupHypothesis in state.py e specialist_node/router in clinical.py/graph.py.
+# GroupHypothesis in state.py e specialist_node/router in specialist.py/router.py.
 # Il codice di urgenza deciso dal tavolo e' un MINIMO: il primario puo' solo
 # confermarlo o alzarlo ({urgency_rule}, vedi primary_node), e la regola e'
 # comunque applicata anche in Python, non solo chiesta qui.

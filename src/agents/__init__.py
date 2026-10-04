@@ -1,12 +1,20 @@
-# Pacchetto degli agenti/nodi del grafo, diviso per responsabilita'. Non tutto
-# qui dentro e' un "agente" in senso stretto (es. persistence.py e' logica
-# deterministica, nessun LLM coinvolto) - il nome riprende comunque il "Multi-Agent"
-# con cui il progetto si presenta, usando la definizione ampia di agente
-# (percepisce, decide, agisce) e non quella ristretta "solo se usa un LLM".
+# Pacchetto degli agenti/nodi del grafo, un file per agente. Non tutto qui
+# dentro e' un "agente" in senso stretto (es. persistence.py e router.py sono
+# logica deterministica, nessun LLM coinvolto) - il nome riprende comunque il
+# "Multi-Agent" con cui il progetto si presenta, usando la definizione ampia di
+# agente (percepisce, decide, agisce) e non quella ristretta "solo se usa un LLM".
 #   common.py       - client LLM, connessione DB, utility condivise
+#   prompts.py      - tutti i prompt
+#   authors.py      - nomi mostrati in chat
 #   persistence.py  - read_db, save_db (lettura/scrittura sul DB pazienti)
-#   intake.py       - user, intake, reviewer, photography (raccolta dati dal paziente)
-#   clinical.py     - supervisor, specialisti, primario (valutazione clinica)
+#   intake.py       - anagrafica
+#   reviewer.py     - sintomi
+#   photography.py  - foto
+#   supervisor.py   - scelta degli specialisti
+#   roundtable.py   - cio' che il tavolo ha in comune (nomi, limiti, trascrizione)
+#   specialist.py   - turno di uno specialista e i 10 nodi specialistici
+#   router.py       - chi parla al prossimo turno del tavolo
+#   primary.py      - report di sintesi
 #
 # Questo file ri-esporta tutto cosi' il resto del progetto (in particolare
 # graph.py) continua a fare `from src.agents import nome_nodo` con un unico import.
@@ -27,18 +35,17 @@ from .persistence import (
     read_db_node,
     save_db_node,
 )
-from .intake import (
-    user_node,
-    intake_node,
-    reviewer_node,
-    photography_node,
-)
-from .clinical import (
+from .intake import intake_node
+from .reviewer import reviewer_node
+from .photography import photography_node
+from .supervisor import supervisor_node
+from .roundtable import (
     MAX_TOTAL_TURNS,
     MAX_RECRUITED_SPECIALISTS,
     MAX_SPEAKS_PER_SPECIALIST,
     MAX_FAILED_TURNS,
-    supervisor_node,
+)
+from .specialist import (
     specialist_node,
     cardiologist_node,
     neurologist_node,
@@ -50,5 +57,6 @@ from .clinical import (
     ophthalmologist_node,
     urologist_node,
     general_practitioner_node,
-    primary_node,
 )
+from .router import router
+from .primary import primary_node

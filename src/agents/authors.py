@@ -20,7 +20,7 @@ class Authors:
     PRIMARY_PHYSICIAN = "Primario"
 
     # Specialisti (le chiavi in inglese sono i ruoli usati nel grafo/ALL_SPECIALISTS,
-    # questi sono i nomi mostrati in chat - vedi SPECIALIST_DISPLAY_NAMES in clinical.py
+    # questi sono i nomi mostrati in chat - vedi SPECIALIST_DISPLAY_NAMES in roundtable.py
     # per la mappa ruolo->nome, tenuta in sync a mano con questi valori).
     CARDIOLOGIST = "Cardiologia"
     NEUROLOGIST = "Neurologia"

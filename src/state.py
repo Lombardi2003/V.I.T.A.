@@ -14,7 +14,7 @@ class PhotoAnalysis(BaseModel):
 # puo' presentarne piu' di uno in sistemi diversi (es. mal di testa + vista
 # offuscata), ognuno con la propria intensita'/durata (osservato in test reale:
 # durate diverse per sintomi diversi nello stesso messaggio) - vedi
-# SymptomProfile sotto e reviewer_node in intake.py per come si accumulano.
+# SymptomProfile sotto e reviewer_node in reviewer.py per come si accumulano.
 class Symptom(BaseModel):
     """ Un singolo sintomo riferito dal paziente. """
     description: str = ""
@@ -64,8 +64,8 @@ class PatientCard(BaseModel):
 # specialisti - sostituisce N referti indipendenti (il vecchio
 # SpecialistReport/medical_reports): invece di ognuno per conto proprio, tutti
 # gli specialisti coinvolti leggono, confermano o rivedono questo STESSO
-# oggetto turno dopo turno (vedi specialist_node/router in clinical.py e
-# graph.py). Si sovrascrive per intero ad ogni turno (niente reducer, come
+# oggetto turno dopo turno (vedi specialist_node/router in specialist.py e
+# router.py). Si sovrascrive per intero ad ogni turno (niente reducer, come
 # patient_card), MAI accumulato come round_table sotto.
 #
 # urgency_level usa i codici colore del triage italiano (non la scala ESI):
@@ -82,7 +82,7 @@ class GroupHypothesis(BaseModel):
     discard_reason: str = ""
     last_updated_by: str = ""      # ruolo di chi l'ha proposta/rivista per ultimo
     # Chi ha confermato la versione ATTUALE (si azzera ogni volta che qualcuno
-    # la rivede - vedi specialist_node) - il router (graph.py) considera la
+    # la rivede - vedi specialist_node) - il router (router.py) considera la
     # discussione conclusa quando coincide con tutti i needed_specialists.
     confirmed_by: List[str] = Field(default_factory=list)
 
@@ -108,10 +108,10 @@ class RoundTableEntry(BaseModel):
     # nell'ipotesi di gruppo, perche' quella tiene solo l'ULTIMA versione: le
     # urgenze proposte prima e poi riviste andavano perse, e il primario non
     # sapeva che qualcuno al tavolo aveva indicato un codice piu' alto (vedi
-    # primary_node in clinical.py).
+    # primary_node in primary.py).
     urgency: Optional[Literal["ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO"]] = None
     # True se l'intervento e' il turno del giro di verifica finale (vedi
-    # MedicalState.verification_queue e router in graph.py): non conta nel
+    # MedicalState.verification_queue e router in router.py): non conta nel
     # tetto MAX_SPEAKS_PER_SPECIALIST.
     verification: bool = False
 
@@ -152,7 +152,7 @@ class MedicalState(BaseModel):
 
     # Dizionari: usiamo default_factory=dict
     # needed_specialists: chi e' seduto al tavolo (selezione del supervisore +
-    # eventuali reclutati durante la discussione, vedi router in graph.py) - il
+    # eventuali reclutati durante la discussione, vedi router in router.py) - il
     # valore booleano non porta piu' informazione propria (era "ha depositato
     # il referto" nel vecchio disegno a referti indipendenti), resta True per
     # tutti, il dizionario serve solo come insieme ordinato di ruoli.
@@ -185,10 +185,10 @@ class MedicalState(BaseModel):
     current_turn_index: int = 0
     # Quanti specialisti sono stati coinvolti DURANTE la discussione (non dalla
     # selezione iniziale del supervisore) - tetto massimo gestito dal router,
-    # vedi MAX_RECRUITED_SPECIALISTS in clinical.py.
+    # vedi MAX_RECRUITED_SPECIALISTS in roundtable.py.
     recruited_specialists_count: int = 0
 
-    # Giro di verifica finale (router in graph.py): quando tutti hanno
+    # Giro di verifica finale (router in router.py): quando tutti hanno
     # confermato, prima del primario, ogni specialista al tavolo ha un ultimo
     # turno per dire se, letti i colleghi, la sua valutazione e' cambiata - la
     # sola regola "tutti confermano, si chiude" premiava chi confermava subito,
@@ -198,7 +198,7 @@ class MedicalState(BaseModel):
     # verifying_role: a chi il router ha appena dato un turno di verifica
     # (specialist_node lo legge per aggiungere l'istruzione al prompt).
     # Turni FALLITI per specialista (risposta illeggibile, errore dell'API):
-    # il router fa passare oltre chi ne accumula MAX_FAILED_TURNS (clinical.py)
+    # il router fa passare oltre chi ne accumula MAX_FAILED_TURNS (roundtable.py)
     # invece di richiamarlo all'infinito.
     failed_turns: dict[str, int] = Field(default_factory=dict)
     # Chi il router ha fatto passare oltre senza che confermasse la versione

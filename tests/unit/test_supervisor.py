@@ -9,7 +9,7 @@ try:
 except ImportError:
     import helpers
 
-from src.agents.clinical import _select_specialists, supervisor_node
+from src.agents.supervisor import _select_specialists, supervisor_node
 from src.state import MedicalState, PatientCard, PhotoAnalysis, SymptomProfile, Symptom
 
 QUOTA = openai.RateLimitError("tokens per day", response=httpx.Response(429, request=httpx.Request("POST", "https://x")), body=None)
