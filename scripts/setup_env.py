@@ -1,4 +1,4 @@
-"""Creates or completes .env, asking only for what the app needs: python scripts/setup_env.py [--update]"""
+"""Creates or completes .env, asking only for what the app needs: python scripts/setup_env.py [--update | --key FIELD]"""
 
 import sys
 from pathlib import Path
@@ -116,8 +116,20 @@ def update_env() -> None:
     print(f"✅ .env updated at {ENV_PATH}")
 
 
+def set_key(name: str) -> None:
+    """Asks for one provider key, even if no model in use needs it (a model of the benchmark, a second account)."""
+    name = name.lower()
+    if name not in _KEY_FIELDS:
+        raise SystemExit(f"Unknown key '{name}'. Available: {', '.join(sorted(_KEY_FIELDS))}")
+    _write_env(_prompt_fields([name], _load_existing()))
+    print(f"✅ .env updated at {ENV_PATH}")
+
+
 if __name__ == "__main__":
-    if "--update" in sys.argv:
+    if "--key" in sys.argv:
+        following = sys.argv[sys.argv.index("--key") + 1:]
+        set_key(following[0] if following else "")
+    elif "--update" in sys.argv:
         update_env()
     else:
         ensure_env()
