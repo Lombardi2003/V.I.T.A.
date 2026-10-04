@@ -261,7 +261,7 @@ The embedding model is `intfloat/multilingual-e5-small`, run locally. The corpus
 
 ### 🧰 `scripts/setup_env.py`
 
-Creates or completes `.env`. The values to ask for are read from the `Settings` class; a provider key is requested only if one of the active models needs it. `ensure_env()` runs at startup, `--update` asks for everything again.
+Creates or completes `.env`. The values to ask for are read from the `Settings` class; a provider key is requested only if one of the active models needs it. `ensure_env()` runs at startup, `--update` asks for everything again, `--key NAME` asks for one key that no active model needs (a model of the benchmark, a second account).
 
 ### 🧪 `tests/`
 

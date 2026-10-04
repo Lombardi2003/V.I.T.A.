@@ -7,6 +7,7 @@ Usage, from the project folder:
     python -m benchmark.run --model GEMINI_FLASH --condition system --runs 3
     --key-field FIELD   read the API key from another settings.py field
     --no-usage          do not ask the provider for token counts (for a provider that rejects the option)
+    --check             one tiny request instead of the cases: is the key valid, does the model exist, are tokens counted
 
 A case already in the results file is skipped: after a daily limit, run the same command again.
 """
@@ -19,6 +20,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -50,6 +52,8 @@ CONDITIONS = ("system", "baseline")  # The whole table, and the model alone.
 ROUTING_FAILED_TEXT = "Smistamento automatico non disponibile"
 PRIMARY_FALLBACK_TEXTS = ("Sintesi del primario non disponibile", "Ne' il tavolo degli specialisti ne' il primario")
 REPORT_TEXT = "Report di sintesi"
+CHECK_PROMPT = 'Rispondi solo con questo JSON, senza altro testo: {"ok": true}'  # The request sent by --check.
+_SECRETS = re.compile(r"(org_|gsk_|sk-|xai-|AIza)[A-Za-z0-9_-]+")  # Account ids and keys, never printed.
 
 
 class Meter(BaseCallbackHandler):
@@ -157,6 +161,46 @@ async def run_system(case: Case) -> dict:
     }
 
 
+def _check_once() -> tuple[bool, str]:
+    """One tiny request through the same path as the benchmark: (it worked, what happened)."""
+    meter.reset()
+    start = time.monotonic()
+    try:
+        answer = common.stream_response(CHECK_PROMPT)
+    except Exception as e:
+        return False, _SECRETS.sub(lambda m: m.group(1) + "REDACTED", f"{type(e).__name__}: {e}")[:400]
+    try:
+        common.extract_json(answer)
+        readable = "yes"
+    except json.JSONDecodeError:
+        readable = f"no (the model wrote: {answer[:80]!r})"
+    tokens = (f"yes ({meter.input_tokens} in, {meter.output_tokens} out)" if meter.usage_seen
+              else "no: the table will show time and calls only")
+    return True, f"answer in {time.monotonic() - start:.1f} s | readable JSON: {readable} | token counts: {tokens}"
+
+
+def check_model() -> int:
+    """Says whether the model can be reached and whether its tokens are counted, before a real run."""
+    print(f"Checking {describe_llm(common.llm)}")
+    ok, message = _check_once()
+    if not ok and common.llm.stream_usage:
+        # Some providers reject the option that asks for token counts: try once more without it.
+        first_error = message
+        common.llm.stream_usage = False
+        ok, message = _check_once()
+        if ok:
+            print("  OK only without token counts: run this model with --no-usage.")
+            print(f"  {message}")
+            print(f"  (with token counts: {first_error})")
+            return 0
+    print(f"  {'OK' if ok else 'FAILED'}: {message}")
+    if not ok:
+        print("  Usual causes: wrong or missing key (401), wrong model name (404), no quota left (429), a setting the "
+              "provider does not accept (400), a server that cannot be reached (connection error: a local model "
+              "needs Ollama running).")
+    return 0 if ok else 1
+
+
 def _done(path: Path) -> set:
     """The (case, condition, run) already in a results file."""
     if not path.exists():
@@ -223,6 +267,7 @@ def main() -> int:
     parser.add_argument("--runs", type=int, default=1, help="runs per case")
     parser.add_argument("--key-field", metavar="FIELD", help="settings.py field of the API key to use")
     parser.add_argument("--no-usage", action="store_true", help="do not ask the provider for token counts")
+    parser.add_argument("--check", action="store_true", help="one tiny request instead of the cases")
     args = parser.parse_args()
 
     if args.cases == ["all"]:
@@ -238,12 +283,18 @@ def main() -> int:
     model = getattr(Models, args.model)
     if args.key_field:
         model = replace(model, provider=replace(model.provider, key_field=args.key_field))
-    llm = factory.build_llm(model)
+    try:
+        llm = factory.build_llm(model)
+    except RuntimeError as e:
+        print(f"{e}\nFor a model the app does not use: python scripts/setup_env.py --key {model.provider.key_field}")
+        return 1
     llm.callbacks = [meter]
     llm.stream_usage = not args.no_usage
     common.llm = llm
     common.stream_text = metered_stream_text
     cl.Message = RecordedMessage
+    if args.check:
+        return check_model()
     return asyncio.run(run_all(args, model, args.model, cases))
 
 

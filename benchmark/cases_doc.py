@@ -34,22 +34,24 @@ def _cell(text: str) -> str:
     return text or "-"
 
 
-def case_section(case: Case) -> str:
-    """The section of one case: the patient, the symptoms, what is expected."""
+def patient_lines(case: Case) -> list[str]:
+    """The patient as the models receive it: personal data, history and the table of symptoms."""
     card = case.card
-    role = SPECIALIST_DISPLAY_NAMES[case.expected_role]
     lines = [
-        f"## Case {case.id}{' ★' if case.core else ''}: {case.title}",
-        "",
         f"**Patient.** {card.sex}, {card.age} anni. Previous conditions: "
         f"{', '.join(card.previous_conditions) or 'none'}. Allergies: {', '.join(card.allergies) or 'none'}.",
         "",
         "| Symptom | Intensity | Duration | Characteristics | Trigger |",
         "|---|---|---|---|---|",
     ]
-    lines += [f"| {s.description} | {_cell(s.intensity)} | {_cell(s.duration)} | {_cell(s.characteristics)} | "
-              f"{_cell(s.trigger)} |" for s in card.symptom.symptoms]
-    lines += [
+    return lines + [f"| {s.description} | {_cell(s.intensity)} | {_cell(s.duration)} | {_cell(s.characteristics)} | "
+                    f"{_cell(s.trigger)} |" for s in card.symptom.symptoms]
+
+
+def case_section(case: Case) -> str:
+    """The section of one case: the patient, the symptoms, what is expected."""
+    role = SPECIALIST_DISPLAY_NAMES[case.expected_role]
+    lines = [f"## Case {case.id}{' ★' if case.core else ''}: {case.title}", ""] + patient_lines(case) + [
         "",
         "| Expected | |",
         "|---|---|",

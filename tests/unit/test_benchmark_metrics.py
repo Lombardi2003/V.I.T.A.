@@ -67,6 +67,26 @@ class TestSummary(unittest.TestCase):
         self.assertEqual((s["n"], s["cases"], s["exact"]), (3, 1, 3))
 
 
+class TestStability(unittest.TestCase):
+    def test_only_repeated_cases_count(self):
+        """TEST stability: a case run once is not counted; a repeated case is stable only if every run gave the same code."""
+        records = [_record("ROSSO", "ROSSO", case="01", run=1), _record("ROSSO", "ROSSO", case="01", run=2),
+                   _record("VERDE", "VERDE", case="10", run=1), _record("VERDE", "AZZURRO", case="10", run=2),
+                   _record("BIANCO", "BIANCO", case="13", run=1)]
+        self.assertEqual(metrics.stability(records), (1, 2))
+        s = metrics.summarize(records)
+        self.assertEqual((s["stable"], s["repeated"]), (1, 2))
+
+    def test_a_missing_answer_breaks_stability(self):
+        """TEST stability: a run without a code makes the case unstable; the same wrong code every time is stable."""
+        self.assertEqual(metrics.stability([_record("ROSSO", "ROSSO", run=1), _record("ROSSO", None, run=2)]), (0, 1))
+        self.assertEqual(metrics.stability([_record("VERDE", "ROSSO", run=1), _record("VERDE", "ROSSO", run=2)]), (1, 1))
+
+    def test_no_repetitions(self):
+        """TEST stability: with one run per case nothing is repeated."""
+        self.assertEqual(metrics.stability([_record("ROSSO", "ROSSO", case="01"), _record("VERDE", "VERDE", case="10")]), (0, 0))
+
+
 class TestKappa(unittest.TestCase):
     def test_perfect_agreement(self):
         """TEST weighted_kappa: every code right gives 1."""
@@ -128,6 +148,24 @@ class TestCasesDocument(unittest.TestCase):
         self.assertEqual(cases_doc.CASES_FILE.read_text(encoding="utf-8"), cases_doc.build_document())
 
 
+class TestReviewSheet(unittest.TestCase):
+    def test_one_section_per_core_case(self):
+        """TEST review: the sheet has the five core cases, each with the patient; the report is quoted, a missing case is said."""
+        from benchmark import review
+        records = [_record("ARANCIONE", "ROSSO", case="04", report="**Report di sintesi**\n\n**Codice** ROSSO"),
+                   _record("VERDE", "VERDE", case="10", report=None),
+                   dict(_record("BIANCO", "VERDE", case="13", report="solo il modello"), condition="baseline"),
+                   _record("ROSSO", "ROSSO", case="02", report="caso non del nucleo")]
+        text = review.build_review("MODEL_A", records)
+        self.assertEqual(text.count("\n## Case "), 5)
+        self.assertEqual(text.count("**Patient.**"), 5)
+        self.assertIn("> **Report di sintesi**\n>\n> **Codice** ROSSO", text)
+        self.assertEqual(text.count("*Not run yet.*"), 3)      # 01, 07 and 13 (13 has only the model alone)
+        self.assertEqual(text.count("*No report produced.*"), 1)
+        self.assertNotIn("caso non del nucleo", text)
+        self.assertEqual(text.count("**Invented details (number):**"), 2)
+
+
 class TestTable(unittest.TestCase):
     def test_one_row_per_model_and_condition(self):
         """TEST table: one row per model and condition, and the core table keeps only the core cases."""
@@ -140,6 +178,28 @@ class TestTable(unittest.TestCase):
         self.assertIn("| MODEL_A | Full system | 2 | 2 | 1/2 |", full[2])
         self.assertIn("| MODEL_A | Model alone | 1 | 1 | 0/1 | 1/1 | 1 | 0 |", full[3])
         self.assertIn("| MODEL_A | Full system | 1 | 1 | 1/1 |", core[2])
+
+    def test_status_lists_the_missing_cases(self):
+        """TEST table: the progress says how many cases each condition has done and which are missing."""
+        records = [_record("ROSSO", "ROSSO", case=case.id) for case in CASES if case.id != "07"]
+        status = table.build_status({"MODEL_A": records}).splitlines()
+        self.assertIn("| MODEL_A | Full system | 14/15 | 1 | 07 |", status[2])
+        self.assertIn("| MODEL_A | Model alone | 0/15 | 0 |", status[3])
+        done = table.build_status({"MODEL_A": [_record("ROSSO", "ROSSO", case=case.id) for case in CASES]}).splitlines()
+        self.assertIn("| 15/15 | 1 | none |", done[2])
+
+    def test_case_table_marks_the_direction(self):
+        """TEST table: one row per case; a more urgent code is marked as over-triage, a less urgent one as under-triage."""
+        results = {"A": [_record("ARANCIONE", "ROSSO", case="04"), _record("ROSSO", "ROSSO", case="01", run=1),
+                         _record("ROSSO", "AZZURRO", case="01", run=2), _record("BIANCO", None, case="13")],
+                   "B": [_record("ARANCIONE", "ARANCIONE", case="04")]}
+        rows = {line.split(" | ")[0].strip("| "): line for line in table.build_case_table(results, "system").splitlines()[2:]}
+        self.assertEqual(len(rows), 15)
+        self.assertEqual(rows["04 ★"], "| 04 ★ | ARANCIONE | ROSSO ▲ | ARANCIONE |")
+        self.assertEqual(rows["01 ★"], "| 01 ★ | ROSSO | ROSSO / AZZURRO ▼ | - |")
+        self.assertEqual(rows["13 ★"], "| 13 ★ | BIANCO | no answer | - |")
+        self.assertEqual(rows["02"], "| 02 | ROSSO | - | - |")
+        self.assertNotIn("ROSSO", table.build_case_table(results, "baseline").split("| 04 ★ |")[1].splitlines()[0])
 
 
 if __name__ == "__main__":

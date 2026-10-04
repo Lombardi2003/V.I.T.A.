@@ -64,6 +64,7 @@ There is no `.env` to write by hand. At the first start, the app asks only for t
 ```bash
 python scripts/setup_env.py            # asks for the missing values
 python scripts/setup_env.py --update   # asks for every value again (e.g. an expired key)
+python scripts/setup_env.py --key NAME # asks for one key the app does not use (a benchmark model, a second account)
 ```
 
 ### 3. Run
@@ -98,6 +99,23 @@ The guideline index is included in the repository, so nothing has to be built be
 <div align="justify">
 
 The models are chosen in one place, at the top of `src/llm/factory.py`: `TEXT_MODEL` for every text agent and `VISION_MODEL` for the photo. The available models, with the provider each one belongs to, are listed in `src/llm/providers.py`: adding a provider or a model means adding a few lines there. The choice is in the code, not in `.env`, so every commit records which models the system ran with.
+
+</div>
+
+| Text models | Developed by | Runs on |
+|---|---|---|
+| gpt-oss-120b (active) | OpenAI | Groq |
+| gpt-oss-20b | OpenAI | Groq |
+| gemini-3.8-flash | Google | Google |
+| llama3 | Meta | Ollama (local) |
+
+| Vision models | Developed by | Runs on |
+|---|---|---|
+| qwen3.8-27b (active) | Alibaba | Groq |
+| gemini-3.8-flash | Google | Google |
+| moondream | M87 Labs | Ollama (local) |
+
+<div align="justify">
 
 Free-tier limits affect speed: with a per-minute token limit the app waits and resumes by itself, and a discussion can take a few minutes.
 

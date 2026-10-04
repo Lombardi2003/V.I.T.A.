@@ -72,6 +72,21 @@ One run per case is the minimum. Where the free quota allows it, a case is run t
 
 </div>
 
+## 🤖 Models
+
+<div align="justify">
+
+The benchmark compares text models. The models attached so far are listed below; a model is added to the table when it is attached, before it is run. Vision models are not part of the benchmark: no case has a photo, so they are never called.
+
+</div>
+
+| Text models | Developed by | Runs on |
+|---|---|---|
+| gpt-oss-120b | OpenAI | Groq |
+| gpt-oss-20b | OpenAI | Groq |
+| gemini-3.8-flash | Google | Google |
+| llama3 | Meta | Ollama (local) |
+
 ## 📏 Measures
 
 <div align="justify">
@@ -88,6 +103,7 @@ All the measures are computed by `metrics.py` from the raw results, and the comp
 | Over | Records with a code more urgent than expected (over-triage) |
 | No answer | Records without a code: no report, or an unreadable answer of the model alone. Counted as wrong, in neither direction |
 | Kappa | Quadratic weighted Cohen's kappa between expected and given codes, over the records with a code |
+| Stable | Among the cases run more than once, those whose runs all gave the same code. A dash when no case was repeated |
 | Specialty | Records where the expected specialist is among those chosen. In the full system, those chosen by the supervisor: a colleague recruited later or the second opinion does not count |
 | Invalid answers | Answers the system could not use: failed turns at the table, a failed routing, a report replaced by the fallback; for the model alone, an unreadable answer |
 | Turns | Mean turns of the round table (full system only) |
@@ -97,7 +113,7 @@ All the measures are computed by `metrics.py` from the raw results, and the comp
 
 A case in which a model call fails for a reason that is not the model's answer (daily limit, connection, rejected request) is not saved: the run stops and restarts from that case. A case in which the model gives unusable answers is saved and counted, because that is the model's behaviour.
 
-Invented details are not counted automatically. They are counted by hand, with a fixed grid, on the five core cases: every statement of the report about the patient that is not in the card and is not marked as "to verify".
+Invented details are not counted automatically. They are counted by hand, with a fixed grid, on the five core cases: every statement of the report about the patient that is not in the card and is not marked as "to verify". The sheet for the count, with the patient and the report of each core case, is written by `python -m benchmark.review --model <NAME>`.
 
 </div>
 
@@ -122,6 +138,7 @@ Fifteen cases allow a descriptive comparison, not statistical conclusions. The e
 ## ▶️ Running it
 
 ```bash
+python -m benchmark.run --model GPT_OSS_120B --check   # one tiny request: key, model name, token counts
 python -m benchmark.run --model GPT_OSS_120B
 python -m benchmark.run --model GEMINI_FLASH --cases core
 python -m benchmark.table
@@ -129,6 +146,6 @@ python -m benchmark.table
 
 <div align="justify">
 
-The raw results are in `results/`, one `.jsonl` file per model with one line per case, condition and run: codes, specialists, the whole discussion, the report, date, model, temperature and the commit of the code. `results/TABLE.md` is rebuilt from them at every call of `benchmark.table`.
+The raw results are in `results/`, one `.jsonl` file per model with one line per case, condition and run: codes, specialists, the whole discussion, the report, date, model, temperature and the commit of the code. `results/TABLE.md` is rebuilt from them at every call of `benchmark.table`: the progress of each model (cases done and missing), the table of the models, and one table per condition with the code each model gave to each case.
 
 </div>

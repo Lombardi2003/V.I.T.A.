@@ -25,6 +25,15 @@ def weighted_kappa(pairs: list[tuple[str, str]]) -> float | None:
     return None if by_chance == 0 else 1 - observed / by_chance
 
 
+def stability(records: list[dict]) -> tuple[int, int]:
+    """Among the cases run more than once, how many gave the same code every time: (stable, repeated)."""
+    codes_by_case = {}
+    for r in records:
+        codes_by_case.setdefault(r["case"], []).append(r.get("code"))
+    repeated = [codes for codes in codes_by_case.values() if len(codes) > 1]
+    return sum(len(set(codes)) == 1 for codes in repeated), len(repeated)
+
+
 def _mean(values: list) -> float | None:
     """The mean of the values that are present, or None."""
     present = [v for v in values if v is not None]
@@ -35,6 +44,7 @@ def summarize(records: list[dict]) -> dict:
     """The measures of one model in one condition, over its records (one per case and run)."""
     errors = [code_error(r["expected_code"], r.get("code")) for r in records]
     answered = [(r["expected_code"], r["code"]) for r, e in zip(records, errors) if e is not None]
+    stable, repeated = stability(records)
     return {
         "n": len(records),
         "cases": len({r["case"] for r in records}),
@@ -44,6 +54,8 @@ def summarize(records: list[dict]) -> dict:
         "over": sum(e is not None and e < 0 for e in errors),
         "no_answer": sum(e is None for e in errors),  # Counted as wrong, in neither direction.
         "kappa": weighted_kappa(answered),
+        "stable": stable,  # Cases whose runs all gave the same code...
+        "repeated": repeated,  # ...out of the cases run more than once.
         "role_ok": sum(r["expected_role"] in (r.get("roles") or []) for r in records),
         "invalid_answers": sum(r.get("invalid_answers") or 0 for r in records),
         "turns": _mean([r.get("turns") for r in records]),

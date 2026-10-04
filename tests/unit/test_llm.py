@@ -163,6 +163,25 @@ class TestNeededKeys(unittest.TestCase):
             with self.subTest(provider=provider.name):
                 self.assertTrue(provider.key_field is None or provider.key_field in Settings.model_fields)
 
+    def test_one_key_can_be_set_even_if_no_active_model_needs_it(self):
+        """TEST setup_env: --key asks for that key only, writes it and keeps the other values; an unknown name is refused."""
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            env = Path(folder) / ".env"
+            env.write_text("GROQ_API_KEY_2=first-value\nTEMPERATURE=0.0\n", encoding="utf-8")
+            asked = []
+            with mock.patch.object(setup_env, "ENV_PATH", env), \
+                 mock.patch("builtins.input", lambda prompt: asked.append(prompt) or "new-value"), \
+                 mock.patch("builtins.print"):
+                setup_env.set_key("GEMINI_API_KEY")
+                with self.assertRaises(SystemExit):
+                    setup_env.set_key("not_a_key")
+            self.assertEqual(len(asked), 1)
+            self.assertIn("GEMINI_API_KEY", asked[0])
+            self.assertEqual(env.read_text(encoding="utf-8").splitlines(),
+                             ["GROQ_API_KEY_2=first-value", "TEMPERATURE=0.0", "GEMINI_API_KEY=new-value"])
+
     def test_every_model_belongs_to_a_known_provider(self):
         """TEST providers: every model of the catalogue points to one of the listed providers, with a unique address."""
         from src.llm.providers import Model, PROVIDERS
