@@ -1,34 +1,20 @@
-# Versioni allineate a quelle installate e verificate con l'app (test reali del
-# grafo, del RAG e del tavolo rotondo).
+# Application
 chainlit==2.9.4
+langgraph==1.2.9
 langchain_core==1.5.1
 langchain_openai==1.4.1
-langgraph==1.2.9
-# Client OpenAI-compatibile usato da tutti i provider (Groq, Ollama, Gemini):
-# importato anche direttamente in src/llm/calls.py per riconoscere gli errori
-# temporanei dell'API (nuovi tentativi).
 openai==2.48.0
-# Riduzione della foto per il modello di visione (photography_node in
-# src/agents/intake.py), solo quando supera il limite del provider.
-pillow==11.1.0
 pydantic==2.11.7
 pydantic-settings==2.10.1
-SQLAlchemy==2.0.43
 sqlmodel==0.0.37
+SQLAlchemy==2.0.43
+pillow==11.1.0
 
-# RAG (src/rag/): linee guida cliniche recuperate per il tavolo rotondo -
-# embedding locale (nessuna quota/costo esterno), database vettoriale Chroma.
-# NB: chromadb <1.0 (es. 0.5.x) dipende da chroma-hnswlib, un'estensione C++ che
-# su Windows richiede Microsoft Visual C++ Build Tools per compilare (non
-# presenti su questa macchina, verificato con un tentativo reale di installazione
-# fallito) - chromadb >=1.0 ha riscritto il core in Rust, con wheel precompilate
-# per Windows, nessuna compilazione locale necessaria.
-# L'indice costruito sta in data/chroma_db/ ed e' salvato su git insieme ai PDF
-# di data/guidelines/ (vedi src/rag/build_index.py).
-chromadb==1.5.9
+# Guideline retrieval
 langchain-chroma==1.1.0
-langchain-community==0.4.1          # PyPDFLoader (lettura dei PDF in build_index.py)
-langchain-text-splitters==1.1.0     # suddivisione dei PDF in pezzi
-langchain-huggingface[full]==1.2.2  # embedding locale (sentence-transformers)
-huggingface_hub==1.30.0             # modello di embedding dalla cache locale (load_embeddings)
-pypdf==6.1.1
+chromadb==1.5.9                     # pinned: versions before 1.0 need a C++ compiler on Windows
+langchain-community==0.4.1
+pypdf==6.1.1                        # not imported directly: required by the PDF loader
+langchain-text-splitters==1.1.0
+langchain-huggingface[full]==1.2.2
+huggingface_hub==1.30.0

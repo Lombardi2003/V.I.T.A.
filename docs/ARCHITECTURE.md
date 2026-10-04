@@ -203,6 +203,10 @@ The models described in section 3.
 
 `PatientRecord` is the table (primary key: the fiscal code). `MedicalDatabase` exposes `read_patient`, `upsert_patient` (creates or updates the whole card) and `verify_patient_exists`. The file is `data/medical_database.db`: it is created at the first start and is not under version control.
 
+### 📝 `src/log.py`
+
+The terminal log. `get_logger(name)` gives each part of the project its logger. The normal level shows the flow and the problems without patient data; setting the environment variable `VITA_LOG_LEVEL=DEBUG` before starting the app adds the patient card, the model's answers and the retrieved text.
+
 ### 🔐 `src/settings.py`
 
 Reads `.env`: the provider keys and the temperature. Which models run is not here (see `src/llm/factory.py`).

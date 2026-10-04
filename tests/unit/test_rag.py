@@ -94,16 +94,16 @@ class TestIndexCleaning(unittest.TestCase):
     def test_noise_chunks_are_discarded(self):
         """TEST discard_reason: short pieces, bibliographies, tables of contents and glossaries are discarded."""
         cases = {
-            "corto": "Pag. 3",
-            "bibliografia": "Rossi A et al. N Engl J Med 2019; 380: 11. Bianchi B et al. Lancet 2020; 395: 1. "
+            "too short": "Pag. 3",
+            "bibliography": "Rossi A et al. N Engl J Med 2019; 380: 11. Bianchi B et al. Lancet 2020; 395: 1. "
                             "Verdi C et al. doi: 10.1000/xyz",
-            "sommario": "Introduzione ........ 3\nMetodi ........ 5\nRisultati ........ 9\nDiscussione ........ 12",
-            "glossario": "Acronimi\nECG Elettrocardiogramma\nPA Pressione arteriosa\nFC Frequenza cardiaca\n"
+            "table of contents": "Introduzione ........ 3\nMetodi ........ 5\nRisultati ........ 9\nDiscussione ........ 12",
+            "glossary": "Acronimi\nECG Elettrocardiogramma\nPA Pressione arteriosa\nFC Frequenza cardiaca\n"
                          "TC Tomografia computerizzata",
         }
         for reason, text in cases.items():
             with self.subTest(reason=reason):
-                self.assertEqual(discard_reason(text.ljust(MIN_CHUNK_CHARS) if reason != "corto" else text), reason)
+                self.assertEqual(discard_reason(text.ljust(MIN_CHUNK_CHARS) if reason != "too short" else text), reason)
 
     def test_clinical_prose_is_kept(self):
         """TEST discard_reason: an ordinary clinical paragraph is kept."""

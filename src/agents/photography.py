@@ -1,5 +1,5 @@
-# Nodo della foto: chiede la foto della zona interessata e la fa descrivere al
-# modello di visione.
+"""Photography node: asks for a photo of the affected area and has the vision model describe it."""
+
 import asyncio
 import json
 import base64
@@ -15,48 +15,32 @@ from src.state import MedicalState, PatientCard, PhotoAnalysis
 from .prompts import PHOTO_PROMPT
 from .common import call_with_retry, extract_json, llm_vision
 from .authors import Authors
+from src.log import get_logger
 
+log = get_logger("photography")
 
-# Riconosce un rifiuto della foto anche con formulazioni diverse dal solo "no"
-# esatto (osservato altrove nel progetto: un confronto esatto sull'intero
-# messaggio e' troppo fragile, es. "no grazie non ho foto" non veniva
-# riconosciuto) - ancorato all'inizio del messaggio per evitare falsi positivi
-# su parole comuni che contengono "no" (es. "sono", "buono").
+# A refusal in its usual forms, anchored at the start so words containing "no" do not match.
 NO_PHOTO_PATTERN = re.compile(
     r"^(no|nessuna|niente|non\s+ho|non\s+serve|non\s+c['’]?\s*[eè]|skip|salta|prosegui|procedi|avanti|senza)\b"
 )
 
-
+# The request shown to the operator.
 PHOTO_REQUEST = (
     "È disponibile una foto della zona interessata (ferita, gonfiore, eruzione cutanea…)? "
     "Allegarla, oppure scrivere \"no\" per proseguire senza foto."
 )
 
+MAX_IMAGE_BASE64_BYTES = 3_500_000  # The provider rejects images above about 4 MB in base64; this leaves a margin.
 
-# Groq accetta immagini in base64 fino a circa 4 MB: sopra, la chiamata al
-# modello di visione fallisce (una foto scattata col telefono li supera
-# spesso). Margine sotto il limite reale.
-MAX_IMAGE_BASE64_BYTES = 3_500_000
-
-
-# Lato lungo delle copie ridotte, dal piu' grande al piu' piccolo: si scende
-# solo finche' serve, per non perdere dettaglio utile all'analisi.
+# Longest side of the reduced copies, largest first: stop at the first that fits.
 RESIZE_STEPS = (2048, 1600, 1280, 1024)
 
-
+# Formats that can be sent as they are.
 SUPPORTED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
 
 def _prepare_image(image_path: str) -> tuple[str, str] | None:
-    """(base64, tipo MIME) dell'immagine da mandare al modello di visione, o
-    None se il file non si apre.
-
-    Il file originale non viene mai modificato. Se e' gia' entro il limite e
-    in un formato supportato parte cosi' com'e', con il suo tipo vero (prima
-    era sempre dichiarato JPEG, anche per un PNG). Solo se e' troppo grande
-    (o in un formato non supportato) se ne manda una COPIA ridotta in JPEG,
-    con il lato lungo il piu' grande possibile entro il limite.
-    """
+    """(base64, MIME type) to send, or None if the file cannot be opened; the original is never modified."""
     try:
         with open(image_path, "rb") as f:
             raw = f.read()
@@ -68,15 +52,15 @@ def _prepare_image(image_path: str) -> tuple[str, str] | None:
         with Image.open(io.BytesIO(raw)) as probe:
             mime = Image.MIME.get(probe.format, mime)
     except Exception:
-        return None  # non e' un'immagine leggibile
+        return None
 
     encoded = base64.b64encode(raw).decode("utf-8")
+    # Within the limit and in a supported format: sent unchanged, with its real type.
     if mime in SUPPORTED_IMAGE_TYPES and len(encoded) <= MAX_IMAGE_BASE64_BYTES:
         return encoded, mime
 
     with Image.open(io.BytesIO(raw)) as original:
-        # Rotazione salvata nei metadati (tipica delle foto da telefono):
-        # applicata alla copia, cosi' il modello vede la foto dritta.
+        # Otherwise a reduced JPEG copy, with the rotation stored by phones applied.
         img = ImageOps.exif_transpose(original).convert("RGB")
     for side in RESIZE_STEPS:
         copy = img.copy()
@@ -85,41 +69,28 @@ def _prepare_image(image_path: str) -> tuple[str, str] | None:
         copy.save(buffer, format="JPEG", quality=90)
         encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
         if len(encoded) <= MAX_IMAGE_BASE64_BYTES:
-            print(f"📸 PHOTOGRAPHY: foto ridotta per l'invio ({img.width}x{img.height} -> {copy.width}x{copy.height}), originale invariato")
+            log.info("photo reduced for sending (%sx%s -> %sx%s), original untouched", img.width, img.height, copy.width, copy.height)
             return encoded, "image/jpeg"
-    return encoded, "image/jpeg"  # ultima riduzione, anche se ancora grande
+    return encoded, "image/jpeg"
 
 
 def _without_photo(card: PatientCard) -> dict:
-    """Scheda senza foto: dopo un'analisi non riuscita o non valutabile la foto
-    va tolta, altrimenti al messaggio successivo verrebbe analizzata di nuovo
-    (o arriverebbe agli specialisti come foto senza descrizione)."""
+    """The card with the photo removed, so a failed photo is not analysed again."""
     updated = card.model_dump()
     updated["symptom"]["photo"] = None
     return updated
 
 
-# Nodo per l'analisi dell'immagine del danno
 async def photography_node(state: MedicalState):
-    """Compito puramente osservativo: descrive cosa mostra la foto (tipo di
-    lesione, descrizione clinica), senza esprimere un giudizio di gravita' -
-    quella valutazione richiede il quadro clinico completo ed e' compito dei
-    nodi successivi (supervisore/specialisti/primario), non di chi vede solo
-    un'immagine isolata."""
-
+    """Requests the photo and stores its description; it never judges severity."""
     last_user = state.triage_history[-1] if state.triage_history else None
-    ultimo_testo = last_user.content.strip().lower() if last_user and isinstance(last_user, HumanMessage) else ""
+    last_text = last_user.content.strip().lower() if last_user and isinstance(last_user, HumanMessage) else ""
 
-    # 1. Foto presente nello stato → analizza (controllo PRIMA del rifiuto testuale:
-    # una foto davvero allegata e' un segnale inequivocabile, non deve essere
-    # scartata solo perche' la didascalia che la accompagna inizia per caso con
-    # una parola tipo "no" - es. "No, non è preoccupante ma eccola comunque",
-    # osservato in test reale). Vale anche al primo passaggio, se la foto era
-    # gia' stata allegata prima.
     photo: PhotoAnalysis | None = state.patient_card.symptom.photo
+    # An attached photo is checked before the text refusal: a caption starting with "no" must not discard it.
     if photo and photo.photo_url:
         image_path = photo.photo_url
-        print(f"📸 PHOTOGRAPHY: analisi immagine → {image_path}")
+        log.info("analysing the photo")
 
         prepared = _prepare_image(image_path)
         if not prepared:
@@ -140,33 +111,26 @@ async def photography_node(state: MedicalState):
         async with cl.Step(name="Analisi foto", type="tool", default_open=False, show_input="text") as step:
             step.input = image_path
             try:
-                # Stessa ragione di asyncio.to_thread altrove in questo file:
-                # .invoke() e' sincrona/bloccante, non va chiamata direttamente
-                # dentro una funzione async. call_with_retry: nuovi tentativi
-                # dopo un errore temporaneo dell'API (vedi common.py).
+                # The call blocks: run it in a thread, with retries after a temporary error.
                 response = await asyncio.to_thread(call_with_retry, llm_vision.invoke, messages)
                 step.output = response.content
             except Exception as e:
                 step.output = f"Errore durante la chiamata al modello di visione: {e}"
-                print(f"📸 PHOTOGRAPHY: errore chiamata modello → {e}")
+                log.error("vision model call failed: %s", e)
                 msg = "Errore durante l'analisi della foto. Si procede senza foto."
                 await cl.Message(content=msg, author=Authors.PHOTOGRAPHY).send()
                 return {"patient_card": _without_photo(state.patient_card), "general_history": [AIMessage(content=msg)],
                         "photo_request_shown": True, "next_step": "supervisor"}
 
         try:
-            # extract_json gestisce anche i modelli "thinking" (come quello di
-            # visione attuale) che antepongono al JSON un blocco <think>...</think>
-            # (vedi src/llm/calls.py).
             clinical_data = extract_json(response.content)
 
-            tipo  = str(clinical_data.get("lesion_type", "")).strip()
-            descr = str(clinical_data.get("description", "")).strip()
+            lesion_type  = str(clinical_data.get("lesion_type", "")).strip()
+            description = str(clinical_data.get("description", "")).strip()
 
-            # Foto non chiara o senza lesioni (vedi PHOTO_PROMPT): se ne chiede
-            # un'altra invece di proseguire come se l'analisi fosse riuscita.
-            if "NON VALUTABILE" in f"{tipo} {descr}".upper() or not (tipo or descr):
-                print("📸 PHOTOGRAPHY → foto non valutabile")
+            # An unusable photo is removed and another one is requested.
+            if "NON VALUTABILE" in f"{lesion_type} {description}".upper() or not (lesion_type or description):
+                log.info("photo not assessable: another one requested")
                 msg = "Foto non valutabile: allegarne un'altra oppure scrivere \"no\" per proseguire senza foto."
                 await cl.Message(content=msg, author=Authors.PHOTOGRAPHY).send()
                 return {
@@ -177,43 +141,34 @@ async def photography_node(state: MedicalState):
                     "next_step":           "photography",
                 }
 
-            # Rete di sicurezza: validiamo tramite il modello Pydantic prima di
-            # salvare, come gia' fatto per intake/reviewer - se il modello di
-            # visione restituisce qualcosa fuori schema, non ci fidiamo alla cieca.
-            photo_analysis = PhotoAnalysis(photo_url=image_path, description=descr, injury_type=tipo)
+            photo_analysis = PhotoAnalysis(photo_url=image_path, description=description, injury_type=lesion_type)
 
             updated_card = state.patient_card.model_dump()
             updated_card["symptom"]["photo"] = photo_analysis.model_dump()
-            print(f"📸 PHOTOGRAPHY → {tipo}")
-            print(f"   Card: {json.dumps(updated_card, ensure_ascii=False)}")
-            # Stesso stile delle schede di intake/reviewer. Si mostra anche la
-            # descrizione, non solo il tipo: e' quello che il modello ha
-            # davvero osservato (margini, colore, sanguinamento, ...).
-            riepilogo = "**Foto**\n" + " · ".join(
-                part for part in (f"**Tipo** {tipo}" if tipo else "", f"**Descrizione** {descr}" if descr else "") if part
+            log.info("photo described: %s", lesion_type)
+            log.debug("card: %s", json.dumps(updated_card, ensure_ascii=False))
+            summary = "**Foto**\n" + " · ".join(
+                part for part in (f"**Tipo** {lesion_type}" if lesion_type else "", f"**Descrizione** {description}" if description else "") if part
             )
-            await cl.Message(content=riepilogo, author=Authors.PHOTOGRAPHY).send()
+            await cl.Message(content=summary, author=Authors.PHOTOGRAPHY).send()
 
             return {
                 "patient_card":        updated_card,
-                "general_history":     [AIMessage(content=f"Foto analizzata: {tipo}. {descr}")],
+                "general_history":     [AIMessage(content=f"Foto analizzata: {lesion_type}. {description}")],
                 "photo_request_shown": True,
                 "next_step":           "supervisor",
             }
 
         except Exception as e:
-            # JSON illeggibile, errore di validazione di PhotoAnalysis o
-            # qualunque altro imprevisto nella lettura della risposta.
             msg = "Errore durante l'analisi della foto. Si procede senza foto."
-            print(f"📸 PHOTOGRAPHY: errore nella risposta → {e}")
+            log.error("unusable vision answer: %s", e)
             await cl.Message(content=msg, author=Authors.PHOTOGRAPHY).send()
             return {"patient_card": _without_photo(state.patient_card), "general_history": [AIMessage(content=msg)],
                     "photo_request_shown": True, "next_step": "supervisor"}
 
-    # 2. Primo passaggio, appena confermati i sintomi (senza pausa, vedi
-    # graph.py): l'operatore non ha ancora risposto, si chiede la foto.
+    # First pass, right after the symptoms: ask for the photo.
     if not state.photo_request_shown:
-        print("📸 PHOTOGRAPHY → richiesta foto (primo passaggio)")
+        log.info("photo requested (first pass)")
         await cl.Message(content=PHOTO_REQUEST, author=Authors.PHOTOGRAPHY).send()
         return {
             "general_history":     [AIMessage(content=PHOTO_REQUEST)],
@@ -222,8 +177,8 @@ async def photography_node(state: MedicalState):
             "next_step":           "photography",
         }
 
-    # 3. Nessuna foto allegata: l'operatore ha rifiutato esplicitamente → salta
-    if NO_PHOTO_PATTERN.match(ultimo_testo):
+    # Explicit refusal: go on without a photo.
+    if NO_PHOTO_PATTERN.match(last_text):
         msg = "Nessuna foto: si procede con la sola descrizione dei sintomi."
         await cl.Message(content=msg, author=Authors.PHOTOGRAPHY).send()
         return {
@@ -231,10 +186,9 @@ async def photography_node(state: MedicalState):
             "next_step": "supervisor",
         }
 
-    # 4. Nessuna foto e nessun rifiuto → si richiede
     await cl.Message(content=PHOTO_REQUEST, author=Authors.PHOTOGRAPHY).send()
     return {
         "general_history": [AIMessage(content=PHOTO_REQUEST)],
         "triage_history":  [AIMessage(content=PHOTO_REQUEST)],
-        "next_step": "photography",  # user leggerà questo e tornerà qui
+        "next_step": "photography",
     }

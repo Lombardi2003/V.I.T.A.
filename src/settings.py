@@ -1,46 +1,27 @@
+"""Values read from .env: provider keys and temperature. The models are chosen in src/llm/factory.py."""
+
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-ENV_PATH = PROJECT_ROOT / ".env"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent  # Project folder.
+ENV_PATH = PROJECT_ROOT / ".env"  # The .env file.
 
 
 class Settings(BaseSettings):
-    """Punto unico di lettura per chiavi/config provenienti dall'esterno (.env).
-
-    I nomi dei campi (in minuscolo) corrispondono alle variabili nel file .env
-    (in maiuscolo): aggiungere qui un campo e' sufficiente perche' venga anche
-    richiesto automaticamente da scripts/setup_env.py.
-
-    Nel .env stanno solo le chiavi (segrete, fuori da git) e la temperatura:
-    QUALI modelli usa l'app si sceglie in cima a src/llm/factory.py (su git,
-    cosi' ogni esperimento e' ripetibile), e i modelli davvero in uso vengono
-    stampati all'avvio. Eventuali vecchie voci MODEL_NAME, VISION_MODEL_NAME,
-    USE_CLOUD_ACCELERATION ancora presenti nel .env vengono ignorate.
-    """
+    """Every field is a variable of .env; adding one here makes setup_env.py ask for it."""
     model_config = SettingsConfigDict(env_file=ENV_PATH, extra="ignore")
 
-    # Chiavi dei provider: servono solo quelle dei provider dei modelli scelti
-    # (se ne manca una necessaria, l'errore arriva alla creazione del client,
-    # vedi _api_key_for in src/llm/factory.py).
     groq_api_key: Optional[str] = None
-    # Seconda chiave Groq, da un altro account (limiti giornalieri separati):
-    # quale delle due usare si sceglie in cima a src/llm/factory.py (GROQ_KEY).
-    groq_api_key_2: Optional[str] = None
-    # Chiave per l'API di Gemini (Google AI Studio, piano gratuito).
+    groq_api_key_2: Optional[str] = None  # Second account, with separate daily limits.
     gemini_api_key: Optional[str] = None
-    # Seconda chiave Gemini, da un account/progetto Google Cloud diverso da
-    # quello di gemini_api_key (la quota gratuita di 20 richieste/giorno e'
-    # per-progetto). Quale delle due usare si sceglie in cima a
-    # src/llm/factory.py (GEMINI_KEY).
-    gemini_fra_key: Optional[str] = None
+    gemini_fra_key: Optional[str] = None  # Second account, with a separate daily quota.
 
     temperature: float = 0.0
 
 
 @lru_cache
 def get_settings() -> Settings:
-    """Istanzia (e valida) Settings solo alla prima richiesta effettiva."""
+    """The settings, read once."""
     return Settings()  # type: ignore[call-arg]

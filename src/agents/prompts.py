@@ -1,9 +1,6 @@
-# --- CONFIGURAZIONE PROMPTS ---
+"""Every prompt. They are in Italian, like the fields the model returns: the app reasons and answers in Italian."""
 
-# IL SUPERVISORE
-# Il suo compito è SOLO di smistamento: sceglie quali specialisti siedono al
-# tavolo (il codice accetta anche i nomi italiani e tiene al massimo
-# MAX_SELECTED_SPECIALISTS, vedi supervisor_node in supervisor.py).
+# Supervisor: one specialist per symptom, then the final list (at most three).
 SUPERVISOR_PROMPT = """
 Sei il Supervisore Medico. Analizza i dati del paziente e la foto (se presente).
 Indirizza il paziente ESCLUSIVAMENTE agli specialisti pertinenti tra quelli disponibili.
@@ -41,11 +38,7 @@ REGOLE:
 - Usa SOLO i nomi esatti tra virgolette nella lista sopra.
 """
 
-# L'INTAKE (raccolta dati anagrafici, separata dai sintomi che restano al Revisore)
-# Il suo compito e' SOLO l'anagrafica: nome, cognome, eta', sesso, allergie, patologie
-# pregresse. Allergie/patologie non bloccano se restano vuote, ma vanno affrontate
-# esplicitamente almeno una volta (anche per negarle) - per questo il prompt riceve
-# anche lo stato attuale dei due flag "addressed" e li deve restituire aggiornati.
+# Intake: extract the personal data from the message; never the symptoms.
 INTAKE_PROMPT = """Sei un assistente che raccoglie i dati anagrafici del paziente per l'operatore di triage. Rispondi SOLO con JSON valido, zero testo aggiuntivo.
 
 SCHEDA PAZIENTE ATTUALE:
@@ -96,8 +89,7 @@ RISPONDI ESCLUSIVAMENTE CON QUESTO JSON:
 }}
 """
 
-# IL REVISORE
-# Il suo compito è quello di valutare se le informazioni date sono sufficienti per una diagnosi o se richiedere ulteriori informazioni all'utente
+# Reviewer: extract the symptoms; the examples show the cases the model got wrong.
 REVIEWER_PROMPT = """Sei un estrattore di dati medici. Rispondi SOLO con JSON valido, zero testo aggiuntivo.
 
 SCHEDA PAZIENTE ATTUALE:
@@ -165,33 +157,14 @@ RISPONDI ESCLUSIVAMENTE CON QUESTO JSON:
 }}
 """
 
-# Lista contenente tutti gli specialisti disponibili
+# The ten roles; also the node names in the graph.
 ALL_SPECIALISTS = [
     "cardiologist", "neurologist", "dermatologist", "orthopedist",
     "gastroenterologist", "pulmonologist", "ent", "ophthalmologist",
     "urologist", "general_practitioner"
 ]
 
-# GLI SPECIALISTI: seduti a un tavolo virtuale insieme, non in sequenza isolata,
-# a discutere UN'UNICA ipotesi diagnostica CONDIVISA (non N referti indipendenti
-# che nessuno confronta davvero con quello degli altri). Ad ogni turno uno
-# specialista puo' proporla (solo se non esiste ancora), confermarla cosi'
-# com'e', rivederla, oppure chiamare in causa un collega non ancora al tavolo
-# con una domanda di conoscenza clinica (mini-consulto) - MAI una domanda a
-# caccia di fatti mancanti, perche' tutti vedono la stessa identica cartella.
-# Questo template viene formattato con {role_display}, {role}, {card},
-# {round_table}, {hypothesis}, {linee_guida}, {consulto_pendente} (vedi
-# specialist_node in specialist.py).
-#
-# Scritto in forma compatta (circa 2.000 token di istruzioni fisse invece di
-# 3.700) a parita' di regole e di campi JSON: le istruzioni si pagano a OGNI
-# turno di ogni specialista, e con la discussione che cresce il prompt
-# superava il limite di token al minuto di Groq (errore 413, turni persi -
-# osservato nella prova di riferimento su 4 casi). Per la stessa ragione la
-# regola BREVITA' chiede interventi corti (vedi anche _format_round_table).
-# Gli esempi di FATTI E IPOTESI non riguardano piu' le lesioni cutanee: quelli
-# vecchi ("porpora palpabile", "non sbiancano alla pressione") erano quasi la
-# soluzione di un caso di prova e ne orientavano la diagnosi.
+# Specialist turn. Kept compact: it is sent at every turn and counts against the token limit.
 SPECIALIST_PROMPT = """Sei uno specialista in {role_display} ({role}) a un tavolo virtuale con altri specialisti: insieme costruite UN'UNICA ipotesi diagnostica condivisa sul paziente, non un referto tuo separato.
 
 DATI PAZIENTE:
@@ -256,25 +229,7 @@ RISPONDI SOLO CON UNO DI QUESTI JSON (nessun altro testo), secondo l'azione:
  "message": "la domanda di conoscenza clinica, mai sui fatti del paziente"}}
 """
 
-# IL PRIMARIO: scrive il REPORT DI SINTESI per il personale del pronto soccorso
-# (terminologia della tesi: report di sintesi / ipotesi diagnostica
-# preliminare, non "diagnosi finale").
-#
-# Legge l'ipotesi di gruppo condivisa a cui il tavolo e' arrivato (non piu' N
-# referti indipendenti da confrontare lui stesso), l'elenco di tutte le urgenze
-# espresse al tavolo (non solo quella finale dell'ipotesi) + la trascrizione della
-# discussione come contesto/tracciabilita' di come ci si e' arrivati - vedi
-# GroupHypothesis in state.py e specialist_node/router in specialist.py/router.py.
-# Il codice di urgenza deciso dal tavolo e' un MINIMO: il primario puo' solo
-# confermarlo o alzarlo ({urgency_rule}, vedi primary_node), e la regola e'
-# comunque applicata anche in Python, non solo chiesta qui.
-#
-# FATTI E IPOTESI (qui e in SPECIALIST_PROMPT): in test reale il primario ha
-# scritto nel report dettagli mai riferiti dalla paziente ("lesioni non
-# blanching", "persistenti >24 h" per un'eruzione di 3 ore), presi dalle
-# ipotesi discusse al tavolo e presentati come fatti per giustificare la
-# diagnosi. Non si puo' verificare meccanicamente in Python: la regola chiede di
-# separare cio' che e' riferito da cio' che e' "da verificare".
+# Primary: the report is written for the staff, with unreported data in the list to verify.
 PRIMARY_PROMPT = """Sei il Medico Primario (Chief Medical Officer) del pronto soccorso. Il tuo compito è
 leggere la scheda del paziente e l'ipotesi diagnostica a cui il tavolo degli
 specialisti e' arrivato discutendo insieme, e scriverne il REPORT DI SINTESI per il
@@ -332,12 +287,7 @@ Rispondi ESCLUSIVAMENTE con un JSON valido strutturato così:
 }}
 """
 
-# Il MODULO DI ANALISI FOTO
-# Compito puramente osservativo: descrivere cosa si vede nell'immagine, non
-# valutarne l'urgenza clinica - quel giudizio richiede il quadro completo del
-# paziente (sintomi riferiti, storia, ecc.) e resta di competenza dei nodi che
-# lo hanno (supervisore/specialisti/primario), non del solo modello di visione
-# che vede unicamente la foto isolata.
+# Vision model: describe what is visible, without judging severity.
 PHOTO_PROMPT = """
 Sei un AI Medical Imaging Analyst esperto in Triage di Pronto Soccorso.
 Analizza l'immagine fornita e restituisci un oggetto JSON con ESATTAMENTE questi 2 campi. Non aggiungere altro testo.

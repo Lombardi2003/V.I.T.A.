@@ -1,63 +1,24 @@
-"""Catalogo dei modelli disponibili, organizzati per provenienza (provider).
-
-Fonte unica di verita' per i nomi dei modelli usati nel progetto - evita
-stringhe scritte a mano e ripetute in piu' punti, con il rischio di un refuso
-in una sola di esse. La classe in cui sta un nome indica il suo provider
-(Models.Groq.* -> Groq, Models.Ollama.* -> Ollama, ...): factory.py lo ricava
-da qui, senza bisogno di scriverlo altrove. Per usare un modello nuovo basta
-aggiungerne il nome sotto il suo provider e sceglierlo in cima a factory.py.
-"""
+"""Catalogue of the available models, grouped by provider. The active ones are chosen in factory.py."""
 
 
 class Models:
+    """Model names; the class a name belongs to tells its provider."""
     class Groq:
-        # TEXT_8B/TEXT_70B: non piu' nel catalogo modelli dell'account
-        # (verificato dalla pagina dei rate limit Groq), lasciati come storico.
-        TEXT_8B = "llama-3.1-8b-instant"
-        TEXT_70B = "llama-3.3-70b-versatile"
-        # 120B, OpenAI open-weight, modello di ragionamento - verificato
-        # disponibile su questo account con una chiamata reale ai modelli Groq.
-        TEXT_120B = "openai/gpt-oss-120b"
-        # Stessa famiglia di TEXT_120B, piu' piccolo, stesso limite (8K token/min).
-        TEXT_20B = "openai/gpt-oss-20b"
-        # Lo stesso modello di VISION_QWEN, usato per il testo: e' un modello
-        # "thinking", antepone un blocco <think>...</think> al JSON (gestito da
-        # extract_json in calls.py).
-        TEXT_QWEN_27B = "qwen/qwen3.8-27b"
-        # Sistema "agentic" di Groq (non un modello di testo "nudo"): puo'
-        # decidere da solo di usare strumenti esterni (es. ricerca web).
-        # PROVATO E SCARTATO come soluzione al limite di token/minuto: i 70K
-        # TPM dichiarati (contro 8K dei modelli sopra) sono un limite del
-        # sistema "compound" stesso, non del modello che genera davvero la
-        # risposta sotto - un errore reale ha mostrato che compound-mini si
-        # appoggia a TEXT_120B per la generazione, quindi consuma lo stesso
-        # budget da 8K TPM. Nessun vantaggio, solo il rischio in piu' del
-        # comportamento agentic - lasciato qui solo come nota per non
-        # riprovarlo in futuro pensando che risolva il problema.
+        """Groq (cloud). Free tier: 8,000 tokens per minute per model."""
+        TEXT_8B = "llama-3.1-8b-instant"  # No longer available on the account; kept as history.
+        TEXT_70B = "llama-3.3-70b-versatile"  # No longer available on the account; kept as history.
+        TEXT_120B = "openai/gpt-oss-120b"  # Reasoning model.
+        TEXT_20B = "openai/gpt-oss-20b"  # Same family as TEXT_120B, smaller.
+        TEXT_QWEN_27B = "qwen/qwen3.8-27b"  # Writes a <think> block before the JSON (handled by extract_json).
+        # Tried and discarded: it relies on TEXT_120B and shares its token limit.
         TEXT_COMPOUND_MINI = "groq/compound-mini"
-        # meta-llama/llama-4-maverick-17b-128e-instruct: non piu' accessibile su
-        # questo account (404 model_not_found, verificato con chiamata reale).
-        # Lo stesso e' poi successo a qwen/qwen3.6-27b (2026-10-01: ogni foto
-        # dava 404 e l'analisi non avveniva mai): sostituito da qwen3.8-27b,
-        # l'unico modello vision nell'elenco di Groq per questo account,
-        # provato su foto reali (abrasione riconosciuta, "NON VALUTABILE" su
-        # un'immagine vuota).
-        VISION_QWEN = "qwen/qwen3.8-27b"
+        VISION_QWEN = "qwen/qwen3.8-27b"  # The only vision model available on the account.
 
     class Ollama:
-        # In locale, nessun limite al minuto. NB: Ollama usa di default un
-        # contesto piccolo (4096 token nelle versioni recenti, 2048 nelle
-        # precedenti) e taglia in silenzio il resto del prompt - il prompt
-        # degli specialisti supera i 4000 token: avviare Ollama con la
-        # variabile d'ambiente OLLAMA_CONTEXT_LENGTH (es. 8192).
+        """Ollama (local): no rate limit; start it with a context of at least 8,192 tokens."""
         TEXT_LLAMA3 = "llama3:latest"
         VISION_MOONDREAM = "moondream"
 
     class Gemini:
-        # Google AI Studio (piano gratuito, limite di 20 richieste/GIORNO).
-        # gemini-2.5-flash (la prima scelta) e' risultato NON PIU' DISPONIBILE
-        # per nuovi utenti (404 model_not_found, verificato con una chiamata
-        # reale) - Google indicava gemini-3.6-flash come sostituto, poi a sua
-        # volta sostituito da gemini-3.8-flash. E' un modello "thinking" e
-        # nativamente multimodale: va bene anche per la foto.
-        TEXT_FLASH = "gemini-3.8-flash"
+        """Google AI Studio (cloud). Free tier: about 20 requests per day."""
+        TEXT_FLASH = "gemini-3.8-flash"  # Reasoning model, also multimodal.

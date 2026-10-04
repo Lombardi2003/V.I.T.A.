@@ -1,23 +1,5 @@
-# Pacchetto degli agenti/nodi del grafo, un file per agente. Non tutto qui
-# dentro e' un "agente" in senso stretto (es. persistence.py e router.py sono
-# logica deterministica, nessun LLM coinvolto) - il nome riprende comunque il
-# "Multi-Agent" con cui il progetto si presenta, usando la definizione ampia di
-# agente (percepisce, decide, agisce) e non quella ristretta "solo se usa un LLM".
-#   common.py       - client LLM, connessione DB, utility condivise
-#   prompts.py      - tutti i prompt
-#   authors.py      - nomi mostrati in chat
-#   persistence.py  - read_db, save_db (lettura/scrittura sul DB pazienti)
-#   intake.py       - anagrafica
-#   reviewer.py     - sintomi
-#   photography.py  - foto
-#   supervisor.py   - scelta degli specialisti
-#   roundtable.py   - cio' che il tavolo ha in comune (nomi, limiti, trascrizione)
-#   specialist.py   - turno di uno specialista e i 10 nodi specialistici
-#   router.py       - chi parla al prossimo turno del tavolo
-#   primary.py      - report di sintesi
-#
-# Questo file ri-esporta tutto cosi' il resto del progetto (in particolare
-# graph.py) continua a fare `from src.agents import nome_nodo` con un unico import.
+"""The graph nodes, one file per agent, re-exported so the graph imports them from src.agents."""
+
 from .common import (
     stream_response,
     settings,

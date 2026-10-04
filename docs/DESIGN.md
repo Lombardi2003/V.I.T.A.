@@ -78,6 +78,9 @@ Each entry has the same shape: the decision, the reason, and, where relevant, wh
 
 **Step limit computed from the turn cap.** LangGraph stops a run after 25 steps by default. A discussion that reaches the 12-turn cap takes two steps per turn (router + specialist), then router, primary and save: 27. The limit is set to `2 * MAX_TOTAL_TURNS + 20` through `thread_config()`, which every caller uses. *Observed:* found by a unit test right after the save node was added; before, it fitted by one step. Setting the limit on the compiled graph has no effect on `astream_events`, which is why it travels with the config.
 
+**The terminal log has levels.** At the normal level it shows the flow of the conversation and of the table, the fallbacks and the errors, and no patient data. The detailed level (`VITA_LOG_LEVEL=DEBUG`) adds the patient card, the model's answers and the retrieved text; it is meant for development.
+*Replaced:* plain prints that wrote the whole patient card to the terminal at every turn.
+
 **Errors reach the operator as a short message.** A node error interrupts the graph and arrives in `app.py` as an exception. The traceback goes to the terminal; the chat shows one of three short messages (usage limit, service unreachable, generic), each saying to send the last message again. Provider details such as the account identifier never reach the chat.
 
 **The model in use is shown, not selectable.** The settings panel displays the models actually loaded, read from the clients, and is disabled. The choice is made in one place in the code (`src/llm/factory.py`), so an experiment is reproducible and there is no doubt about which model produced a result.
@@ -324,7 +327,6 @@ Each entry has the same shape: the decision, the reason, and, where relevant, wh
 - **Guidelines are for adults.** Minors are handled with a note in the prompt, not with paediatric sources.
 - **Ten specialties.** Fields without a dedicated specialist go to the general practitioner.
 - **Database location.** The patient database is a local file inside the project folder (`data/`), kept out of version control. In real use it would live outside the project, with access control, backups and encryption.
-- **Terminal output.** Messages are plain prints and include the patient card; they should become levelled logs with personal data only in a detailed mode.
 - **Model dependence.** The safeguards limit the effect of an unreliable model; they cannot make its reasoning correct.
 
 </div>

@@ -74,7 +74,7 @@ chainlit run app.py -w
 
 <div align="justify">
 
-The guideline index is included in the repository, so nothing has to be built before the first run. At startup the terminal prints the models in use.
+The guideline index is included in the repository, so nothing has to be built before the first run. At startup the terminal shows the models in use; during a conversation it shows the flow, without patient data. Set the environment variable `VITA_LOG_LEVEL=DEBUG` before starting to also see the patient card and the model's answers (development only).
 
 </div>
 
@@ -128,6 +128,7 @@ src/
   graph.py              the graph: nodes, edges, pauses
   database.py           patient table
   settings.py           keys and temperature, read from .env
+  log.py                terminal log (normal and detailed level)
   agents/               one file per agent (intake, reviewer, photography,
                         supervisor, specialist, router, primary) + persistence
   llm/                  model catalogue, clients, calls and retries
