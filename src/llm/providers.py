@@ -48,12 +48,14 @@ PROVIDERS = (GROQ, OLLAMA, GEMINI)  # Every provider the project can use.
 
 class Models:
     """The models the project can use. To add one, write it here under its provider."""
-    # "low" keeps the hidden reasoning from eating the answer: with the default, answers were cut mid-JSON.
+    # GROQ models
     GPT_OSS_120B = Model("openai/gpt-oss-120b", GROQ, reasoning_effort="low")
     GPT_OSS_20B = Model("openai/gpt-oss-20b", GROQ, reasoning_effort="low")
     QWEN_27B = Model("qwen/qwen3.8-27b", GROQ, vision=True)  # Writes a <think> block before the JSON.
 
+    # OLLAMA models
     LLAMA3 = Model("llama3:latest", OLLAMA)
     MOONDREAM = Model("moondream", OLLAMA, vision=True)
 
+    # GEMINI models
     GEMINI_FLASH = Model("gemini-3.8-flash", GEMINI, vision=True)  # Reasoning model.
