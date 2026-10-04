@@ -26,7 +26,7 @@ Each entry has the same shape: the decision, the reason, and, where relevant, wh
 10. [Primary: summary report](#-10-primary-summary-report)
 11. [Model layer](#-11-model-layer)
 12. [Guideline retrieval (RAG)](#-12-guideline-retrieval-rag)
-13. [Testing](#-13-testing)
+13. [Testing and model benchmark](#-13-testing-and-model-benchmark)
 14. [Experimental findings](#-14-experimental-findings)
 15. [Known limits and future work](#-15-known-limits-and-future-work)
 
@@ -213,6 +213,8 @@ Each entry has the same shape: the decision, the reason, and, where relevant, wh
 
 **Passing without confirming is recorded as such.** A specialist who runs out of turns is moved on without being asked again and without a fake confirmation. It is listed separately from those who confirmed, and the primary is told that their silence is not agreement. *Observed:* a specialist with two failed turns was counted among those who confirmed.
 
+**The five codes are defined in the prompt.** Specialists and primary receive the national definition of each code: name, definition and maximum waiting time, from one text shared by every prompt that asks for a code. *Observed:* with only the list of colours "from the most to the least urgent", the model used a scale of its own: it assigned ARANCIONE to a case it described as "to be seen within a few hours, no immediate danger". It costs about 200 tokens per turn.
+
 **Every urgency stated is kept.** Each entry records the code its author supported. The primary sees all of them and is warned when the table disagreed. *Why:* the hypothesis holds only the last version; an earlier, higher code was lost.
 
 **Notes added to the prompt by code.** A question addressed to this specialist, the verification-round instruction, the second-opinion instruction and the paediatric note are inserted only when they apply. The context is detected in code; the prompt adapts.
@@ -288,7 +290,7 @@ Each entry has the same shape: the decision, the reason, and, where relevant, wh
 
 ---
 
-## 🧪 13. Testing
+## 🧪 13. Testing and model benchmark
 
 **Three kinds of check.**
 
@@ -297,7 +299,7 @@ Each entry has the same shape: the decision, the reason, and, where relevant, wh
 | Kind | Checks | Model | Quota |
 |---|---|---|---|
 | Unit | that every node behaves as designed | fake | none |
-| Benchmark | retrieval quality on fixed cases | none | none |
+| Retrieval benchmark | retrieval quality on fixed cases | none | none |
 | Live | clinical reasoning on real cases | real | yes |
 
 <div align="justify">
@@ -307,6 +309,18 @@ Each entry has the same shape: the decision, the reason, and, where relevant, wh
 **Tests found real defects.** The step limit of the graph (section 3) was found by a test, not in use.
 
 **Random malformed answers.** Each node is fed randomly broken answers and must always return a state update.
+
+**A separate benchmark compares models.** The live scripts show how a model reasons, but their output has to be read and cannot be compared across models. The model benchmark (`benchmark/`) runs the same 15 cases with each model and counts how often the code and the specialty are the expected ones. Its rules are in [benchmark/PROTOCOL.md](../benchmark/PROTOCOL.md).
+
+**Expected codes come from a triage manual, not from the author.** Each case is built from one row of the regional triage manual, which gives the code; the row and the page are recorded with the case. *Discarded:* published vignette sets, which use a different scale or have unclear terms of reuse, and codes assigned by hand, which would measure agreement with whoever wrote them.
+
+**Two conditions per model.** The full system, and the same model asked once with the same card and guidelines. The difference between the two is the round table, so the benchmark also says whether the table helps.
+
+**Under-triage and over-triage are counted apart.** A code less urgent than expected is the dangerous error; a single accuracy figure would hide the direction.
+
+**Frozen before the first run, run on the finished system.** Cases, expected answers and measures are fixed by a commit before any model is measured, and the system is not changed between one model and the next. The readable list of cases is generated from the cases that run, and a test fails if the two differ.
+
+**A failed call is not a wrong answer.** A case interrupted by a quota limit or a connection error is not saved and is run again; an unusable answer of the model is saved and counted. *Why:* on free tiers the daily limit ends in the middle of a case, and counting it would measure the provider, not the model.
 
 ---
 

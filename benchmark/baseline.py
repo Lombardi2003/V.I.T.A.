@@ -4,6 +4,7 @@ import asyncio
 import json
 
 import src.agents.common as common
+from src.agents.prompts import TRIAGE_CODES
 from src.agents.roundtable import SPECIALIST_DISPLAY_NAMES, _parse_urgency
 from src.agents.supervisor import _roles_from
 from src.rag.retriever import build_queries, retrieve
@@ -12,7 +13,7 @@ from .cases import Case
 
 GUIDELINE_ROLE = "general_practitioner"  # The baseline retrieves the guidelines the general practitioner would get.
 
-# In Italian like every prompt of the app; the shared rules are worded as in the specialist prompt.
+# In Italian like every prompt of the app; the shared rules and the code definitions are those of the specialist prompt.
 BASELINE_PROMPT = """Sei un medico di pronto soccorso. Valuta da solo il paziente: formula un'ipotesi diagnostica preliminare, assegna il codice di triage e indica gli specialisti pertinenti.
 
 DATI PAZIENTE:
@@ -25,13 +26,13 @@ SPECIALISTI DISPONIBILI (usa SOLO questi nomi): {specialisti}.
 
 REGOLE:
 - FATTI E IPOTESI: come fatti usa SOLO i DATI PAZIENTE. Non attribuire al paziente segni, sintomi, durate, terapie o esiti di esami che non ha riferito. Un segno non riferito NON e' assente, e' sconosciuto.
-- URGENZA: una tra "ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO" (dal piu' al meno urgente).
+- URGENZA: [TRIAGE_CODES]
 - SPECIALISTI: da uno a tre, i piu' pertinenti per i sintomi del paziente.
 
 RISPONDI SOLO CON QUESTO JSON (nessun altro testo):
 {{"diagnosis": "la tua ipotesi diagnostica preliminare", "urgency_level": "ROSSO" | "ARANCIONE" | "AZZURRO" | "VERDE" | "BIANCO",
  "specialists": ["specialista 1", "specialista 2"], "motivazione": "il ragionamento clinico, in 2-3 frasi"}}
-"""
+""".replace("[TRIAGE_CODES]", TRIAGE_CODES)
 
 
 def build_prompt(case: Case) -> str:

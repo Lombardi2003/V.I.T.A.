@@ -26,7 +26,7 @@ python -m tests.run all
 
 <div align="justify">
 
-Runs the unit tests and then the benchmark, one after the other, and ends with a summary. Other forms:
+Runs the unit tests and then the retrieval benchmark, one after the other, and ends with a summary. Other forms:
 
 </div>
 
@@ -70,10 +70,11 @@ Real graph, fake model: each test decides what the model "answers" and checks wh
 | `test_app.py` | operator error messages, photo attachment, resume after an error |
 | `test_end_to_end.py` | whole conversations from the fiscal code to the report |
 | `test_resilience.py` | random malformed model answers, same input same result |
+| `test_benchmark_metrics.py` | the model benchmark: the measures, the cases, the cases document, the table |
 
 <div align="justify">
 
-They say nothing about clinical quality (the model is fake): that is what the live scripts are for.
+They say nothing about clinical quality (the model is fake): that is what the live scripts are for. The comparison between models is not in this folder: it is the model benchmark, in [benchmark/](../benchmark/PROTOCOL.md), with its own commands; only the check of its computations is among the unit tests.
 
 </div>
 

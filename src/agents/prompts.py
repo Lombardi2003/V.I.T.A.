@@ -164,6 +164,15 @@ ALL_SPECIALISTS = [
     "urologist", "general_practitioner"
 ]
 
+# The five triage codes as the national coding defines them (data/guidelines/generale_triage_piemonte.pdf, p. 4).
+# The same text goes in every prompt that asks for a code, so the models share one scale.
+TRIAGE_CODES = """CODICI DI TRIAGE (dal piu' al meno urgente; scegli in base alla definizione, non per prudenza):
+  - "ROSSO" = emergenza: interruzione o grave compromissione di una o piu' funzioni vitali. Accesso immediato.
+  - "ARANCIONE" = urgenza: rischio di compromissione delle funzioni vitali; possibile rischio evolutivo o dolore severo. Accesso entro 15 minuti.
+  - "AZZURRO" = urgenza differibile: bassa probabilita' di evoluzione, con sofferenza e ricaduta sullo stato generale. Accesso entro 60 minuti.
+  - "VERDE" = urgenza minore: condizione stabile senza rischio evolutivo, sofferenza bassa, nessuna ricaduta sullo stato generale. Accesso entro 120 minuti.
+  - "BIANCO" = non urgenza: problema non urgente o di minima rilevanza clinica. Accesso entro 240 minuti."""
+
 # Specialist turn. Kept compact: it is sent at every turn and counts against the token limit.
 SPECIALIST_PROMPT = """Sei uno specialista in {role_display} ({role}) a un tavolo virtuale con altri specialisti: insieme costruite UN'UNICA ipotesi diagnostica condivisa sul paziente, non un referto tuo separato.
 
@@ -199,7 +208,7 @@ REGOLE:
 - MOTIVAZIONE: obbligatoria per "conferma"/"rivedi"/"consulta", nel merito clinico; vuota solo per "proponi".
 - ALTERNATIVA SCARTATA (sempre, per "proponi"/"conferma"/"rivedi", anche alla prima battuta): nomina un'altra spiegazione clinica plausibile che hai considerato e scartato ("ipotesi_alternativa_scartata") e perche' ("motivo_scarto"): da' ai colleghi qualcosa di concreto su cui dissentire.
 - LINEE GUIDA: facoltative. Se ne usi una, in "fonti_consultate" copia ESATTAMENTE il suo riferimento tra parentesi quadre e aggiungi in breve cosa ne hai tratto; non citare passaggi che non compaiono sopra; se nessuna e' utile scrivi "nessuna pertinente".
-- URGENZA: una tra "ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO" (dal piu' al meno urgente).
+- URGENZA: [TRIAGE_CODES]
 - BREVITA': i colleghi leggono tutta la discussione. "message", "motivazione" e "dettagli": al massimo 2-3 frasi ciascuno (circa 60 parole); una risposta a un consulto al massimo circa 120 parole in tutto. Niente titoli o lunghi elenchi: solo il punto clinico.
 
 RISPONDI SOLO CON UNO DI QUESTI JSON (nessun altro testo), secondo l'azione:
@@ -227,7 +236,7 @@ RISPONDI SOLO CON UNO DI QUESTI JSON (nessun altro testo), secondo l'azione:
 "consulta":
 {{"azione": "consulta", "to": "ruolo del collega assente (obbligatorio)", "motivazione": "perche' ti serve il suo parere",
  "message": "la domanda di conoscenza clinica, mai sui fatti del paziente"}}
-"""
+""".replace("[TRIAGE_CODES]", TRIAGE_CODES)
 
 # Primary: the report is written for the staff, with unreported data in the list to verify.
 PRIMARY_PROMPT = """Sei il Medico Primario (Chief Medical Officer) del pronto soccorso. Il tuo compito è
@@ -253,6 +262,8 @@ DISCUSSIONE CHE HA PORTATO A QUESTA IPOTESI (per contesto, su come si e' arrivat
 Se l'ipotesi di gruppo non risulta confermata da tutti (vedi sopra), o se dalla
 discussione emergono dubbi non risolti, usa il tuo giudizio per decidere e spiega
 perché nel campo "recommendations".
+
+[TRIAGE_CODES]
 
 REGOLA SUL LIVELLO DI URGENZA: {urgency_rule}
 
@@ -285,7 +296,7 @@ Rispondi ESCLUSIVAMENTE con un JSON valido strutturato così:
     "operational_guidance": "cosa deve fare ORA il personale del pronto soccorso",
     "recommendations": "il ragionamento clinico completo: perche' questa ipotesi, perche' questo codice, cosa ha concluso il tavolo e quali dubbi restano"
 }}
-"""
+""".replace("[TRIAGE_CODES]", TRIAGE_CODES)
 
 # Vision model: describe what is visible, without judging severity.
 PHOTO_PROMPT = """

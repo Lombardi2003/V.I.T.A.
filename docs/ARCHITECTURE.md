@@ -218,7 +218,7 @@ Reads `.env`: the provider keys and the temperature. Which models run is not her
 | File | Content |
 |---|---|
 | `common.py` | The two model clients (text and vision), created once; the database object; helpers that bring a model's answer back to the expected type (`as_list`, `as_text`, `is_yes`, `is_no`). |
-| `prompts.py` | Every prompt, and the list of the ten specialist roles. |
+| `prompts.py` | Every prompt, the definition of the five triage codes shared by the prompts that ask for one, and the list of the ten specialist roles. |
 | `authors.py` | The names shown in the chat; each matches an avatar in `public/avatars/`. |
 | `persistence.py` | Fiscal code validation, `read_db_node`, `save_db_node`. |
 | `intake.py` | `intake_node`: the card, its normalisation, confirmation and corrections. |
@@ -267,7 +267,22 @@ Creates or completes `.env`. The values to ask for are read from the `Settings` 
 
 Unit tests on the real graph with a fake model, the retrieval benchmark, and the scripts that use the real model. See [tests/README.md](../tests/README.md).
 
+### 📊 `benchmark/`
+
+The model benchmark: the same cases run with different models. It drives the real graph and reads the prompts of `src/agents/prompts.py`, so it always measures the system as it is; nothing in `src/` depends on it. Its rules are in [benchmark/PROTOCOL.md](../benchmark/PROTOCOL.md).
+
 </div>
+
+| File | Content |
+|---|---|
+| `PROTOCOL.md` | What is measured and how: cases, conditions, measures, limits. |
+| `cases.py` | The 15 cases: the patient card, and the manual row that gives the expected code and specialty. |
+| `CASES.md`, `cases_doc.py` | The readable version of the cases, and the script that writes it from `cases.py`. |
+| `run.py` | Runs one model on the cases in the two conditions, counts calls and tokens, saves each case as it ends and resumes. |
+| `baseline.py` | The "model alone" condition: one request with the card and the retrieved guidelines. |
+| `metrics.py` | The measures, computed from the raw results. |
+| `table.py` | Builds the results table. |
+| `results/` | One `.jsonl` file of raw results per model, and `TABLE.md`. Created at the first run. |
 
 ---
 

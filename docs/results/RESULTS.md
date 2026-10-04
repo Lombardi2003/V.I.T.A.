@@ -82,6 +82,14 @@ The full reasoning is in section 14 of [DESIGN.md](../DESIGN.md).
 
 </div>
 
+## 📊 Model benchmark
+
+<div align="justify">
+
+The runs above were read one by one. The comparison between models on fixed cases with an expected code is the model benchmark: its protocol is in [benchmark/PROTOCOL.md](../../benchmark/PROTOCOL.md) and its results, with the table, are in `benchmark/results/`.
+
+</div>
+
 ## ℹ️ Not included
 
 <div align="justify">

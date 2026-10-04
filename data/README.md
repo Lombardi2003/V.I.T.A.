@@ -77,7 +77,7 @@ python -m src.rag.build_index
 <div align="justify">
 
 3. Read the summary it prints: pages and chunks per document, and how many chunks each rule discarded. A document that yields very few chunks probably has text that could not be extracted.
-4. Run the benchmark and compare it with the previous result:
+4. Run the retrieval benchmark and compare it with the previous result:
 
 </div>
 

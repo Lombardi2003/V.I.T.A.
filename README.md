@@ -119,6 +119,27 @@ Runs the unit tests (real graph, fake model, no API quota) and the retrieval ben
 
 ---
 
+## 📊 Model benchmark
+
+<div align="justify">
+
+The `benchmark/` folder compares language models on the same 15 triage cases, three per priority code, each built from one row of a regional triage manual that gives the expected code. Every model is run in two conditions: the full system, from the supervisor to the report, and the model alone, asked once without the round table. It uses API quota, saves each case as soon as it ends and restarts from where it stopped.
+
+</div>
+
+```bash
+python -m benchmark.run --model GPT_OSS_120B   # one model, every case, both conditions
+python -m benchmark.table                      # the table, from the saved results
+```
+
+<div align="justify">
+
+What is measured and how is fixed in [benchmark/PROTOCOL.md](benchmark/PROTOCOL.md); the patients and the expected answers are in [benchmark/CASES.md](benchmark/CASES.md).
+
+</div>
+
+---
+
 ## 📂 Project structure
 
 ```
@@ -135,6 +156,7 @@ src/
   rag/                  guideline index and retrieval
 scripts/setup_env.py    creates or completes .env
 tests/                  unit tests, retrieval benchmark, live scripts
+benchmark/              model benchmark: cases, protocol, runner, measures, results
 data/                   guidelines (PDF), search index, patient database (not versioned)
 docs/                   architecture, design decisions, results of the real runs
 public/, .chainlit/     interface: avatars, style, configuration
@@ -151,4 +173,6 @@ chainlit.md             the "Leggimi" page shown inside the app
 | [docs/DESIGN.md](docs/DESIGN.md) | Why it is built that way: decisions, observations, discarded alternatives, known limits. |
 | [docs/results/RESULTS.md](docs/results/RESULTS.md) | What the runs with the real models showed, with their logs. |
 | [tests/README.md](tests/README.md) | How to run the tests and what each kind checks. |
+| [benchmark/PROTOCOL.md](benchmark/PROTOCOL.md) | How the models are compared: cases, conditions, measures, limits. |
+| [benchmark/CASES.md](benchmark/CASES.md) | The 15 benchmark patients, each with the expected code and specialty. |
 | [data/README.md](data/README.md) | How the guidelines are organised and how to rebuild the index. |

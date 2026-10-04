@@ -6,7 +6,7 @@
 
 <div align="justify">
 
-This document fixes what the benchmark measures and how, before any model is run. Cases, expected answers, measures and conditions are frozen by a commit made before the first real run: nothing is adapted to the results afterwards.
+This document fixes what the benchmark measures and how, before any model is run. Cases, expected answers, measures and conditions are frozen by a commit made before the first real run: nothing is adapted to the results afterwards. The benchmark is run on the finished system: the system is not changed between one model and the next, nor in response to the results.
 
 </div>
 
@@ -101,11 +101,21 @@ Invented details are not counted automatically. They are counted by hand, with a
 
 </div>
 
+## 🧭 Before the freeze
+
+<div align="justify">
+
+A pilot on three cases (04, 10, 13) with one model was run to check the script and to measure what a case costs: about 6-9 model calls and 45,000-80,000 tokens for the full system, one call and about 3,500 tokens for the model alone. Its results are not part of the benchmark.
+
+The pilot also showed that no prompt said what the five codes mean: the model used a scale of its own and called ARANCIONE what it described as a case to be seen within a few hours. The national definition of the codes (name, definition, maximum waiting time) was therefore added to the specialist prompt, to the primary prompt and to the prompt of the model alone, from one shared text. This was done before the freeze; the cases and the expected answers were not changed.
+
+</div>
+
 ## ⚠️ Limits
 
 <div align="justify">
 
-Fifteen cases allow a descriptive comparison, not statistical conclusions. The expected answers come from a regional manual and the patient texts were not validated by a physician. The manual is among the guidelines the system retrieves, so the benchmark measures whether a model applies the guidelines it is given, which is what the system asks of it; the model alone receives the same guidelines. The manual is a nursing triage tool that relies on measured vital signs, which the patient card holds only as text. Models with little free quota are run once per case, or only on the core set.
+Fifteen cases allow a descriptive comparison, not statistical conclusions. The expected answers come from a regional manual; the patient texts were written for the benchmark. The manual is in the guideline archive of the system, but the retrieval returns only a few passages per turn and does not guarantee the row a case was built from: a model may never see it. The benchmark therefore measures the code the system reaches with what it retrieves, not the ability to read a row it is shown; the model alone gets its guidelines through the same retrieval. The manual is a nursing triage tool that relies on measured vital signs, which the patient card holds only as text. Models with little free quota are run once per case, or only on the core set.
 
 </div>
 
