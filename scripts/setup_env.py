@@ -43,14 +43,13 @@ def _write_env(values: dict[str, str]) -> None:
 
 
 # Settings fields that hold a provider key: asked for only if a model in use needs them.
-_KEY_FIELDS = {"groq_api_key", "groq_api_key_2", "gemini_api_key", "gemini_fra_key"}
+_KEY_FIELDS = {name for name in Settings.model_fields if name.endswith("_key") or "_key_" in name}
 
 
 def _needed_key_fields() -> set[str]:
     """The key fields needed by the models in use (none for a local-only setup)."""
-    from src.llm.factory import TEXT_MODEL, VISION_MODEL, _PROVIDERS, provider_of_model
-    fields = {_PROVIDERS[provider_of_model(m)][1] for m in (TEXT_MODEL, VISION_MODEL)}
-    return {f for f in fields if f}
+    from src.llm.factory import needed_key_fields
+    return needed_key_fields()
 
 
 def _relevant_fields(names: list[str], existing: dict[str, str]) -> list[str]:
