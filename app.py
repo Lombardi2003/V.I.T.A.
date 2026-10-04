@@ -1,19 +1,21 @@
 """Chainlit entry point: starts a conversation and feeds each operator message to the graph."""
 
+import asyncio
 import chainlit as cl
 import openai
 import uuid
 from chainlit.input_widget import Select
 from langchain_core.messages import HumanMessage
-from scripts.setup_env import ensure_env
+from scripts.setup_env import ensure_env, ensure_session_secret
 
 # Must run before the imports below, which read the settings.
 ensure_env()
+ensure_session_secret()
 
 from src.state import MedicalState, PatientCard, PhotoAnalysis
 from src.graph import generate_graph, thread_config
-from src.llm import describe_llm
-from src.agents import llm, llm_vision
+from src import chat_history, model_choice
+from src.agents.authors import Authors
 from src.rag.retriever import warm_up
 from src.log import get_logger
 
@@ -25,27 +27,68 @@ app = generate_graph()  # The compiled graph, built once and shared by every con
 warm_up()
 
 
+@cl.data_layer
+def data_layer():
+    """The archive of the chats: with it, Chainlit shows the past conversations in the sidebar."""
+    return chat_history.build_data_layer()
+
+
+@cl.header_auth_callback
+def automatic_user(headers) -> cl.User:
+    """Signs every visitor in as the same operator, without a login page: the history needs a user to belong to."""
+    return cl.User(identifier=chat_history.OPERATOR, display_name=chat_history.OPERATOR_NAME)
+
+
+# The two model choices of the panel: widget id, kind and label.
+MODEL_WIDGETS = [
+    ("text_model", "text", "Modello di testo (anagrafica, sintomi, supervisore, specialisti, primario)"),
+    ("vision_model", "vision", "Modello per l'analisi della foto"),
+]
+LOCKED_NOTE = " - non modificabile: chat iniziata, aprirne una nuova per cambiarlo"
+
+
+async def send_panel(locked: bool) -> None:
+    """Shows the settings panel: the two model choices, locked once the chat has started."""
+    widgets = []
+    for widget_id, kind, text in MODEL_WIDGETS:
+        labels = [model_choice.label(m) for m in model_choice.choices(kind)]
+        widgets.append(Select(id=widget_id, label=text + (LOCKED_NOTE if locked else ""), values=labels,
+                              initial_index=labels.index(model_choice.label(model_choice.current[kind])),
+                              description=model_choice.missing_keys_note(kind) or None, disabled=locked))
+    await cl.ChatSettings(widgets).send()
+
+
 @cl.on_chat_start
 async def start():
-    """Opens a conversation: new thread, empty state, and the panel showing the models in use."""
+    """Opens a conversation: new thread, empty state, and the settings panel."""
     thread_id = str(uuid.uuid4())
     cl.user_session.set("thread_id", thread_id)
+    cl.user_session.set("chat_started", False)
     config = thread_config(thread_id)
 
     initial_state = MedicalState()
     app.update_state(config, initial_state.model_dump())
 
-    active = [
-        ("text_model", "Modello - testo (anagrafica, sintomi, supervisore, specialisti, primario)", llm),
-        ("vision_model", "Modello - analisi della foto", llm_vision),
-    ]
-    await cl.ChatSettings(
-        [
-            Select(id=widget_id, label=f"{label} (informativo)", values=[describe_llm(llm)],
-                   initial_index=0, disabled=True)
-            for widget_id, label, llm in active
-        ]
-    ).send()
+    await send_panel(locked=False)
+
+
+@cl.on_settings_update
+async def settings_update(new_settings: dict):
+    """Applies the models confirmed in the panel, only before the first message: afterwards the choice is ignored."""
+    outcomes = []
+    locked = bool(cl.user_session.get("chat_started"))
+    if not locked:
+        for widget_id, kind, _ in MODEL_WIDGETS:
+            chosen = new_settings.get(widget_id)
+            if chosen:
+                # Checking a local model asks its server, which blocks: run it in a thread.
+                outcomes.append(await asyncio.to_thread(model_choice.choose, kind, chosen))
+
+    # Sent again so the panel shows the models really in use, also when a choice was refused.
+    await send_panel(locked=locked)
+    messages = [message for _, message in outcomes if message]
+    if messages:
+        await cl.Message(content="\n\n".join(messages), author=Authors.SYSTEM).send()
 
 
 @cl.on_message
@@ -53,6 +96,11 @@ async def main(message: cl.Message):
     """Adds the operator's message (and an attached image) to the state and resumes the graph."""
     thread_id = cl.user_session.get("thread_id")
     config = thread_config(thread_id)
+
+    # A triage runs on one model from start to end: the choice is locked at the first message.
+    if not cl.user_session.get("chat_started"):
+        cl.user_session.set("chat_started", True)
+        await send_panel(locked=True)
 
     image_path = None
 
@@ -83,6 +131,25 @@ async def main(message: cl.Message):
     except Exception as e:
         log.exception("error while processing the message")
         await cl.Message(content=_operator_error_message(e)).send()
+
+    await _title_chat(config)
+
+
+async def _title_chat(config: dict) -> None:
+    """Titles the chat with the patient's name once the card is confirmed: until then it shows the first message, the fiscal code."""
+    if cl.user_session.get("chat_titled"):
+        return
+    state = app.get_state(config).values
+    if not state.get("card_confirmed"):
+        return
+    card = state.get("patient_card")
+    title = chat_history.chat_title(card if isinstance(card, dict) else card.model_dump())
+    try:
+        if title and await chat_history.rename_chat(title):
+            cl.user_session.set("chat_titled", True)
+    # The title is a convenience: a failure here must not disturb the triage.
+    except Exception:
+        log.exception("could not title the chat")
 
 
 def _operator_error_message(error: Exception) -> str:

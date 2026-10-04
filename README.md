@@ -89,6 +89,7 @@ The guideline index is included in the repository, so nothing has to be built be
 - Answer in plain Italian. When the card or the symptoms are complete, the app asks for confirmation; a correction is always possible ("sì, ma l'età è 45", "togli la nausea").
 - When asked for a **photo**, attach an image or write "no".
 - From there the discussion runs on its own, up to the summary report.
+- The **sidebar** on the left lists the past chats, by day. Once the patient card is confirmed a chat is titled with the patient's name and the time; until then it shows the first message. A past chat can be reopened and read, not continued.
 
 </div>
 
@@ -98,7 +99,9 @@ The guideline index is included in the repository, so nothing has to be built be
 
 <div align="justify">
 
-The models are chosen in one place, at the top of `src/llm/factory.py`: `TEXT_MODEL` for every text agent and `VISION_MODEL` for the photo. The available models, with the provider each one belongs to, are listed in `src/llm/providers.py`: adding a provider or a model means adding a few lines there. The choice is in the code, not in `.env`, so every commit records which models the system ran with.
+The models the app starts with are chosen in one place, at the top of `src/llm/factory.py`: `TEXT_MODEL` for every text agent and `VISION_MODEL` for the photo. The available models, with the provider each one belongs to, are listed in `src/llm/providers.py`: adding a provider or a model means adding a few lines there. The choice is in the code, not in `.env`, so every commit records which models the system ran with.
+
+While the app runs, the settings panel (the icon beside the message box) lets the operator pick another text or vision model among those whose key is set. The model can be changed only before the first message: a triage runs on one model from start to end, and a new chat is needed to change it. The choice made in the panel lasts until the app is restarted. Keys are never entered in the app: they are set with `scripts/setup_env.py`.
 
 </div>
 
@@ -168,6 +171,8 @@ src/
   database.py           patient table
   settings.py           keys and temperature, read from .env
   log.py                terminal log (normal and detailed level)
+  model_choice.py       settings panel: models that can be chosen, changing the model
+  chat_history.py       chat archive: its tables, the chat title
   agents/               one file per agent (intake, reviewer, photography,
                         supervisor, specialist, router, primary) + persistence
   llm/                  model catalogue, clients, calls and retries
@@ -175,7 +180,7 @@ src/
 scripts/setup_env.py    creates or completes .env
 tests/                  unit tests, retrieval benchmark, live scripts
 benchmark/              model benchmark: cases, protocol, runner, measures, results
-data/                   guidelines (PDF), search index, patient database (not versioned)
+data/                   guidelines (PDF), search index, patient database and chat archive (not versioned)
 docs/                   architecture, design decisions, results of the real runs
 public/, .chainlit/     interface: avatars, style, configuration
 chainlit.md             the "Leggimi" page shown inside the app

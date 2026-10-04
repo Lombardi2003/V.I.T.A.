@@ -114,7 +114,7 @@ cot = "full"
 
 # Specifica un file CSS che può essere utilizzato per personalizzare l'interfaccia utente.
 # Il file CSS può essere servito dalla directory pubblica o tramite un link esterno.
-custom_css = "public/style.css"
+custom_css = "/public/style.css"
 
 # Specifica attributi aggiuntivi per un file CSS personalizzato
 # custom_css_attributes = "media=\"print\""

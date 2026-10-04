@@ -56,7 +56,9 @@ class TestOnMessage(helpers.VitaTestCase):
         self.thread = str(uuid.uuid4())
         self.config = helpers.graph.thread_config(self.thread)
         self.graph.update_state(self.config, MedicalState().model_dump())
-        session = types.SimpleNamespace(get=lambda key, default=None: self.thread if key == "thread_id" else default)
+        self.session = {"thread_id": self.thread}
+        session = types.SimpleNamespace(get=lambda key, default=None: self.session.get(key, default),
+                                        set=self.session.__setitem__)
         for target, name, value in ((self.module, "app", self.graph), (self.module.cl, "user_session", session)):
             p = helpers.mock.patch.object(target, name, value)
             p.start()

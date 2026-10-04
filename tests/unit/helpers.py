@@ -14,6 +14,8 @@ from unittest import mock
 # UTF-8 output (at startup the project prints emoji, which on Windows cannot be
 # written when the output is redirected to a file).
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
+# A session secret already in the environment keeps app.py from generating one and writing it to the real .env.
+os.environ.setdefault("CHAINLIT_AUTH_SECRET", "test-session-secret")
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
@@ -22,7 +24,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import chainlit as cl  # noqa: E402
+import chainlit.data  # noqa: E402
 from chainlit.context import init_http_context  # noqa: E402
+
+# No chat archive in the tests. Chainlit asks for it by itself whenever a message or a step is sent, and app.py
+# registers the real one: marking it as already resolved, and empty, keeps every test away from the real file.
+chainlit.data._data_layer = None
+chainlit.data._data_layer_initialized = True
 from langchain_core.messages import HumanMessage  # noqa: E402
 
 import src.agents.common as common  # noqa: E402

@@ -1,5 +1,7 @@
 """Creates or completes .env, asking only for what the app needs: python scripts/setup_env.py [--update | --key FIELD]"""
 
+import os
+import secrets
 import sys
 from pathlib import Path
 
@@ -11,6 +13,9 @@ if hasattr(sys.stdout, "reconfigure"):
 
 from pydantic_core import PydanticUndefined  # noqa: E402
 from src.settings import ENV_PATH, Settings  # noqa: E402
+
+
+SESSION_SECRET = "CHAINLIT_AUTH_SECRET"  # Signs the session of the app's user. Not a provider key: it is never asked for.
 
 
 def _load_existing() -> dict[str, str]:
@@ -104,6 +109,17 @@ def ensure_env() -> None:
     updated = _prompt_fields(missing_fields, existing)
     _write_env(updated)
     print(f"✅ .env updated at {ENV_PATH}")
+
+
+def ensure_session_secret() -> None:
+    """Makes sure the secret that signs the user's session exists: generated once and kept in .env, so sessions survive a restart."""
+    if os.environ.get(SESSION_SECRET):
+        return
+    values = _load_existing()
+    if not values.get(SESSION_SECRET):
+        values[SESSION_SECRET] = secrets.token_hex(32)
+        _write_env(values)
+    os.environ[SESSION_SECRET] = values[SESSION_SECRET]
 
 
 def update_env() -> None:

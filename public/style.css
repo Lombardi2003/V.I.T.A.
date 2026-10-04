@@ -742,3 +742,27 @@ button[id^="step-"]:hover {
 .flex.flex-col.w-full.gap-1 {
     gap: 0 !important;
 }
+/* Nasconde i pollici di valutazione che Chainlit aggiunge sotto le risposte quando la cronologia delle chat è attiva. */
+button:has(> svg.lucide-thumbs-up),
+button:has(> svg.lucide-thumbs-down) {
+  display: none !important;
+}
+
+/*
+ * CRONOLOGIA DELLE CHAT
+ * Con la barra laterale Chainlit mette il contenuto in un contenitore opaco, che copriva lo sfondo sfumato:
+ * lo si rende trasparente. La barra laterale lascia intravedere lo sfondo.
+ */
+main.bg-background {
+    background-color: transparent !important;
+}
+.dark .bg-sidebar {
+    background-color: rgba(13, 15, 19, 0.55) !important;
+    backdrop-filter: blur(14px);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+.light .bg-sidebar {
+    background-color: rgba(252, 252, 252, 0.6) !important;
+    backdrop-filter: blur(14px);
+    border-right: 1px solid rgba(0, 0, 0, 0.06);
+}

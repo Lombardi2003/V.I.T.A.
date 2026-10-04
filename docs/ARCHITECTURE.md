@@ -189,7 +189,15 @@ The specialists do not write separate reports: they work on one shared hypothesi
 
 ### 🚪 `app.py`
 
-The Chainlit entry point. `on_chat_start` creates the thread and shows the models in use; `on_message` adds the message (and the path of an attached image) to the state and resumes the graph. A node error arrives here as an exception: the traceback goes to the terminal, the chat gets a short message.
+The Chainlit entry point. It registers the chat archive and the automatic user, which together make Chainlit show the history sidebar. `on_chat_start` creates the thread and shows the settings panel; `on_settings_update` applies what the operator confirmed in it; `on_message` locks the model choice at the first message, adds the message (and the path of an attached image) to the state, resumes the graph, and titles the chat once the patient card is confirmed. A node error arrives here as an exception: the traceback goes to the terminal, the chat gets a short message.
+
+### 🎛️ `src/model_choice.py`
+
+The logic of the settings panel, without interface code. `choices` lists the text or vision models whose provider has its key set or needs none; `missing_keys_note` names those left out and how to set their key; `choose` replaces the client the agents use, after checking that a local model is actually served. The agents read the client at every call, so a change takes effect at once and no agent code is involved.
+
+### 🗂️ `src/chat_history.py`
+
+The chat archive. `build_data_layer` creates the file `data/chat_history.db` with the tables Chainlit expects and returns Chainlit's own SQL archive pointed at it; from then on Chainlit saves every message and step by itself. `chat_title` builds the title of a chat from the patient's name and `rename_chat` writes it to the archive and to the sidebar. No file storage is configured, so attached photos are not archived.
 
 ### 🕸️ `src/graph.py`
 
@@ -261,7 +269,7 @@ The embedding model is `intfloat/multilingual-e5-small`, run locally. The corpus
 
 ### 🧰 `scripts/setup_env.py`
 
-Creates or completes `.env`. The values to ask for are read from the `Settings` class; a provider key is requested only if one of the active models needs it. `ensure_env()` runs at startup, `--update` asks for everything again, `--key NAME` asks for one key that no active model needs (a model of the benchmark, a second account).
+Creates or completes `.env`. The values to ask for are read from the `Settings` class; a provider key is requested only if one of the active models needs it. `ensure_env()` runs at startup, followed by `ensure_session_secret()`, which generates once the secret that signs the user's session and keeps it in `.env`; `--update` asks for everything again, `--key NAME` asks for one key that no active model needs (a model of the benchmark, a second account).
 
 ### 🧪 `tests/`
 
@@ -308,7 +316,7 @@ Chainlit looks for these in the folder the app is started from, which is why the
 
 ## ⚠️ 7. Known limitations
 
-- **Conversations live in memory.** The checkpointer keeps the state of open conversations in the process; it does not survive a restart. Patient records, once saved, are in the database.
+- **Conversations live in memory.** The checkpointer keeps the state of open conversations in the process; it does not survive a restart. Patient records, once saved, are in the database, and the text of every chat is in the chat archive: a past chat can be read again, not resumed.
 - **The model in use determines the clinical quality.** The code limits the effect of a wrong or unusable answer; it cannot make the reasoning correct.
 - **Guidelines are written for adults.**
 

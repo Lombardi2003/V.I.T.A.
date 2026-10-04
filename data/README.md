@@ -15,6 +15,7 @@ This folder holds the clinical guidelines the specialists consult during the rou
 | `guidelines/` | The source documents: 23 PDF files, in Italian. |
 | `chroma_db/` | The search index built from them (2,443 chunks). Generated: never edited by hand. |
 | `medical_database.db` | The patient records (SQLite). Created at the first start; **not under version control**, because it holds personal and health data. |
+| `chat_history.db` | The archive of the chats (SQLite), shown in the app's sidebar. Created at the first start; **not under version control**, for the same reason. |
 
 ---
 

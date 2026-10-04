@@ -8,6 +8,7 @@ pydantic==2.11.7
 pydantic-settings==2.10.1
 sqlmodel==0.0.37
 SQLAlchemy==2.0.43
+aiosqlite==0.21.0                   # not imported directly: lets the chat archive use SQLite
 pillow==11.1.0
 
 # Guideline retrieval
