@@ -240,8 +240,8 @@ Reads `.env`: the provider keys and the temperature. Which models run is not her
 
 | File | Content |
 |---|---|
-| `models.py` | The catalogue of model names, grouped by provider. |
-| `factory.py` | The **active models** (`TEXT_MODEL`, `VISION_MODEL`), the providers, the per-provider limits, and `get_llm()` which builds the client. Every provider is reached through the same OpenAI-compatible client. |
+| `providers.py` | Everything needed to reach a model, in one place: each provider (address, key, limits) and each model (its provider and what is particular about it). |
+| `factory.py` | The **active models** (`TEXT_MODEL`, `VISION_MODEL`) and `build_llm()`, which builds the client of a model. Every provider is reached through the same OpenAI-compatible client. |
 | `calls.py` | `call_with_retry` (retries after temporary errors, waiting the time the provider suggests), `stream_text` (a full answer, with the answer size kept within the per-minute limit), `extract_json` (the JSON object inside an answer). |
 
 <div align="justify">

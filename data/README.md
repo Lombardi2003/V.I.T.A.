@@ -82,7 +82,7 @@ python -m src.rag.build_index
 </div>
 
 ```bash
-python -m tests.run benchmarks
+python -m tests.run retrieval
 ```
 
 <div align="justify">

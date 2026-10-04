@@ -245,6 +245,9 @@ Each entry has the same shape: the decision, the reason, and, where relevant, wh
 
 **One place chooses the model.** `src/llm/factory.py`, under version control. The `.env` file holds only keys and temperature.
 
+**Everything about a provider is in one place.** `src/llm/providers.py` lists each provider (address, key, limits) and each model with the provider it belongs to and its particular settings. Adding a provider is one block there.
+*Replaced:* names in one file and addresses, keys and limits in separate tables of another, linked only by the name of a class.
+
 **One client for every provider.** Groq, Ollama and Gemini expose an OpenAI-compatible endpoint, so the same client is built with different parameters. Agents do not know which provider they use.
 
 **Low reasoning effort.** With the default, one specialist turn used about 4,000 tokens of hidden reasoning and answers were cut mid-JSON (9 failed turns in a row in one run). With "low" it uses about 600.

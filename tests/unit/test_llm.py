@@ -15,7 +15,7 @@ except ImportError:
 from scripts import setup_env
 from src.agents.common import as_list, as_text, is_no, is_yes
 from src.llm import calls, factory
-from src.llm.models import Models
+from src.llm.providers import GEMINI, GROQ, Models
 
 _req = httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions")
 
@@ -96,48 +96,49 @@ class TestRetries(unittest.TestCase):
 class TestClient(unittest.TestCase):
     def test_single_retry_layer_and_timeout_per_provider(self):
         """TEST client: no retries inside the client, 120 s timeout for Groq and no timeout for Ollama."""
-        groq = factory.build_llm(Models.Groq.TEXT_120B)
+        groq = factory.build_llm(Models.GPT_OSS_120B)
         self.assertEqual(groq.max_retries, 0)
-        self.assertEqual(groq.request_timeout, factory.REQUEST_TIMEOUT_SECONDS["groq"])
-        ollama = factory.build_llm(Models.Ollama.TEXT_LLAMA3)
+        self.assertEqual(groq.request_timeout, GROQ.request_timeout)
+        ollama = factory.build_llm(Models.LLAMA3)
         self.assertEqual(ollama.max_retries, 0)
         self.assertIsNone(ollama.request_timeout)
 
     def test_max_tokens_within_the_per_minute_limit(self):
         """TEST client: max_tokens shrinks as the prompt grows and is not set for Ollama."""
-        groq = factory.build_llm(Models.Groq.TEXT_120B)
+        groq = factory.build_llm(Models.GPT_OSS_120B)
         short = calls.max_tokens_for("x" * 300, groq)
         long = calls.max_tokens_for("x" * 20000, groq)
         self.assertLessEqual(short, 4096)
         self.assertLess(long, short)
-        self.assertIsNone(calls.max_tokens_for("x", factory.build_llm(Models.Ollama.TEXT_LLAMA3)))
+        self.assertIsNone(calls.max_tokens_for("x", factory.build_llm(Models.LLAMA3)))
 
     def test_max_tokens_never_below_the_floor(self):
         """TEST client: even with a huge prompt, max_tokens never drops below the minimum for a complete JSON."""
-        groq = factory.build_llm(Models.Groq.TEXT_120B)
+        groq = factory.build_llm(Models.GPT_OSS_120B)
         self.assertEqual(calls.max_tokens_for("x" * 100_000, groq), calls._MIN_RESPONSE_TOKENS)
 
     def test_unknown_model_gives_a_clear_error(self):
-        """TEST client: a model missing from models.py raises an error that says where to add it."""
+        """TEST client: a name that is not a model of providers.py raises an error that says where to add it."""
         with self.assertRaises(ValueError) as ctx:
             factory.build_llm("modello-inesistente")
-        self.assertIn("src/llm/models.py", str(ctx.exception))
+        self.assertIn("src/llm/providers.py", str(ctx.exception))
 
     def test_missing_key_gives_a_clear_error(self):
         """TEST client: a provider key missing from .env raises an error naming the key field and how to set it."""
-        no_key = types.SimpleNamespace(**{factory.GROQ_KEY: "", "temperature": 0})
+        no_key = types.SimpleNamespace(**{GROQ.key_field: "", "temperature": 0})
         with mock.patch.object(factory, "get_settings", lambda: no_key):
             with self.assertRaises(RuntimeError) as ctx:
-                factory.build_llm(Models.Groq.TEXT_120B)
-        self.assertIn(factory.GROQ_KEY.upper(), str(ctx.exception))
+                factory.build_llm(Models.GPT_OSS_120B)
+        self.assertIn(GROQ.key_field.upper(), str(ctx.exception))
         self.assertIn("setup_env.py", str(ctx.exception))
 
     def test_provider_and_description(self):
         """TEST client: the provider is read from the client address and shown in the model description."""
-        groq = factory.build_llm(Models.Groq.TEXT_120B, reasoning_effort="low")
+        groq = factory.build_llm(Models.GPT_OSS_120B)
         self.assertEqual(factory.provider_of(groq), "groq")
         self.assertEqual(factory.describe_llm(groq), "groq/openai/gpt-oss-120b (ragionamento low)")
-        self.assertEqual(factory.tokens_per_minute_limit(factory.build_llm(Models.Ollama.TEXT_LLAMA3)), None)
+        self.assertEqual(factory.tokens_per_minute_limit(groq), GROQ.tokens_per_minute)
+        self.assertEqual(factory.tokens_per_minute_limit(factory.build_llm(Models.LLAMA3)), None)
 
 
 class TestNeededKeys(unittest.TestCase):
@@ -147,11 +148,28 @@ class TestNeededKeys(unittest.TestCase):
             return setup_env._needed_key_fields()
 
     def test_keys_asked_only_for_the_providers_in_use(self):
-        """TEST setup_env: Ollama needs no key, Groq needs GROQ_KEY, Gemini needs GEMINI_KEY."""
-        self.assertEqual(self.needed(Models.Ollama.TEXT_LLAMA3, Models.Ollama.VISION_MOONDREAM), set())
-        self.assertEqual(self.needed(Models.Groq.TEXT_120B, Models.Groq.VISION_QWEN), {factory.GROQ_KEY})
-        self.assertEqual(self.needed(Models.Gemini.TEXT_FLASH, Models.Ollama.VISION_MOONDREAM), {factory.GEMINI_KEY})
-        self.assertEqual(self.needed(Models.Gemini.TEXT_FLASH, Models.Groq.VISION_QWEN), {factory.GEMINI_KEY, factory.GROQ_KEY})
+        """TEST setup_env: Ollama needs no key, a Groq model needs the Groq key, a Gemini model the Gemini key."""
+        self.assertEqual(self.needed(Models.LLAMA3, Models.MOONDREAM), set())
+        self.assertEqual(self.needed(Models.GPT_OSS_120B, Models.QWEN_27B), {GROQ.key_field})
+        self.assertEqual(self.needed(Models.GEMINI_FLASH, Models.MOONDREAM), {GEMINI.key_field})
+        self.assertEqual(self.needed(Models.GEMINI_FLASH, Models.QWEN_27B), {GEMINI.key_field, GROQ.key_field})
+
+    def test_every_key_field_of_the_settings_is_recognised(self):
+        """TEST setup_env: every provider key field of the settings is treated as a key, and each provider's exists."""
+        from src.llm.providers import PROVIDERS
+        from src.settings import Settings
+        self.assertEqual(setup_env._KEY_FIELDS, {"groq_api_key", "groq_api_key_2", "gemini_api_key", "gemini_fra_key"})
+        for provider in PROVIDERS:
+            with self.subTest(provider=provider.name):
+                self.assertTrue(provider.key_field is None or provider.key_field in Settings.model_fields)
+
+    def test_every_model_belongs_to_a_known_provider(self):
+        """TEST providers: every model of the catalogue points to one of the listed providers, with a unique address."""
+        from src.llm.providers import Model, PROVIDERS
+        models = [m for m in vars(Models).values() if isinstance(m, Model)]
+        self.assertTrue(models)
+        self.assertTrue(all(m.provider in PROVIDERS for m in models))
+        self.assertEqual(len({p.base_url for p in PROVIDERS}), len(PROVIDERS))
 
 
 class TestJsonReading(unittest.TestCase):

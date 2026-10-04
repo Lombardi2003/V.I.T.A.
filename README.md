@@ -97,7 +97,7 @@ The guideline index is included in the repository, so nothing has to be built be
 
 <div align="justify">
 
-The models are chosen in one place, at the top of `src/llm/factory.py`: `TEXT_MODEL` for every text agent and `VISION_MODEL` for the photo. The available names are listed in `src/llm/models.py`. The choice is in the code, not in `.env`, so every commit records which models the system ran with.
+The models are chosen in one place, at the top of `src/llm/factory.py`: `TEXT_MODEL` for every text agent and `VISION_MODEL` for the photo. The available models, with the provider each one belongs to, are listed in `src/llm/providers.py`: adding a provider or a model means adding a few lines there. The choice is in the code, not in `.env`, so every commit records which models the system ran with.
 
 Free-tier limits affect speed: with a per-minute token limit the app waits and resumes by itself, and a discussion can take a few minutes.
 
@@ -134,7 +134,7 @@ src/
   llm/                  model catalogue, clients, calls and retries
   rag/                  guideline index and retrieval
 scripts/setup_env.py    creates or completes .env
-tests/                  unit tests, benchmark, live scripts
+tests/                  unit tests, retrieval benchmark, live scripts
 data/                   guidelines (PDF), search index, patient database (not versioned)
 docs/                   architecture, design decisions, results of the real runs
 public/, .chainlit/     interface: avatars, style, configuration

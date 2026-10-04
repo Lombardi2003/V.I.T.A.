@@ -2,11 +2,12 @@
 
 Usage: python -m tests.live.reference_cases [1 2 3 4] [--groq-key FIELD] [--gemini [FIELD]]
     --groq-key FIELD   the active Groq model with the key in another field of settings.py
-    --gemini [FIELD]   the Gemini model instead, with the key in FIELD (default: GEMINI_KEY in factory.py)
+    --gemini [FIELD]   the Gemini model instead, with the key in FIELD (default: the one in providers.py)
 """
 
 import argparse
 import asyncio
+from dataclasses import replace
 import logging
 import os
 import time
@@ -23,7 +24,7 @@ from chainlit.context import init_http_context  # noqa: E402
 import src.agents.common as common  # noqa: E402
 from src.graph import generate_graph, thread_config  # noqa: E402
 from src.llm import describe_llm, factory  # noqa: E402
-from src.llm.models import Models  # noqa: E402
+from src.llm.providers import Models  # noqa: E402
 from src.state import MedicalState, PatientCard, PhotoAnalysis, Symptom, SymptomProfile  # noqa: E402
 
 
@@ -65,17 +66,9 @@ CASES = {
 }
 
 
-def _client_with_key(model, key_field, reasoning_effort=None):
+def _client_with_key(model, key_field):
     """HELPER _client_with_key: a client for `model` that reads its API key from another settings.py field."""
-    provider = factory.provider_of_model(model)
-    url, _ = factory._PROVIDERS[provider]
-    original = dict(factory._PROVIDERS)
-    factory._PROVIDERS[provider] = (url, key_field)
-    try:
-        return factory.build_llm(model, reasoning_effort=reasoning_effort)
-    finally:
-        factory._PROVIDERS.clear()
-        factory._PROVIDERS.update(original)
+    return factory.build_llm(replace(model, provider=replace(model.provider, key_field=key_field)))
 
 
 class RecordedMessage:
@@ -128,14 +121,14 @@ def main():
     parser = argparse.ArgumentParser(description="V.I.T.A. reference cases with the real model (uses API quota).")
     parser.add_argument("cases", nargs="*", default=list(CASES), choices=list(CASES))
     parser.add_argument("--groq-key", metavar="FIELD", help="settings.py field of the Groq key to use")
-    parser.add_argument("--gemini", nargs="?", const=factory.GEMINI_KEY, metavar="FIELD",
+    parser.add_argument("--gemini", nargs="?", const=Models.GEMINI_FLASH.provider.key_field, metavar="FIELD",
                         help="use Gemini, with this settings.py key field")
     args = parser.parse_args()
 
     if args.gemini:
-        common.llm = _client_with_key(Models.Gemini.TEXT_FLASH, args.gemini)
+        common.llm = _client_with_key(Models.GEMINI_FLASH, args.gemini)
     elif args.groq_key:
-        common.llm = _client_with_key(factory.TEXT_MODEL, args.groq_key, factory.TEXT_REASONING)
+        common.llm = _client_with_key(factory.TEXT_MODEL, args.groq_key)
     cl.Message = RecordedMessage
     print(f"Text model for this run: {describe_llm(common.llm)}")
     for number in args.cases:

@@ -13,7 +13,7 @@ Three folders, three different kinds of check. Every command runs from the proje
 | Folder | What it checks | Model | API quota | Outcome |
 |---|---|---|---|---|
 | `unit/` | that **every node works** (flow, confirmations, fallbacks, formats, limits) | fake | no | automatic: pass / fail |
-| `benchmarks/` | the **retrieval quality** of the guidelines | none | no | numbers to compare |
+| `retrieval/` | the **retrieval quality** of the guidelines | none | no | numbers to compare |
 | `live/` | the table's **clinical reasoning** on real cases | real | **yes** | to be read |
 
 ---
@@ -34,7 +34,7 @@ Runs the unit tests and then the benchmark, one after the other, and ends with a
 |---|---|
 | `python -m tests.run` or `python -m tests.run unit` | all unit tests (about a minute) |
 | `python -m tests.run unit test_intake test_router` | only those unit test files |
-| `python -m tests.run benchmarks` | the retrieval benchmark |
+| `python -m tests.run retrieval` | the retrieval benchmark |
 | `python -m tests.run live` | every live script (**uses quota**) |
 | `python -m tests.run live correction` | only that live script |
 
@@ -79,7 +79,7 @@ They say nothing about clinical quality (the model is fake): that is what the li
 
 ---
 
-## 📊 `benchmarks/`: run when the documents or the retrieval change
+## 📊 `retrieval/`: run when the documents or the retrieval change
 
 <div align="justify">
 
