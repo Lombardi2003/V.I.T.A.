@@ -121,7 +121,9 @@ All the measures are computed by `metrics.py` from the raw results, and the comp
 | Specialty | Records where the expected specialist is among those chosen. In the full system, those chosen by the supervisor: a colleague recruited later or the second opinion does not count |
 | Invalid answers | Answers the system could not use: failed turns at the table, a failed routing, a report replaced by the fallback; for the model alone, an unreadable answer |
 | Turns | Mean turns of the round table (full system only) |
-| Seconds, Calls, Tokens | Mean time, model calls and tokens per record. Tokens only where the provider reports them |
+| Sheet seen | Records in which the manual page the case was built from was among the guideline passages delivered. It explains an error, it is not a score of the model |
+| Seconds, Wait | Mean time per record without the waits a provider imposes before a retry, and the mean of those waits. The waits say how tight a plan is, not how fast a model is |
+| Calls, Tokens | Mean model calls and tokens per record. Tokens only where the provider reports them |
 
 <div align="justify">
 

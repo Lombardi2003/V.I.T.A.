@@ -286,11 +286,12 @@ The model benchmark: the same cases run with different models. It drives the rea
 | `PROTOCOL.md` | What is measured and how: cases, conditions, measures, limits. |
 | `cases.py` | The 15 cases: the patient card, and the manual row that gives the expected code and specialty. |
 | `CASES.md`, `cases_doc.py` | The readable version of the cases, and the script that writes it from `cases.py`. |
-| `run.py` | Runs one model on the cases in the two conditions, counts calls and tokens, saves each case as it ends and resumes. |
+| `steps.py` | The three steps every model goes through, and which one a model has completed. |
+| `run.py` | Runs one step of one model, counts calls and tokens, saves each case as it ends and resumes. |
 | `baseline.py` | The "model alone" condition: one request with the card and the retrieved guidelines. |
 | `metrics.py` | The measures, computed from the raw results. |
-| `table.py` | Builds the results table. |
-| `results/` | One `.jsonl` file of raw results per model, and `TABLE.md`. Created at the first run. |
+| `table.py` | Builds the results tables, in Markdown and in CSV. |
+| `results/` | One `.jsonl` file of raw results per model, `TABLE.md`, `table.csv` and `cases.csv`. Created at the first run. |
 
 ---
 

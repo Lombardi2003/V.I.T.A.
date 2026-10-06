@@ -21,7 +21,7 @@ TABLE_CSV = RESULTS_DIR / "table.csv"  # One row per model, step and condition, 
 CASES_CSV = RESULTS_DIR / "cases.csv"  # One row per case run: expected and given code, specialists, cost.
 CONDITION_NAMES = {"system": "Full system", "baseline": "Model alone"}  # As shown in the tables.
 MEASURES = ["Cases", "Records", "Exact", "Within one", "Under", "Over", "No answer", "Kappa", "Stable", "Specialty",
-            "Invalid answers", "Turns", "Seconds", "Calls", "Tokens"]
+            "Sheet seen", "Invalid answers", "Turns", "Seconds", "Wait", "Calls", "Tokens"]
 HEADER = ["Model", "Condition"] + MEASURES
 OVER_MARK, UNDER_MARK = "▲", "▼"  # Beside a code more urgent, or less urgent, than expected.
 NO_ANSWER, NOT_RUN = "no answer", "-"  # A record without a code, and a case not run yet.
@@ -58,8 +58,9 @@ def _measures(records: list[dict]) -> list[str]:
     n = s["n"]
     stable = f"{s['stable']}/{s['repeated']}" if s["repeated"] else "-"
     return [str(s["cases"]), str(n), f"{s['exact']}/{n}", f"{s['within_one']}/{n}", str(s["under"]), str(s["over"]),
-            str(s["no_answer"]), _number(s["kappa"], 2), stable, f"{s['role_ok']}/{n}", str(s["invalid_answers"]),
-            _number(s["turns"], 1), _number(s["seconds"]), _number(s["requests"], 1), _number(s["tokens"])]
+            str(s["no_answer"]), _number(s["kappa"], 2), stable, f"{s['role_ok']}/{n}", f"{s['sheet']}/{n}",
+            str(s["invalid_answers"]), _number(s["turns"], 1), _number(s["seconds"]), _number(s["wait"]),
+            _number(s["requests"], 1), _number(s["tokens"])]
 
 
 def step_groups(results: dict[str, list[dict]], step: int) -> list[tuple[str, str, list[dict]]]:
@@ -140,29 +141,33 @@ def build_document(results: dict[str, list[dict]]) -> str:
 def table_csv_rows(results: dict[str, list[dict]]) -> list[list]:
     """The rows of table.csv: the three step tables one after the other, as plain numbers (a cell like 3/15 would be read as a date)."""
     rows = [["Step", "Model", "Condition", "Cases", "Records", "Exact", "Within one", "Under", "Over", "No answer",
-             "Kappa", "Stable", "Repeated", "Specialty", "Invalid answers", "Turns", "Seconds", "Calls", "Tokens"]]
+             "Kappa", "Stable", "Repeated", "Specialty", "Sheet seen", "Invalid answers", "Turns", "Seconds", "Wait",
+             "Calls", "Tokens"]]
     for step in STEP_TABLES:
         for model, condition, records in step_groups(results, step):
             s = summarize(records)
-            means = [None if s[key] is None else round(s[key], 2) for key in ("kappa", "turns", "seconds", "requests", "tokens")]
+            means = [None if s[key] is None else round(s[key], 2)
+                     for key in ("kappa", "turns", "seconds", "wait", "requests", "tokens")]
             rows.append([step, model, CONDITION_NAMES[condition], s["cases"], s["n"], s["exact"], s["within_one"],
                          s["under"], s["over"], s["no_answer"], means[0], s["stable"], s["repeated"], s["role_ok"],
-                         s["invalid_answers"]] + means[1:])
+                         s["sheet"], s["invalid_answers"]] + means[1:])
     return rows
 
 
 def cases_csv_rows(results: dict[str, list[dict]]) -> list[list]:
     """The rows of cases.csv: every case run, with what was expected, what was given and what it cost."""
     rows = [["Model", "Case", "Core", "Condition", "Run", "Expected code", "Code", "Error (levels)", "Expected role",
-             "Roles", "Role ok", "Invalid answers", "Turns", "Seconds", "Calls", "Tokens", "Date", "Commit"]]
+             "Roles", "Role ok", "Sheet delivered", "Invalid answers", "Turns", "Seconds", "Wait seconds", "Calls",
+             "Tokens", "Date", "Commit"]]
     for model, records in results.items():
         for r in sorted(records, key=lambda r: (r["condition"], r["case"], r["run"])):
             roles = r.get("roles") or []
             rows.append([model, r["case"], "yes" if r.get("core") else "no", r["condition"], r["run"],
                          r["expected_code"], r.get("code") or "", code_error(r["expected_code"], r.get("code")),
                          r["expected_role"], ";".join(roles), "yes" if r["expected_role"] in roles else "no",
-                         r.get("invalid_answers"), r.get("turns"), r.get("seconds"), r.get("requests"),
-                         r.get("total_tokens"), r.get("date"), r.get("commit")])
+                         "yes" if r.get("sheet_delivered") else "no", r.get("invalid_answers"), r.get("turns"),
+                         r.get("seconds"), r.get("wait_seconds"), r.get("requests"), r.get("total_tokens"),
+                         r.get("date"), r.get("commit")])
     return rows
 
 

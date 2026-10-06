@@ -57,9 +57,12 @@ def summarize(records: list[dict]) -> dict:
         "stable": stable,  # Cases whose runs all gave the same code...
         "repeated": repeated,  # ...out of the cases run more than once.
         "role_ok": sum(r["expected_role"] in (r.get("roles") or []) for r in records),
+        "sheet": sum(bool(r.get("sheet_delivered")) for r in records),  # The manual page of the case was among the passages delivered.
         "invalid_answers": sum(r.get("invalid_answers") or 0 for r in records),
         "turns": _mean([r.get("turns") for r in records]),
-        "seconds": _mean([r.get("seconds") for r in records]),
+        # Time without the waits a provider imposes before a retry: those say how tight a plan is, not how fast a model is.
+        "seconds": _mean([None if r.get("seconds") is None else r["seconds"] - (r.get("wait_seconds") or 0) for r in records]),
+        "wait": _mean([r.get("wait_seconds") for r in records]),
         "requests": _mean([r.get("requests") for r in records]),
         "tokens": _mean([r.get("total_tokens") for r in records]),
     }

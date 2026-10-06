@@ -342,6 +342,8 @@ Each entry has the same shape: the decision, the reason, and, where relevant, wh
 
 **Two conditions per model.** The full system, and the same model asked once with the same card and guidelines. The difference between the two is the round table, so the benchmark also says whether the table helps.
 
+**Three steps, the same for every model.** The model alone on every case, then the full system on five core cases, then the full system on the rest. A model with little quota stops earlier but has done exactly what the others did up to that point, and the cheapest step, which costs about a seventeenth of a full-system case, already covers every case. *Discarded:* deciding in advance which model deserves which amount of testing.
+
 **Under-triage and over-triage are counted apart.** A code less urgent than expected is the dangerous error; a single accuracy figure would hide the direction.
 
 **Frozen before the first run, run on the finished system.** Cases, expected answers and measures are fixed by a commit before any model is measured, and the system is not changed between one model and the next. The readable list of cases is generated from the cases that run, and a test fails if the two differ.

@@ -61,6 +61,13 @@ class TestSummary(unittest.TestCase):
         s = metrics.summarize([_record("ROSSO", "ROSSO", seconds=10, turns=4), _record("ROSSO", "ROSSO", seconds=30)])
         self.assertEqual((s["seconds"], s["turns"], s["tokens"]), (20, 4, None))
 
+    def test_time_without_the_waits_and_sheet_delivered(self):
+        """TEST summarize: the time is counted without the waits before a retry, which are reported apart; the delivered sheets are counted."""
+        s = metrics.summarize([_record("ROSSO", "ROSSO", seconds=250, wait_seconds=190, sheet_delivered=True),
+                               _record("ROSSO", "ROSSO", seconds=30, wait_seconds=0, sheet_delivered=False),
+                               _record("ROSSO", "ROSSO", seconds=50)])
+        self.assertEqual((s["seconds"], s["wait"], s["sheet"]), (140 / 3, 95, 1))
+
     def test_runs_of_the_same_case(self):
         """TEST summarize: three runs of one case are three records and one case."""
         s = metrics.summarize([_record("ROSSO", "ROSSO", run=n) for n in (1, 2, 3)])

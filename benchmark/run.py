@@ -40,14 +40,16 @@ from chainlit.context import init_http_context  # noqa: E402
 from langchain_core.callbacks import BaseCallbackHandler  # noqa: E402
 
 import src.agents.common as common  # noqa: E402
+import src.agents.specialist as specialist  # noqa: E402
+import src.llm.calls as calls  # noqa: E402
 from src.graph import generate_graph, thread_config  # noqa: E402
 from src.llm import describe_llm, factory  # noqa: E402
 from src.llm.providers import Model, Models  # noqa: E402
 from src.state import MedicalState  # noqa: E402
 
-from . import steps  # noqa: E402
+from . import baseline, steps  # noqa: E402
 from .baseline import run_baseline  # noqa: E402
-from .cases import CASES, CASES_BY_ID, Case  # noqa: E402
+from .cases import CASES, CASES_BY_ID, MANUAL, Case  # noqa: E402
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"  # One .jsonl file per model, one line per case and run.
 CONDITIONS = ("system", "baseline")  # The whole table, and the model alone.
@@ -55,6 +57,7 @@ CONDITIONS = ("system", "baseline")  # The whole table, and the model alone.
 ROUTING_FAILED_TEXT = "Smistamento automatico non disponibile"
 PRIMARY_FALLBACK_TEXTS = ("Sintesi del primario non disponibile", "Ne' il tavolo degli specialisti ne' il primario")
 REPORT_TEXT = "Report di sintesi"
+MANUAL_PAGE_OFFSET = 2  # A page printed on the triage manual is this many pages further in the file, which is what a citation gives.
 CHECK_PROMPT = 'Rispondi solo con questo JSON, senza altro testo: {"ok": true}'  # The request sent by --check.
 _SECRETS = re.compile(r"(org_|gsk_|sk-|xai-|AIza)[A-Za-z0-9_-]+")  # Account ids and keys, never printed.
 
@@ -71,6 +74,8 @@ class Meter(BaseCallbackHandler):
         self.input_tokens = self.output_tokens = 0
         self.usage_seen = False
         self.escaped = []  # Errors that survived the retries: quota, connection, rejected request.
+        self.wait_seconds = 0.0  # Time spent waiting before a retry: the provider's limits, not the model's work.
+        self.guidelines = []  # The passages delivered at each retrieval: who asked, and the citations.
 
     def on_llm_end(self, response, **kwargs):
         """Adds the token counts of one answer, if the provider sent them."""
@@ -98,6 +103,29 @@ def metered_stream_text(prompt, llm):
         raise
     meter.answer_chars += len(answer)
     return answer
+
+
+_sleep = calls.time.sleep  # The wait before a retry, wrapped below.
+_retrieve = specialist.retrieve  # The guideline retrieval, wrapped below.
+
+
+def metered_sleep(seconds):
+    """The wait before a retry, counted apart from the time of the case."""
+    meter.wait_seconds += seconds
+    _sleep(seconds)
+
+
+def metered_retrieve(queries, role=None, k=3):
+    """The guideline retrieval, with the citations of what it delivered kept for the record."""
+    chunks = _retrieve(queries, role, k)
+    meter.guidelines.append({"role": role, "citations": [chunk.citation for chunk in chunks]})
+    return chunks
+
+
+def sheet_delivered(case: Case, guidelines: list[dict]) -> bool:
+    """True if the manual page the case was built from is among the passages delivered during the case."""
+    wanted = f"{MANUAL.removesuffix('.pdf')}, p. {case.page + MANUAL_PAGE_OFFSET}"
+    return any(wanted in entry["citations"] for entry in guidelines)
 
 
 class RecordedMessage:
@@ -280,7 +308,9 @@ async def run_all(args, model: Model, model_name: str, cases: list[Case] | None)
             "expected_code": case.expected_code, "expected_role": case.expected_role, "core": case.core,
             "model": model.name, "provider": model.provider.name, "reasoning_effort": model.reasoning_effort,
             "temperature": common.settings.temperature, "date": datetime.now().isoformat(timespec="seconds"),
-            "commit": commit, "seconds": round(seconds, 1), "requests": meter.requests,
+            "commit": commit, "seconds": round(seconds, 1), "wait_seconds": round(meter.wait_seconds, 1),
+            "requests": meter.requests, "guidelines": meter.guidelines,
+            "sheet_delivered": sheet_delivered(case, meter.guidelines),
             "prompt_chars": meter.prompt_chars, "answer_chars": meter.answer_chars,
             "input_tokens": meter.input_tokens if meter.usage_seen else None,
             "output_tokens": meter.output_tokens if meter.usage_seen else None,
@@ -340,6 +370,9 @@ def main() -> int:
     llm.stream_usage = not args.no_usage
     common.llm = llm
     common.stream_text = metered_stream_text
+    # Only the retry wait of the model calls is replaced, not the clock of the whole program.
+    calls.time = type("RetryClock", (), {"sleep": staticmethod(metered_sleep)})
+    specialist.retrieve = baseline.retrieve = metered_retrieve
     cl.Message = RecordedMessage
     if args.check:
         return check_model()
