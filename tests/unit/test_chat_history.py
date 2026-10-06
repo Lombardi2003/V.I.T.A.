@@ -37,6 +37,24 @@ class TestArchive(unittest.TestCase):
         # Flags must come back as numbers: read as text, "0" would count as true in the interface.
         self.assertEqual({columns[c] for c in ("streaming", "isError", "waitForAnswer")}, {"BOOLEAN"})
 
+    def test_leftovers_of_deleted_chats_are_cleared_at_start(self):
+        """TEST archive: a chat row without owner, with its messages, is removed when the archive is opened; owned chats stay."""
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "history.db"
+            chat_history.create_tables(path)
+            connection = sqlite3.connect(path)
+            connection.execute('INSERT INTO threads ("id", "name", "userId") VALUES (?, ?, ?)', ("kept", "Rossi Mario", "user-1"))
+            connection.execute('INSERT INTO threads ("id", "name") VALUES (?, ?)', ("leftover", "1234"))
+            connection.executemany('INSERT INTO steps ("id", "threadId") VALUES (?, ?)', [("s1", "kept"), ("s2", "leftover")])
+            connection.commit()
+            connection.close()
+            chat_history.create_tables(path)
+            connection = sqlite3.connect(path)
+            threads = [row[0] for row in connection.execute('SELECT "id" FROM threads')]
+            steps = [row[0] for row in connection.execute('SELECT "id" FROM steps')]
+            connection.close()
+        self.assertEqual((threads, steps), (["kept"], ["s1"]))
+
     def test_the_tests_never_reach_the_real_archive(self):
         """TEST archive: inside the tests Chainlit finds no archive, so nothing is written to the real file."""
         self.assertIsNone(chainlit.data.get_data_layer())
@@ -63,11 +81,50 @@ class TestOperatorName(unittest.TestCase):
         self.assertIsNone(unknown)
 
 
+class TestStoredTitle(unittest.TestCase):
+    def test_the_first_message_is_never_stored_as_a_title(self):
+        """TEST archive title: the name Chainlit gives a new chat is replaced by the neutral one; later names are ignored; set_title writes."""
+        async def scenario(path):
+            archive = chat_history.build_data_layer(path)
+            try:
+                await archive.update_thread("t1")                                # the row, as a first step creates it
+                await archive.update_thread("t1", name="RSSMRA80A01H501U")       # Chainlit: the first message
+                first = (await archive.execute_sql('SELECT "name" FROM threads', {}))[0]["name"]
+                await archive.update_thread("t1", name="a manual rename")
+                second = (await archive.execute_sql('SELECT "name" FROM threads', {}))[0]["name"]
+                await archive.set_title("t1", "Rossi Mario · 04/10 21:14")
+                third = (await archive.execute_sql('SELECT "name" FROM threads', {}))[0]["name"]
+                return first, second, third
+            finally:
+                await archive.engine.dispose()
+
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder, mock.patch.object(chat_history.log, "info"):
+            first, second, third = helpers.run(scenario, Path(folder) / "history.db")
+        self.assertTrue(first.startswith("Nuovo triage · "))
+        self.assertEqual(second, first)
+        self.assertEqual(third, "Rossi Mario · 04/10 21:14")
+
+
+class TestArchiveTime(unittest.TestCase):
+    def test_chat_dates_are_in_utc(self):
+        """TEST archive time: a chat is dated with the real UTC time, not with the local time marked as UTC."""
+        from datetime import timezone
+        archive = chat_history.ChatArchive.__new__(chat_history.ChatArchive)
+        stamp = helpers.run(archive.get_current_timestamp)
+        self.assertTrue(stamp.endswith("Z"))
+        written = datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+        self.assertLess(abs((datetime.now(timezone.utc) - written).total_seconds()), 5)
+
+
 class TestChatTitle(unittest.TestCase):
     def test_title_with_surname_name_and_time(self):
         """TEST chat title: surname, name, day and time of the chat."""
         card = {"first_name": "Mario", "last_name": " Rossi "}
         self.assertEqual(chat_history.chat_title(card, datetime(2026, 10, 4, 19, 50)), "Rossi Mario · 04/10 19:50")
+
+    def test_neutral_title_for_a_new_chat(self):
+        """TEST chat title: a chat that has no confirmed card yet is titled with a neutral label and its time."""
+        self.assertEqual(chat_history.new_chat_title(datetime(2026, 10, 4, 9, 5)), "Nuovo triage · 04/10 09:05")
 
     def test_no_title_until_both_names_are_known(self):
         """TEST chat title: without the name or the surname there is no title, and the fiscal code is never used."""
@@ -100,15 +157,25 @@ class TestTitleInTheApp(helpers.VitaTestCase):
         """HELPER title: runs the titling step as app.py does after every message."""
         helpers.run(self.module._title_chat, {})
 
-    def test_titled_once_when_the_card_is_confirmed(self):
-        """TEST chat title in the app: no title while the card is being filled in, one title once it is confirmed, never again."""
+    def test_neutral_title_first_then_the_patient_name(self):
+        """TEST chat title in the app: a neutral title from the first message, the patient's name once the card is confirmed, each written once."""
+        self.session["chat_started_at"] = datetime(2026, 10, 4, 21, 14)
         self.title()
-        self.assertEqual(self.titles, [])
+        self.title()
+        self.assertEqual(self.titles, ["Nuovo triage · 04/10 21:14"])
         self.state["card_confirmed"] = True
         self.title()
         self.title()
-        self.assertEqual(len(self.titles), 1)
-        self.assertTrue(self.titles[0].startswith("Rossi Mario · "))
+        self.assertEqual(self.titles, ["Nuovo triage · 04/10 21:14", "Rossi Mario · 04/10 21:14"])
+
+    def test_the_fiscal_code_is_never_a_title(self):
+        """TEST chat title in the app: whatever the card holds before confirmation, the title does not contain the fiscal code."""
+        self.state["patient_card"] = {"fiscal_code": "RSSMRA80A01H501U", "first_name": "", "last_name": ""}
+        self.title()
+        self.state["card_confirmed"] = True
+        self.title()
+        self.assertTrue(self.titles)
+        self.assertFalse(any("RSSMRA" in title for title in self.titles))
 
     def test_a_failure_does_not_disturb_the_triage(self):
         """TEST chat title in the app: if the archive fails the error stays in the log and the chat goes on."""
@@ -118,7 +185,7 @@ class TestTitleInTheApp(helpers.VitaTestCase):
             raise RuntimeError("archive unreachable")
         with mock.patch.object(chat_history, "rename_chat", broken), mock.patch.object(self.module.log, "exception"):
             self.title()
-        self.assertNotIn("chat_titled", self.session)
+        self.assertNotIn("chat_title", self.session)
 
     def test_every_visitor_is_the_same_operator(self):
         """TEST automatic user: whoever opens the app is signed in as the single operator, without credentials."""

@@ -197,7 +197,7 @@ The logic of the settings panel, without interface code. `choices` lists the tex
 
 ### 🗂️ `src/chat_history.py`
 
-The chat archive. `build_data_layer` creates the file `data/chat_history.db` with the tables Chainlit expects and returns Chainlit's own SQL archive pointed at it; from then on Chainlit saves every message and step by itself. `chat_title` builds the title of a chat from the patient's name and `rename_chat` writes it to the archive and to the sidebar. No file storage is configured, so attached photos are not archived.
+The chat archive. `build_data_layer` creates the file `data/chat_history.db` with the tables Chainlit expects and returns Chainlit's own SQL archive pointed at it; from then on Chainlit saves every message and step by itself. `ChatArchive` is that archive with three corrections: the user's display name, dates written in real UTC, and titles that only the app can write. `new_chat_title` and `chat_title` build the title of a chat (neutral at first, then the patient's name) and `rename_chat` writes it to the archive and to the sidebar. No file storage is configured, so attached photos are not archived.
 
 ### 🕸️ `src/graph.py`
 

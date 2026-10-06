@@ -70,7 +70,7 @@ Real graph, fake model: each test decides what the model "answers" and checks wh
 | `test_app.py` | operator error messages, photo attachment, resume after an error |
 | `test_end_to_end.py` | whole conversations from the fiscal code to the report |
 | `test_resilience.py` | random malformed model answers, same input same result |
-| `test_chat_history.py` | chat archive tables, automatic user, chat title, session secret; the tests never reach the real archive |
+| `test_chat_history.py` | chat archive tables and dates, automatic user and its name, chat titles, session secret; the tests never reach the real archive |
 | `test_model_panel.py` | settings panel: models offered, lock at the first message, changing a model |
 | `test_benchmark_metrics.py` | the model benchmark: the measures, the cases, the cases document, the table |
 

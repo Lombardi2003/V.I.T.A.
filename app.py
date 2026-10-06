@@ -1,6 +1,7 @@
 """Chainlit entry point: starts a conversation and feeds each operator message to the graph."""
 
 import asyncio
+from datetime import datetime
 import chainlit as cl
 import openai
 import uuid
@@ -15,7 +16,6 @@ ensure_session_secret()
 from src.state import MedicalState, PatientCard, PhotoAnalysis
 from src.graph import generate_graph, thread_config
 from src import chat_history, model_choice
-from src.agents.authors import Authors
 from src.rag.retriever import warm_up
 from src.log import get_logger
 
@@ -47,14 +47,16 @@ MODEL_WIDGETS = [
 LOCKED_NOTE = " - non modificabile: chat iniziata, aprirne una nuova per cambiarlo"
 
 
-async def send_panel(locked: bool) -> None:
-    """Shows the settings panel: the two model choices, locked once the chat has started."""
+async def send_panel(locked: bool, problems: dict | None = None) -> None:
+    """Shows the settings panel: the two model choices, locked once the chat has started, each with its notes."""
     widgets = []
     for widget_id, kind, text in MODEL_WIDGETS:
         labels = [model_choice.label(m) for m in model_choice.choices(kind)]
+        # Under a choice: why the last one was refused, and which models are left out for a missing key.
+        notes = [(problems or {}).get(kind), model_choice.missing_keys_note(kind)]
         widgets.append(Select(id=widget_id, label=text + (LOCKED_NOTE if locked else ""), values=labels,
                               initial_index=labels.index(model_choice.label(model_choice.current[kind])),
-                              description=model_choice.missing_keys_note(kind) or None, disabled=locked))
+                              description=" ".join(note for note in notes if note) or None, disabled=locked))
     await cl.ChatSettings(widgets).send()
 
 
@@ -75,20 +77,20 @@ async def start():
 @cl.on_settings_update
 async def settings_update(new_settings: dict):
     """Applies the models confirmed in the panel, only before the first message: afterwards the choice is ignored."""
-    outcomes = []
+    problems = {}
     locked = bool(cl.user_session.get("chat_started"))
     if not locked:
         for widget_id, kind, _ in MODEL_WIDGETS:
             chosen = new_settings.get(widget_id)
             if chosen:
                 # Checking a local model asks its server, which blocks: run it in a thread.
-                outcomes.append(await asyncio.to_thread(model_choice.choose, kind, chosen))
+                problem = await asyncio.to_thread(model_choice.choose, kind, chosen)
+                if problem:
+                    problems[kind] = problem
 
-    # Sent again so the panel shows the models really in use, also when a choice was refused.
-    await send_panel(locked=locked)
-    messages = [message for _, message in outcomes if message]
-    if messages:
-        await cl.Message(content="\n\n".join(messages), author=Authors.SYSTEM).send()
+    # Nothing about the models is written in the chat: the panel is sent again, showing the models really in use
+    # and, under a choice that was refused, why.
+    await send_panel(locked=locked, problems=problems)
 
 
 @cl.on_message
@@ -100,6 +102,7 @@ async def main(message: cl.Message):
     # A triage runs on one model from start to end: the choice is locked at the first message.
     if not cl.user_session.get("chat_started"):
         cl.user_session.set("chat_started", True)
+        cl.user_session.set("chat_started_at", datetime.now())
         await send_panel(locked=True)
 
     image_path = None
@@ -136,17 +139,20 @@ async def main(message: cl.Message):
 
 
 async def _title_chat(config: dict) -> None:
-    """Titles the chat with the patient's name once the card is confirmed: until then it shows the first message, the fiscal code."""
-    if cl.user_session.get("chat_titled"):
-        return
+    """Titles the chat: a neutral title from the first message, the patient's name once the card is confirmed."""
     state = app.get_state(config).values
-    if not state.get("card_confirmed"):
+    started_at = cl.user_session.get("chat_started_at")
+    title = None
+    if state.get("card_confirmed"):
+        card = state.get("patient_card")
+        title = chat_history.chat_title(card if isinstance(card, dict) else card.model_dump(), started_at)
+    # Chainlit titles a chat with its first message, here the fiscal code: it is replaced at once.
+    title = title or chat_history.new_chat_title(started_at)
+    if title == cl.user_session.get("chat_title"):
         return
-    card = state.get("patient_card")
-    title = chat_history.chat_title(card if isinstance(card, dict) else card.model_dump())
     try:
-        if title and await chat_history.rename_chat(title):
-            cl.user_session.set("chat_titled", True)
+        if await chat_history.rename_chat(title):
+            cl.user_session.set("chat_title", title)
     # The title is a convenience: a failure here must not disturb the triage.
     except Exception:
         log.exception("could not title the chat")

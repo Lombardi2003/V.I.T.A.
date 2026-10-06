@@ -766,3 +766,14 @@ main.bg-background {
     backdrop-filter: blur(14px);
     border-right: 1px solid rgba(0, 0, 0, 0.06);
 }
+
+/*
+ * VOCI DI MENU NASCOSTE
+ * "Disconnettiti": con l'utente unico automatico si rientra subito, quindi non ha effetto (con la riga che lo separa dal nome).
+ * "Rinomina": il titolo di una chat lo scrive l'app (nome del paziente e ora) e non si cambia a mano.
+ */
+[role="menu"] [role="menuitem"]:has(svg.lucide-log-out),
+[role="menu"]:has(svg.lucide-log-out) [role="separator"],
+#rename-thread {
+    display: none !important;
+}

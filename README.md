@@ -89,7 +89,7 @@ The guideline index is included in the repository, so nothing has to be built be
 - Answer in plain Italian. When the card or the symptoms are complete, the app asks for confirmation; a correction is always possible ("sì, ma l'età è 45", "togli la nausea").
 - When asked for a **photo**, attach an image or write "no".
 - From there the discussion runs on its own, up to the summary report.
-- The **sidebar** on the left lists the past chats, by day. Once the patient card is confirmed a chat is titled with the patient's name and the time; until then it shows the first message. A past chat can be reopened and read, not continued.
+- The **sidebar** on the left lists the past chats, by day. A chat is titled "Nuovo triage" with its time, and with the patient's name once the card is confirmed; the fiscal code never appears as a title. A past chat can be reopened and read, not continued, and it can be deleted from its menu.
 
 </div>
 

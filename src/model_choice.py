@@ -82,20 +82,20 @@ def _apply(kind: str, model: Model) -> None:
     log.info("%s model changed from the panel: %s", kind, factory.describe_llm(client))
 
 
-def choose(kind: str, chosen_label: str) -> tuple[bool, str]:
-    """Changes the text or vision model to the one with this label: (done, message for the chat)."""
+def choose(kind: str, chosen_label: str) -> str | None:
+    """Changes the text or vision model to the one with this label; returns why it could not, or None when done."""
     model = next((m for m in choices(kind) if label(m) == chosen_label), None)
     if model is None:
-        return False, f"❌ Modello non disponibile: {chosen_label}."
+        return f"Modello non disponibile: {chosen_label}."
     if model == current[kind]:
-        return True, ""
+        return None
     if not model.provider.key_field:
         problem = _local_problem(model)
         if problem:
-            return False, f"❌ {label(model)} non selezionato: {problem}. Resta attivo {label(current[kind])}."
+            return f"{label(model)} non selezionato: {problem}. Resta attivo {label(current[kind])}."
     try:
         _apply(kind, model)
     except Exception as e:
         log.warning("model change failed: %s", e)
-        return False, f"❌ {label(model)} non selezionato. Resta attivo {label(current[kind])}."
-    return True, f"✅ Modello {'di testo' if kind == 'text' else 'per la foto'}: {label(model)}."
+        return f"{label(model)} non selezionato. Resta attivo {label(current[kind])}."
+    return None

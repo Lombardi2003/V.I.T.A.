@@ -85,9 +85,7 @@ class TestChoose(PanelCase):
 
     def test_text_model_is_replaced_for_every_agent(self):
         """TEST panel choose: a new text model replaces the client every agent reads, and becomes the one in use."""
-        ok, message = model_choice.choose("text", "gpt-oss-20b")
-        self.assertTrue(ok)
-        self.assertIn("gpt-oss-20b", message)
+        self.assertIsNone(model_choice.choose("text", "gpt-oss-20b"))
         self.assertEqual(common.llm, "client of openai/gpt-oss-20b")
         self.assertEqual(model_choice.current["text"], Models.GPT_OSS_20B)
         self.assertEqual(model_choice.current["vision"], Models.QWEN_27B)
@@ -95,47 +93,42 @@ class TestChoose(PanelCase):
     def test_vision_model_is_replaced_for_the_photo_node(self):
         """TEST panel choose: a new vision model replaces the client the photo node uses, not the text one."""
         text_before = common.llm
-        self.assertTrue(model_choice.choose("vision", "gemini-3.8-flash")[0])
+        self.assertIsNone(model_choice.choose("vision", "gemini-3.8-flash"))
         self.assertEqual(photography.llm_vision, "client of gemini-3.8-flash")
         self.assertEqual(common.llm_vision, "client of gemini-3.8-flash")
         self.assertIs(common.llm, text_before)
 
     def test_same_model_does_nothing(self):
-        """TEST panel choose: confirming the model already in use builds nothing and writes nothing in the chat."""
-        self.assertEqual(model_choice.choose("text", "gpt-oss-120b"), (True, ""))
+        """TEST panel choose: confirming the model already in use builds nothing and reports no problem."""
+        self.assertIsNone(model_choice.choose("text", "gpt-oss-120b"))
         self.assertEqual(self.built, [])
 
     def test_unknown_or_unavailable_model_is_refused(self):
         """TEST panel choose: a label that is not among the choices is refused and the model in use stays."""
-        ok, message = model_choice.choose("text", "moondream")
-        self.assertFalse(ok)
-        self.assertIn("non disponibile", message)
+        self.assertIn("non disponibile", model_choice.choose("text", "moondream"))
         self.assertEqual(model_choice.current["text"], Models.GPT_OSS_120B)
 
     def test_local_model_that_does_not_answer_is_refused(self):
         """TEST panel choose: a local model whose server is off is refused, with the reason, and the previous one stays."""
         with mock.patch.object(model_choice.httpx, "get", side_effect=httpx.ConnectError("refused")):
-            ok, message = model_choice.choose("text", "llama3")
-        self.assertFalse(ok)
-        self.assertIn("non risponde", message)
-        self.assertIn("gpt-oss-120b", message)
+            problem = model_choice.choose("text", "llama3")
+        self.assertIn("non risponde", problem)
+        self.assertIn("gpt-oss-120b", problem)
         self.assertEqual(self.built, [])
 
     def test_local_model_installed_is_accepted(self):
         """TEST panel choose: a local model listed by the local server is accepted; one that is not installed is refused."""
         answer = types.SimpleNamespace(json=lambda: {"data": [{"id": "llama3:latest"}]})
         with mock.patch.object(model_choice.httpx, "get", return_value=answer):
-            self.assertTrue(model_choice.choose("text", "llama3")[0])
-            ok, message = model_choice.choose("vision", "moondream")
-        self.assertFalse(ok)
-        self.assertIn("non è installato", message)
+            self.assertIsNone(model_choice.choose("text", "llama3"))
+            problem = model_choice.choose("vision", "moondream")
+        self.assertIn("non è installato", problem)
 
     def test_a_client_that_cannot_be_built_leaves_the_previous_model(self):
-        """TEST panel choose: if the new client cannot be built the model in use stays and the chat is told."""
+        """TEST panel choose: if the new client cannot be built the model in use stays and the problem is reported."""
         with mock.patch.object(model_choice.factory, "build_llm", side_effect=RuntimeError("no key")):
-            ok, message = model_choice.choose("text", "gpt-oss-20b")
-        self.assertFalse(ok)
-        self.assertIn("Resta attivo gpt-oss-120b", message)
+            problem = model_choice.choose("text", "gpt-oss-20b")
+        self.assertIn("Resta attivo gpt-oss-120b", problem)
         self.assertEqual(model_choice.current["text"], Models.GPT_OSS_120B)
 
 
@@ -150,12 +143,12 @@ class TestPanelInTheApp(helpers.VitaTestCase):
         self.calls = []
         self.panels = []
 
-        async def fake_panel(locked):
-            self.panels.append(locked)
+        async def fake_panel(locked, problems=None):
+            self.panels.append((locked, problems or {}))
         for target, name, value in (
                 (self.module.cl, "user_session", session),
                 (self.module, "send_panel", fake_panel),
-                (model_choice, "choose", lambda kind, label: self.calls.append((kind, label)) or (True, f"scelto {label}"))):
+                (model_choice, "choose", lambda kind, label: self.calls.append((kind, label)))):
             patch = mock.patch.object(target, name, value)
             patch.start()
             self.addCleanup(patch.stop)
@@ -165,24 +158,26 @@ class TestPanelInTheApp(helpers.VitaTestCase):
         helpers.run(self.module.settings_update, settings)
 
     def test_before_the_first_message_the_models_are_applied(self):
-        """TEST panel in the app: before the chat starts the chosen models are applied, the panel is shown again and the chat is told."""
+        """TEST panel in the app: before the chat starts the chosen models are applied and the panel is shown again; nothing is written in the chat."""
         self.update(text_model="gpt-oss-20b", vision_model="qwen3.8-27b")
         self.assertEqual(self.calls, [("text", "gpt-oss-20b"), ("vision", "qwen3.8-27b")])
-        self.assertEqual(self.panels, [False])
-        self.assertIn("scelto gpt-oss-20b", self.last_message())
+        self.assertEqual(self.panels, [(False, {})])
+        self.assertEqual(self.chat, [])
+
+    def test_a_refused_choice_is_explained_in_the_panel_not_in_the_chat(self):
+        """TEST panel in the app: when a model cannot be selected the reason goes under that choice in the panel; the chat stays empty."""
+        refuse = lambda kind, label: "llama3 non selezionato: il servizio locale non risponde." if kind == "text" else None
+        with mock.patch.object(model_choice, "choose", refuse):
+            self.update(text_model="llama3", vision_model="qwen3.8-27b")
+        self.assertEqual(self.panels, [(False, {"text": "llama3 non selezionato: il servizio locale non risponde."})])
+        self.assertEqual(self.chat, [])
 
     def test_after_the_first_message_the_model_cannot_change(self):
         """TEST panel in the app: once the chat has started a model choice is ignored and the panel is shown locked again."""
         self.session["chat_started"] = True
         self.update(text_model="gpt-oss-20b", vision_model="gemini-3.8-flash")
         self.assertEqual(self.calls, [])
-        self.assertEqual(self.panels, [True])
-        self.assertEqual(self.chat, [])
-
-    def test_nothing_changed_writes_nothing(self):
-        """TEST panel in the app: confirming the panel without changes writes nothing in the chat."""
-        with mock.patch.object(model_choice, "choose", lambda kind, label: (True, "")):
-            self.update(text_model="gpt-oss-120b", vision_model="qwen3.8-27b")
+        self.assertEqual(self.panels, [(True, {})])
         self.assertEqual(self.chat, [])
 
     def test_the_first_message_locks_the_panel(self):
@@ -204,7 +199,8 @@ class TestPanelInTheApp(helpers.VitaTestCase):
             helpers.run(self.module.main, message)
             helpers.run(self.module.main, message)
         self.assertTrue(self.session["chat_started"])
-        self.assertEqual(self.panels, [True])
+        self.assertEqual(self.panels, [(True, {})])
+        self.assertEqual(self.chat, [])
 
     def test_a_new_chat_starts_unlocked(self):
         """TEST panel in the app: opening a chat shows the panel unlocked, whatever happened in the previous chat."""
@@ -213,7 +209,8 @@ class TestPanelInTheApp(helpers.VitaTestCase):
         with mock.patch.object(self.module, "app", graph):
             helpers.run(self.module.start)
         self.assertFalse(self.session["chat_started"])
-        self.assertEqual(self.panels, [False])
+        self.assertEqual(self.panels, [(False, {})])
+        self.assertEqual(self.chat, [])
 
 
 class TestRealPanel(helpers.VitaTestCase):
@@ -232,7 +229,10 @@ class TestRealPanel(helpers.VitaTestCase):
         with mock.patch.object(app.cl, "ChatSettings", FakeSettings):
             helpers.run(app.send_panel, False)
             helpers.run(app.send_panel, True)
-        unlocked, locked = sent
+            helpers.run(app.send_panel, False, {"text": "llama3 non selezionato."})
+        unlocked, locked, refused = sent
+        self.assertEqual([w.description for w in unlocked], [None, None])
+        self.assertEqual([w.description for w in refused], ["llama3 non selezionato.", None])
         self.assertEqual([w.id for w in unlocked], ["text_model", "vision_model"])
         self.assertEqual([w.disabled for w in unlocked], [False, False])
         self.assertEqual([w.disabled for w in locked], [True, True])
