@@ -1,14 +1,16 @@
-"""Runs one model on the benchmark cases, in the two conditions, and appends the raw results. Uses API quota.
+"""Runs one model on the benchmark cases, one step at a time, and appends the raw results. Uses API quota.
 
 Usage, from the project folder:
-    python -m benchmark.run --model GPT_OSS_120B                  every case, both conditions, one run
-    python -m benchmark.run --model GPT_OSS_120B --cases core     only the five core cases
-    python -m benchmark.run --model GPT_OSS_120B --cases 01 04    only some cases
-    python -m benchmark.run --model GEMINI_FLASH --condition system --runs 3
+    python -m benchmark.run --model GPT_OSS_120B --check     one tiny request: is the key valid, does the model exist, are tokens counted
+    python -m benchmark.run --model GPT_OSS_120B --step 1    minimum: the model alone, on the 15 cases
+    python -m benchmark.run --model GPT_OSS_120B --step 2    intermediate: the full system, on the 5 core cases
+    python -m benchmark.run --model GPT_OSS_120B --step 3    complete: the full system, on the other 10 cases
+    python -m benchmark.run --model GPT_OSS_120B             the three steps, one after the other
     --key-field FIELD   read the API key from another settings.py field
     --no-usage          do not ask the provider for token counts (for a provider that rejects the option)
-    --check             one tiny request instead of the cases: is the key valid, does the model exist, are tokens counted
+    --cases / --condition / --runs   run chosen cases outside the steps (trials, repetitions)
 
+Every model goes through the same steps in the same order: a step starts only when the one before is complete.
 A case already in the results file is skipped: after a daily limit, run the same command again.
 """
 
@@ -43,6 +45,7 @@ from src.llm import describe_llm, factory  # noqa: E402
 from src.llm.providers import Model, Models  # noqa: E402
 from src.state import MedicalState  # noqa: E402
 
+from . import steps  # noqa: E402
 from .baseline import run_baseline  # noqa: E402
 from .cases import CASES, CASES_BY_ID, Case  # noqa: E402
 
@@ -201,12 +204,31 @@ def check_model() -> int:
     return 0 if ok else 1
 
 
+def _records(path: Path) -> list[dict]:
+    """The records already in a results file."""
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
 def _done(path: Path) -> set:
     """The (case, condition, run) already in a results file."""
-    if not path.exists():
-        return set()
-    lines = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    return {(r["case"], r["condition"], r["run"]) for r in lines}
+    return {(r["case"], r["condition"], r["run"]) for r in _records(path)}
+
+
+def step_plan(records: list[dict], step: int | None) -> tuple[list, str | None]:
+    """What to run for one step, or for every step in order: (plan, why it cannot start)."""
+    wanted = [step] if step else sorted(steps.STEPS)
+    plan = []
+    for number in wanted:
+        before = [n for n in sorted(steps.STEPS) if n < number and steps.missing_items(records, n)]
+        # Asked for alone, a step needs the ones before it; in a full run they are in the plan already.
+        if step and before:
+            return [], (f"Step {number} starts only when step {before[0]} is complete: "
+                        f"run --step {before[0]} first ({len(steps.missing_items(records, before[0]))} cases missing).")
+        plan += [(steps.FIRST_RUN, CASES_BY_ID[case_id], condition)
+                 for case_id, condition in steps.missing_items(records, number)]
+    return plan, None
 
 
 def _commit() -> str:
@@ -216,20 +238,37 @@ def _commit() -> str:
     return result.stdout.strip()
 
 
-async def run_all(args, model: Model, model_name: str, cases: list[Case]) -> int:
-    """Runs what is still missing, saving each case as soon as it ends; stops at the first error that is not the model's."""
+async def run_all(args, model: Model, model_name: str, cases: list[Case] | None) -> int:
+    """Runs what is still missing of a step (or of the chosen cases), saving each case as it ends; stops at the first error that is not the model's."""
     RESULTS_DIR.mkdir(exist_ok=True)
     path = RESULTS_DIR / f"{model_name}.jsonl"
     done = _done(path)
-    conditions = CONDITIONS if args.condition == "both" else (args.condition,)
-    plan = [(run, case, condition) for run in range(1, args.runs + 1) for case in cases for condition in conditions
-            if (case.id, condition, run) not in done]
-    print(f"Model: {describe_llm(common.llm)}   to run: {len(plan)}   already done: {len(done)}   file: {path.name}")
+    if cases is None:
+        plan, problem = step_plan(_records(path), args.step)
+        if problem:
+            print(problem)
+            return 1
+    else:
+        conditions = CONDITIONS if args.condition in (None, "both") else (args.condition,)
+        plan = [(run, case, condition) for run in range(1, args.runs + 1) for case in cases
+                for condition in conditions if (case.id, condition, run) not in done]
+    calls = sum(steps.CALLS_PER_CASE[condition] for _, _, condition in plan)
+    what = f"step {args.step}" if args.step else "all the steps" if cases is None else "chosen cases"
+    print(f"Model: {describe_llm(common.llm)}   {what}   to run: {len(plan)} (about {calls} model calls)   "
+          f"already done: {len(done)}   file: {path.name}")
+    if not plan:
+        print("Nothing to run: already complete.")
+        return 0
     commit = _commit()
     for run, case, condition in plan:
         meter.reset()
         start = time.monotonic()
-        outcome = await (run_system(case) if condition == "system" else run_baseline(case))
+        try:
+            outcome = await (run_system(case) if condition == "system" else run_baseline(case))
+        except Exception:
+            # The model alone has no node that absorbs a failed call: it arrives here and is handled just below.
+            if not meter.escaped:
+                raise
         seconds = time.monotonic() - start
         if meter.escaped:
             print(f"\nSTOPPED at case {case.id} ({condition}): a model call failed for a reason that is not the "
@@ -253,7 +292,8 @@ async def run_all(args, model: Model, model_name: str, cases: list[Case]) -> int
         print(f"  {case.id} {condition:8s} run {run}  expected {case.expected_code:9s} got {str(record['code']):9s} "
               f"roles {record['roles']}  {seconds:.0f} s  {meter.requests} calls"
               + (f"  {record['total_tokens']} tokens" if meter.usage_seen else ""))
-    print("Done. Table: python -m benchmark.table")
+    reached = steps.step_reached(_records(path))
+    print(f"Done. This model has completed step: {steps.step_label(reached)}. Tables: python -m benchmark.table")
     return 0
 
 
@@ -262,15 +302,23 @@ def main() -> int:
     names = [name for name, value in vars(Models).items() if isinstance(value, Model)]
     parser = argparse.ArgumentParser(description="V.I.T.A. model benchmark (uses API quota).")
     parser.add_argument("--model", required=True, choices=names, help="a model of src/llm/providers.py")
-    parser.add_argument("--cases", nargs="+", default=["all"], help="all, core, or case ids (01 ... 15)")
-    parser.add_argument("--condition", default="both", choices=CONDITIONS + ("both",))
-    parser.add_argument("--runs", type=int, default=1, help="runs per case")
+    parser.add_argument("--step", type=int, choices=sorted(steps.STEPS),
+                        help="1 minimum (model alone, 15 cases), 2 intermediate (system, 5 core cases), "
+                             "3 complete (system, the other 10); without it, the three in order")
+    parser.add_argument("--cases", nargs="+", help="outside the steps: all, core, or case ids (01 ... 15)")
+    parser.add_argument("--condition", choices=CONDITIONS + ("both",), help="outside the steps: which condition")
+    parser.add_argument("--runs", type=int, default=1, help="outside the steps: runs per case")
     parser.add_argument("--key-field", metavar="FIELD", help="settings.py field of the API key to use")
     parser.add_argument("--no-usage", action="store_true", help="do not ask the provider for token counts")
     parser.add_argument("--check", action="store_true", help="one tiny request instead of the cases")
     args = parser.parse_args()
 
-    if args.cases == ["all"]:
+    manual = args.cases is not None or args.condition is not None or args.runs != 1
+    if manual and args.step:
+        parser.error("--step cannot be combined with --cases, --condition or --runs")
+    if not manual:
+        cases = None  # The steps decide what runs.
+    elif args.cases in (None, ["all"]):
         cases = CASES
     elif args.cases == ["core"]:
         cases = [case for case in CASES if case.core]

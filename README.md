@@ -144,13 +144,15 @@ Runs the unit tests (real graph, fake model, no API quota) and the retrieval ben
 
 <div align="justify">
 
-The `benchmark/` folder compares language models on the same 15 triage cases, three per priority code, each built from one row of a regional triage manual that gives the expected code. Every model is run in two conditions: the full system, from the supervisor to the report, and the model alone, asked once without the round table. It uses API quota, saves each case as soon as it ends and restarts from where it stopped.
+The `benchmark/` folder compares language models on the same 15 triage cases, three per priority code, each built from one row of a regional triage manual that gives the expected code. Every model is run in two conditions: the full system, from the supervisor to the report, and the model alone, asked once without the round table. Every model goes through the same three steps in the same order and stops where its quota allows. It uses API quota, saves each case as soon as it ends and restarts from where it stopped.
 
 </div>
 
 ```bash
-python -m benchmark.run --model GPT_OSS_120B   # one model, every case, both conditions
-python -m benchmark.table                      # the table, from the saved results
+python -m benchmark.run --model GPT_OSS_120B --step 1   # the model alone, on the 15 cases
+python -m benchmark.run --model GPT_OSS_120B --step 2   # the full system, on the 5 core cases
+python -m benchmark.run --model GPT_OSS_120B --step 3   # the full system, on the other 10 cases
+python -m benchmark.table                               # the tables (Markdown and CSV), from the saved results
 ```
 
 <div align="justify">

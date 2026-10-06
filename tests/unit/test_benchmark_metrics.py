@@ -6,7 +6,7 @@ try:
 except ImportError:
     import helpers  # noqa: F401
 
-from benchmark import metrics, table
+from benchmark import metrics, steps, table
 from benchmark.cases import CASES, CODE_COLOURS, LEVELS, TEST_FISCAL_CODE
 from src.agents.persistence import TEST_FISCAL_CODE as APP_TEST_FISCAL_CODE
 from src.agents.prompts import ALL_SPECIALISTS
@@ -166,27 +166,92 @@ class TestReviewSheet(unittest.TestCase):
         self.assertEqual(text.count("**Invented details (number):**"), 2)
 
 
-class TestTable(unittest.TestCase):
-    def test_one_row_per_model_and_condition(self):
-        """TEST table: one row per model and condition, and the core table keeps only the core cases."""
-        records = [_record("ROSSO", "ROSSO", case="01", core=True),
-                   _record("VERDE", "ROSSO", case="11", core=False),
-                   dict(_record("ROSSO", "ARANCIONE", case="01", core=True), condition="baseline")]
-        full = table.build_table({"MODEL_A": records}).splitlines()
-        core = table.build_table({"MODEL_A": records}, core_only=True).splitlines()
-        self.assertEqual(len(full), 4)   # header, separator, two rows
-        self.assertIn("| MODEL_A | Full system | 2 | 2 | 1/2 |", full[2])
-        self.assertIn("| MODEL_A | Model alone | 1 | 1 | 0/1 | 1/1 | 1 | 0 |", full[3])
-        self.assertIn("| MODEL_A | Full system | 1 | 1 | 1/1 |", core[2])
+def _upto(step):
+    """HELPER _upto: the records of a model that has completed the steps up to this one, every code right."""
+    records = []
+    for number in range(1, step + 1):
+        for case_id, condition in steps.step_items(number):
+            case = next(c for c in CASES if c.id == case_id)
+            records.append(dict(_record(case.expected_code, case.expected_code, case=case_id, role=case.expected_role,
+                                        roles=[case.expected_role], core=case.core), condition=condition))
+    return records
 
-    def test_status_lists_the_missing_cases(self):
-        """TEST table: the progress says how many cases each condition has done and which are missing."""
-        records = [_record("ROSSO", "ROSSO", case=case.id) for case in CASES if case.id != "07"]
-        status = table.build_status({"MODEL_A": records}).splitlines()
-        self.assertIn("| MODEL_A | Full system | 14/15 | 1 | 07 |", status[2])
-        self.assertIn("| MODEL_A | Model alone | 0/15 | 0 |", status[3])
-        done = table.build_status({"MODEL_A": [_record("ROSSO", "ROSSO", case=case.id) for case in CASES]}).splitlines()
-        self.assertIn("| 15/15 | 1 | none |", done[2])
+
+class TestSteps(unittest.TestCase):
+    def test_the_three_steps_cover_everything_once(self):
+        """TEST steps: step 1 is the model alone on the 15 cases, step 2 the system on the 5 core cases, step 3 the system on the other 10."""
+        self.assertEqual([(steps.STEPS[n][1], len(steps.STEPS[n][2])) for n in (1, 2, 3)],
+                         [("baseline", 15), ("system", 5), ("system", 10)])
+        system_cases = steps.STEPS[2][2] + steps.STEPS[3][2]
+        self.assertEqual(sorted(system_cases), [case.id for case in CASES])
+        self.assertEqual(steps.STEPS[2][2], [case.id for case in CASES if case.core])
+
+    def test_step_reached_needs_every_step_before(self):
+        """TEST steps: a step counts only with all the ones before it; one missing case keeps a model at the step below."""
+        self.assertEqual([steps.step_reached(_upto(n)) for n in (0, 1, 2, 3)], [0, 1, 2, 3])
+        self.assertEqual(steps.step_reached(_upto(2)[:-1]), 1)
+        only_system = [r for r in _upto(3) if r["condition"] == "system"]
+        self.assertEqual(steps.step_reached(only_system), 0)
+        self.assertEqual(steps.missing_items(_upto(1), 2), steps.step_items(2))
+
+    def test_a_repetition_does_not_complete_a_step(self):
+        """TEST steps: a second run of a case does not stand for its first run."""
+        records = _upto(1)[:-1] + [dict(_upto(1)[-1], run=2)]
+        self.assertEqual(steps.step_reached(records), 0)
+
+
+class TestTable(unittest.TestCase):
+    def test_a_step_table_lists_only_the_models_that_completed_it(self):
+        """TEST table: each step has its table, with only the models that completed the step and the cases of that step."""
+        results = {"FULL": _upto(3), "CORE": _upto(2), "ALONE": _upto(1), "STARTED": _upto(1)[:4]}
+        models = {step: [row[0] for row in table.step_rows(results, step)] for step in (1, 2, 3)}
+        self.assertEqual(models[1], ["FULL", "CORE", "ALONE"])
+        self.assertEqual(models[2], ["FULL", "FULL", "CORE", "CORE"])      # full system and model alone, on the core cases
+        self.assertEqual(models[3], ["FULL", "FULL"])
+        core_rows = table.step_rows(results, 2)
+        self.assertEqual([row[1:4] for row in core_rows[:2]], [["Full system", "5", "5"], ["Model alone", "5", "5"]])
+        self.assertEqual(table.step_rows(results, 3)[0][1:4], ["Full system", "15", "15"])
+        self.assertIn("No model has completed this step yet", table.build_step_table({"ALONE": _upto(1)}, 2))
+
+    def test_status_says_the_step_reached_and_what_is_missing(self):
+        """TEST table: the progress gives the step each model completed, the cases done per condition and what the next step lacks."""
+        results = {"FULL": _upto(3), "ALONE": _upto(1), "STARTED": _upto(1)[:13], "HALF": _upto(2)[:-2]}
+        rows = {line.split(" | ")[0].strip("| "): line for line in table.build_status(results).splitlines()[2:]}
+        self.assertEqual(rows["FULL"], "| FULL | 3 - complete | 15/15 | 15/15 | none |")
+        self.assertEqual(rows["ALONE"], "| ALONE | 1 - minimum | 15/15 | 0/15 | step 2: 01 04 07 10 13 |")
+        self.assertEqual(rows["STARTED"], "| STARTED | 0 - not started | 13/15 | 0/15 | step 1: 14 15 |")
+        self.assertEqual(rows["HALF"], "| HALF | 1 - minimum | 15/15 | 3/15 | step 2: 10 13 |")
+
+    def test_csv_files_hold_the_same_numbers(self):
+        """TEST table csv: table.csv has the rows of the three step tables as plain numbers; cases.csv has one row per case run."""
+        results = {"FULL": _upto(3)}
+        summary = table.table_csv_rows(results)
+        self.assertEqual([row[:3] for row in summary[1:]],
+                         [[1, "FULL", "Model alone"], [2, "FULL", "Full system"], [2, "FULL", "Model alone"],
+                          [3, "FULL", "Full system"], [3, "FULL", "Model alone"]])
+        first = dict(zip(summary[0], summary[1]))
+        self.assertEqual((first["Cases"], first["Records"], first["Exact"], first["Within one"], first["Specialty"]),
+                         (15, 15, 15, 15, 15))
+        self.assertEqual((first["Kappa"], first["Turns"], first["Tokens"]), (1, None, None))
+        # No cell is a fraction like 3/15: a spreadsheet would read it as a date.
+        self.assertFalse(any("/" in str(cell) for row in summary[1:] for cell in row))
+        per_case = table.cases_csv_rows({"A": [_record("ARANCIONE", "VERDE", case="04", roles=["ent"], core=True)]})
+        self.assertEqual(len(per_case), 2)
+        row = dict(zip(per_case[0], per_case[1]))
+        self.assertEqual((row["Model"], row["Case"], row["Expected code"], row["Code"], row["Error (levels)"], row["Role ok"]),
+                         ("A", "04", "ARANCIONE", "VERDE", 2, "no"))
+
+    def test_csv_file_opens_in_a_spreadsheet(self):
+        """TEST table csv: the file is written with the encoding a spreadsheet reads, and an empty value is an empty cell."""
+        import csv
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "t.csv"
+            table._write_csv(path, [["Model", "Turns"], ["A · b", None]])
+            self.assertTrue(path.read_bytes().startswith(b"\xef\xbb\xbf"))
+            with path.open(encoding="utf-8-sig", newline="") as f:
+                self.assertEqual(list(csv.reader(f)), [["Model", "Turns"], ["A · b", ""]])
 
     def test_case_table_marks_the_direction(self):
         """TEST table: one row per case; a more urgent code is marked as over-triage, a less urgent one as under-triage."""

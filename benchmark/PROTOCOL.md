@@ -68,7 +68,21 @@ Every model is run in two conditions, on the same cases.
 
 What stays the same for every model: the cases, the prompts, the guideline index and the retrieval, the temperature, the limits of the round table, the retry rules. The only thing that changes is the model, chosen from `src/llm/providers.py`.
 
-One run per case is the minimum. Where the free quota allows it, a case is run three times; the table reports how many records each row is built on. The order of priority, the same for every model, is: full system once per case, then the model alone, then the repetitions.
+Every model goes through the same three steps, in the same order, and stops at the step its quota allows. A step starts only when the one before is complete, so every model that reached a step has done exactly the same things.
+
+</div>
+
+| Step | What is run | Cases | Model calls | Tokens (measured on one model) |
+|---|---|---|---|---|
+| 1 - minimum | The model alone | all 15 | 15 | about 50,000 |
+| 2 - intermediate | The full system | the 5 core cases | about 35 | about 285,000 |
+| 3 - complete | The full system | the other 10 | about 70 | about 570,000 |
+
+<div align="justify">
+
+The first step costs about a seventeenth of the others and gives a result on every case, so even a model with very little quota enters the comparison. The second adds the round table on the five most representative cases, the same patients the model has already answered alone: the two answers side by side say whether the table helps. The third adds the other ten cases to the full system, which makes its numbers more solid without changing what is measured.
+
+Each step has its own table, which lists only the models that completed it. Repetitions of a case, to see whether a model answers the same every time, are not part of the steps: they can be added afterwards for the models that still have quota, and the table reports how many records each row is built on.
 
 </div>
 
@@ -131,21 +145,22 @@ The pilot also showed that no prompt said what the five codes mean: the model us
 
 <div align="justify">
 
-Fifteen cases allow a descriptive comparison, not statistical conclusions. The expected answers come from a regional manual; the patient texts were written for the benchmark. The manual is in the guideline archive of the system, but the retrieval returns only a few passages per turn and does not guarantee the row a case was built from: a model may never see it. The benchmark therefore measures the code the system reaches with what it retrieves, not the ability to read a row it is shown; the model alone gets its guidelines through the same retrieval. The manual is a nursing triage tool that relies on measured vital signs, which the patient card holds only as text. Models with little free quota are run once per case, or only on the core set.
+Fifteen cases allow a descriptive comparison, not statistical conclusions. The expected answers come from a regional manual; the patient texts were written for the benchmark. The manual is in the guideline archive of the system, but the retrieval returns only a few passages per turn and does not guarantee the row a case was built from: a model may never see it. The benchmark therefore measures the code the system reaches with what it retrieves, not the ability to read a row it is shown; the model alone gets its guidelines through the same retrieval. The manual is a nursing triage tool that relies on measured vital signs, which the patient card holds only as text. Models with little free quota stop at the first or at the second step.
 
 </div>
 
 ## ▶️ Running it
 
 ```bash
-python -m benchmark.run --model GPT_OSS_120B --check   # one tiny request: key, model name, token counts
-python -m benchmark.run --model GPT_OSS_120B
-python -m benchmark.run --model GEMINI_FLASH --cases core
-python -m benchmark.table
+python -m benchmark.run --model GPT_OSS_120B --check    # one tiny request: key, model name, token counts
+python -m benchmark.run --model GPT_OSS_120B --step 1   # minimum: the model alone, 15 cases
+python -m benchmark.run --model GPT_OSS_120B --step 2   # intermediate: the full system, 5 core cases
+python -m benchmark.run --model GPT_OSS_120B --step 3   # complete: the full system, the other 10 cases
+python -m benchmark.table                               # the tables, from the saved results
 ```
 
 <div align="justify">
 
-The raw results are in `results/`, one `.jsonl` file per model with one line per case, condition and run: codes, specialists, the whole discussion, the report, date, model, temperature and the commit of the code. `results/TABLE.md` is rebuilt from them at every call of `benchmark.table`: the progress of each model (cases done and missing), the table of the models, and one table per condition with the code each model gave to each case.
+The raw results are in `results/`, one `.jsonl` file per model with one line per case, condition and run: codes, specialists, the whole discussion, the report, date, model, temperature and the commit of the code. A step interrupted by a daily limit is resumed by running the same command again. `benchmark.table` rebuilds three files from the raw results at every call: `results/TABLE.md`, with the step each model reached, one table per step and one table per condition with the code each model gave to each case; `results/table.csv`, the step tables as plain numbers; and `results/cases.csv`, one row per case run. The CSV files use commas and decimal points.
 
 </div>
