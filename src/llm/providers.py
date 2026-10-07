@@ -75,7 +75,7 @@ class Models:
     QWEN_27B = Model("qwen/qwen3.8-27b", GROQ, vision=True)  # Writes a <think> block before the JSON.
 
     # OLLAMA models
-    LLAMA3_2_LOCAL = Model("llama3.2:latest", OLLAMA)
+    LLAMA3_2 = Model("llama3.2:latest", OLLAMA)
     MOONDREAM = Model("moondream", OLLAMA, vision=True)
 
     # GEMINI models
