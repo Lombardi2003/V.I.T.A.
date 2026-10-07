@@ -54,7 +54,7 @@ class TestChoices(PanelCase):
         self.with_keys(groq_api_key_2="k", gemini_fra_key="k", huggingface_api_key="k", cloudflare_api_key="k",
                        cloudflare_account_id="a")
         self.assertEqual([model_choice.label(m) for m in model_choice.choices("text")],
-                         ["gpt-oss-120b", "gpt-oss-20b", "llama3.2", "gemini-3.8-flash",
+                         ["gpt-oss-120b", "gpt-oss-20b", "llama3.2", "llama3.1:8b", "gemini-3.8-flash",
                           "Llama-3.2-3B-Instruct:featherless-ai", "llama-3.2-3b-instruct", "llama-3.2-1b-instruct",
                           "granite-4.0-h-micro"])
         self.assertEqual([model_choice.label(m) for m in model_choice.choices("vision")],

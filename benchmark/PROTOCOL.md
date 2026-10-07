@@ -100,10 +100,17 @@ The benchmark compares text models. The models attached so far are listed below;
 | gpt-oss-20b | OpenAI | Groq |
 | gemini-3.8-flash | Google | Google |
 | llama3.2 (3B, 4-bit) | Meta | Ollama (local) |
+| llama3.1 (8B, 4-bit) | Meta | Ollama (local) |
 | llama-3.2-3b-instruct | Meta | Hugging Face (Featherless AI) |
 | llama-3.2-3b-instruct | Meta | Cloudflare |
 | llama-3.2-1b-instruct | Meta | Cloudflare |
 | granite-4.0-h-micro | IBM | Cloudflare |
+
+<div align="justify">
+
+The models on Ollama run on a GPU of Google Colab, with a context of 16,384 tokens. The app asks every model for answers of at most 4,096 tokens, but Ollama ignores the field that carries this limit, and an answer that falls into a repetition would never end: for these models the limit is set inside Ollama, at 8,192 tokens. A run of llama3.2 with the limit at 4,096 gave the same codes and the same specialists in all the 15 cases.
+
+</div>
 
 ## 📏 Measures
 

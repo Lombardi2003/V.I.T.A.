@@ -76,6 +76,7 @@ class Models:
 
     # OLLAMA models
     LLAMA3_2 = Model("llama3.2:latest", OLLAMA)
+    LLAMA3_1_8B = Model("llama3.1:8b", OLLAMA)
     MOONDREAM = Model("moondream", OLLAMA, vision=True)
 
     # GEMINI models
