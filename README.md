@@ -110,7 +110,11 @@ While the app runs, the settings panel (the icon beside the message box) lets th
 | gpt-oss-120b (active) | OpenAI | Groq |
 | gpt-oss-20b | OpenAI | Groq |
 | gemini-3.8-flash | Google | Google |
-| llama3 | Meta | Ollama (local) |
+| llama3.2 | Meta | Ollama (local) |
+| llama-3.2-3b-instruct | Meta | Hugging Face (Featherless AI) |
+| llama-3.2-3b-instruct | Meta | Cloudflare |
+| llama-3.2-1b-instruct | Meta | Cloudflare |
+| granite-4.0-h-micro | IBM | Cloudflare |
 
 | Vision models | Developed by | Runs on |
 |---|---|---|

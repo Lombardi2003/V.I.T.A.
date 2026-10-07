@@ -15,11 +15,13 @@ from . import steps
 from .cases import CASES
 from .metrics import code_error, summarize
 
-RESULTS_DIR = Path(__file__).resolve().parent / "results"  # Where run.py writes one .jsonl file per model.
+RESULTS_DIR = Path(__file__).resolve().parent / "results"  # The tables built here.
+RAW_DIR = RESULTS_DIR / "raw"  # Where run.py writes one .jsonl file per model.
 TABLE_FILE = RESULTS_DIR / "TABLE.md"  # Rewritten whole at every call, like the two CSV files.
 TABLE_CSV = RESULTS_DIR / "table.csv"  # One row per model, step and condition, with every measure.
 CASES_CSV = RESULTS_DIR / "cases.csv"  # One row per case run: expected and given code, specialists, cost.
 CONDITION_NAMES = {"system": "Full system", "baseline": "Model alone"}  # As shown in the tables.
+ERROR_COLUMN = "Error (levels, - over, + under)"  # The distance of the given code from the expected one, in cases.csv.
 MEASURES = ["Cases", "Records", "Exact", "Within one", "Under", "Over", "No answer", "Kappa", "Stable", "Specialty",
             "Sheet seen", "Invalid answers", "Turns", "Seconds", "Wait", "Calls", "Tokens"]
 HEADER = ["Model", "Condition"] + MEASURES
@@ -35,7 +37,7 @@ STEP_TABLES = {
 }
 
 
-def load(results_dir: Path = RESULTS_DIR) -> dict[str, list[dict]]:
+def load(results_dir: Path = RAW_DIR) -> dict[str, list[dict]]:
     """The records of every model, by results file name."""
     return {path.stem: [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
             for path in sorted(results_dir.glob("*.jsonl"))}
@@ -84,17 +86,13 @@ def build_step_table(results: dict[str, list[dict]], step: int) -> str:
 
 
 def build_status(results: dict[str, list[dict]]) -> str:
-    """For each model: the step it has completed, how many cases each condition has, and what the next step lacks."""
+    """For each model: the step it has completed and how many cases each condition has."""
     rows = []
     for model, records in results.items():
         done = steps.done_items(records)
-        reached = steps.step_reached(records)
         counts = [f"{sum(1 for _, c in done if c == condition)}/{len(CASES)}" for condition in ("baseline", "system")]
-        following = reached + 1
-        missing = steps.missing_items(records, following) if following in steps.STEPS else []
-        rows.append([model, steps.step_label(reached)] + counts
-                    + [f"step {following}: {' '.join(case_id for case_id, _ in missing)}" if missing else "none"])
-    return _markdown(["Model", "Step reached", "Model alone", "Full system", "Still to run"], rows)
+        rows.append([model, steps.step_label(steps.step_reached(records))] + counts)
+    return _markdown(["Model", "Step reached", "Model alone", "Full system"], rows)
 
 
 def _code_cell(expected: str, records: list[dict]) -> str:
@@ -127,7 +125,7 @@ def build_document(results: dict[str, list[dict]]) -> str:
               f"(under-triage), `{NOT_RUN}` not run yet; several codes in a cell are the runs of that case, in order. "
               "★ marks the core cases.")
     parts = ["# Benchmark results", "",
-             "Built by `python -m benchmark.table` from the raw results in this folder. The steps and the measures are "
+             "Built by `python -m benchmark.table` from the raw results in `raw/`. The steps and the measures are "
              "defined in `benchmark/PROTOCOL.md`, the cases in `benchmark/CASES.md`. The same numbers are in "
              "`table.csv` and, case by case, in `cases.csv`.", "",
              "## Progress", "", build_status(results)]
@@ -156,13 +154,13 @@ def table_csv_rows(results: dict[str, list[dict]]) -> list[list]:
 
 def cases_csv_rows(results: dict[str, list[dict]]) -> list[list]:
     """The rows of cases.csv: every case run, with what was expected, what was given and what it cost."""
-    rows = [["Model", "Case", "Core", "Condition", "Run", "Expected code", "Code", "Error (levels)", "Expected role",
+    rows = [["Model", "Case", "Core", "Condition", "Run", "Expected code", "Given code", ERROR_COLUMN, "Expected role",
              "Roles", "Role ok", "Sheet delivered", "Invalid answers", "Turns", "Seconds", "Wait seconds", "Calls",
              "Tokens", "Date", "Commit"]]
     for model, records in results.items():
         for r in sorted(records, key=lambda r: (r["condition"], r["case"], r["run"])):
             roles = r.get("roles") or []
-            rows.append([model, r["case"], "yes" if r.get("core") else "no", r["condition"], r["run"],
+            rows.append([model, r["case"], "yes" if r.get("core") else "no", CONDITION_NAMES[r["condition"]], r["run"],
                          r["expected_code"], r.get("code") or "", code_error(r["expected_code"], r.get("code")),
                          r["expected_role"], ";".join(roles), "yes" if r["expected_role"] in roles else "no",
                          "yes" if r.get("sheet_delivered") else "no", r.get("invalid_answers"), r.get("turns"),

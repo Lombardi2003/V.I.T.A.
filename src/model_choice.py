@@ -29,8 +29,9 @@ def provider_label(provider: Provider) -> str:
 
 
 def _has_key(provider: Provider) -> bool:
-    """True if the provider needs no key, or its key is set."""
-    return not provider.key_field or bool(getattr(get_settings(), provider.key_field))
+    """True if the provider needs no key, or its key (and its account id, when it has one) is set."""
+    fields = [field for field in (provider.key_field, provider.account_field) if field]
+    return all(getattr(get_settings(), field) for field in fields)
 
 
 def _of_kind(kind: str) -> list[Model]:

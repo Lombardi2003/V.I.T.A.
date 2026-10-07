@@ -4,7 +4,7 @@ import asyncio
 import json
 
 import src.agents.common as common
-from src.agents.prompts import TRIAGE_CODES
+from src.agents.prompts import SUPERVISOR_PROMPT, TRIAGE_CODES
 from src.agents.roundtable import SPECIALIST_DISPLAY_NAMES, _parse_urgency
 from src.agents.supervisor import _roles_from
 from src.rag.retriever import build_queries, retrieve
@@ -12,6 +12,12 @@ from src.rag.retriever import build_queries, retrieve
 from .cases import Case
 
 GUIDELINE_ROLE = "general_practitioner"  # The baseline retrieves the guidelines the general practitioner would get.
+
+# The specialists and the rule on their names are copied from the supervisor's prompt, not rewritten: the model alone
+# chooses them from the same list, with the same instruction, as the supervisor does in the full system.
+_LIST_TITLE = "LISTA SPECIALISTI E AMBITI DI COMPETENZA:"
+SPECIALIST_LIST = SUPERVISOR_PROMPT.split(_LIST_TITLE)[1].split("RESTITUISCI SOLO UN JSON")[0].strip()
+NAMES_RULE = next(line.strip("- ").strip() for line in SUPERVISOR_PROMPT.splitlines() if "Usa SOLO i nomi esatti" in line)
 
 # In Italian like every prompt of the app; the shared rules and the code definitions are those of the specialist prompt.
 BASELINE_PROMPT = """Sei un medico di pronto soccorso. Valuta da solo il paziente: formula un'ipotesi diagnostica preliminare, assegna il codice di triage e indica gli specialisti pertinenti.
@@ -22,12 +28,13 @@ DATI PAZIENTE:
 LINEE GUIDA RECUPERATE (forse pertinenti, forse no: valutale tu; ogni passaggio ha il suo riferimento [documento, p. pagina]):
 {linee_guida}
 
-SPECIALISTI DISPONIBILI (usa SOLO questi nomi): {specialisti}.
+LISTA SPECIALISTI E AMBITI DI COMPETENZA:
+{specialisti}
 
 REGOLE:
 - FATTI E IPOTESI: come fatti usa SOLO i DATI PAZIENTE. Non attribuire al paziente segni, sintomi, durate, terapie o esiti di esami che non ha riferito. Un segno non riferito NON e' assente, e' sconosciuto.
 - URGENZA: [TRIAGE_CODES]
-- SPECIALISTI: da uno a tre, i piu' pertinenti per i sintomi del paziente.
+- SPECIALISTI: da uno a tre, i piu' pertinenti per i sintomi del paziente. {regola_nomi}
 
 RISPONDI SOLO CON QUESTO JSON (nessun altro testo):
 {{"diagnosis": "la tua ipotesi diagnostica preliminare", "urgency_level": "ROSSO" | "ARANCIONE" | "AZZURRO" | "VERDE" | "BIANCO",
@@ -45,7 +52,8 @@ def build_prompt(case: Case) -> str:
     return BASELINE_PROMPT.format(
         card=case.card.model_dump_json(),
         linee_guida=guideline_text,
-        specialisti=", ".join(f"{role} ({name})" for role, name in SPECIALIST_DISPLAY_NAMES.items()),
+        specialisti=SPECIALIST_LIST,
+        regola_nomi=NAMES_RULE,
     )
 
 

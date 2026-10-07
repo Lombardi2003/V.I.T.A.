@@ -1,5 +1,6 @@
 """benchmark: the measures are computed correctly and the cases are well formed. No model is called."""
 import unittest
+from unittest import mock
 
 try:
     from . import helpers  # noqa: F401  (sets up the environment: project path, UTF-8)
@@ -184,6 +185,21 @@ def _upto(step):
     return records
 
 
+class TestModelAlonePrompt(helpers.VitaTestCase):
+    def test_same_specialist_list_and_rule_as_the_supervisor(self):
+        """TEST model alone: the specialists are asked with the supervisor's own list and rule on names, so the two conditions get the same instruction."""
+        from benchmark import baseline
+        from src.agents.prompts import SUPERVISOR_PROMPT
+        with mock.patch.object(baseline, "retrieve", lambda queries, role=None, k=3: []):
+            prompt = baseline.build_prompt(CASES[0])
+        listed = [line for line in SUPERVISOR_PROMPT.splitlines() if "->" in line and line.strip()[0].isdigit()]
+        self.assertEqual(len(listed), len(ALL_SPECIALISTS))
+        for line in listed:
+            self.assertIn(line.strip(), prompt)
+        self.assertIn("Usa SOLO i nomi esatti tra virgolette nella lista sopra.", prompt)
+        self.assertNotIn("(Otorinolaringoiatria)", prompt)   # the form that invited a copy with the label
+
+
 class TestSteps(unittest.TestCase):
     def test_the_three_steps_cover_everything_once(self):
         """TEST steps: step 1 is the model alone on the 15 cases, step 2 the system on the 5 core cases, step 3 the system on the other 10."""
@@ -220,14 +236,14 @@ class TestTable(unittest.TestCase):
         self.assertEqual(table.step_rows(results, 3)[0][1:4], ["Full system", "15", "15"])
         self.assertIn("No model has completed this step yet", table.build_step_table({"ALONE": _upto(1)}, 2))
 
-    def test_status_says_the_step_reached_and_what_is_missing(self):
-        """TEST table: the progress gives the step each model completed, the cases done per condition and what the next step lacks."""
+    def test_status_says_the_step_reached(self):
+        """TEST table: the progress gives the step each model completed and the cases done per condition."""
         results = {"FULL": _upto(3), "ALONE": _upto(1), "STARTED": _upto(1)[:13], "HALF": _upto(2)[:-2]}
         rows = {line.split(" | ")[0].strip("| "): line for line in table.build_status(results).splitlines()[2:]}
-        self.assertEqual(rows["FULL"], "| FULL | 3 - complete | 15/15 | 15/15 | none |")
-        self.assertEqual(rows["ALONE"], "| ALONE | 1 - minimum | 15/15 | 0/15 | step 2: 01 04 07 10 13 |")
-        self.assertEqual(rows["STARTED"], "| STARTED | 0 - not started | 13/15 | 0/15 | step 1: 14 15 |")
-        self.assertEqual(rows["HALF"], "| HALF | 1 - minimum | 15/15 | 3/15 | step 2: 10 13 |")
+        self.assertEqual(rows["FULL"], "| FULL | 3 - complete | 15/15 | 15/15 |")
+        self.assertEqual(rows["ALONE"], "| ALONE | 1 - minimum | 15/15 | 0/15 |")
+        self.assertEqual(rows["STARTED"], "| STARTED | 0 - not started | 13/15 | 0/15 |")
+        self.assertEqual(rows["HALF"], "| HALF | 1 - minimum | 15/15 | 3/15 |")
 
     def test_csv_files_hold_the_same_numbers(self):
         """TEST table csv: table.csv has the rows of the three step tables as plain numbers; cases.csv has one row per case run."""
@@ -245,8 +261,9 @@ class TestTable(unittest.TestCase):
         per_case = table.cases_csv_rows({"A": [_record("ARANCIONE", "VERDE", case="04", roles=["ent"], core=True)]})
         self.assertEqual(len(per_case), 2)
         row = dict(zip(per_case[0], per_case[1]))
-        self.assertEqual((row["Model"], row["Case"], row["Expected code"], row["Code"], row["Error (levels)"], row["Role ok"]),
-                         ("A", "04", "ARANCIONE", "VERDE", 2, "no"))
+        self.assertEqual((row["Model"], row["Case"], row["Condition"], row["Expected code"], row["Given code"],
+                          row[table.ERROR_COLUMN], row["Role ok"]),
+                         ("A", "04", "Full system", "ARANCIONE", "VERDE", 2, "no"))
 
     def test_csv_file_opens_in_a_spreadsheet(self):
         """TEST table csv: the file is written with the encoding a spreadsheet reads, and an empty value is an empty cell."""

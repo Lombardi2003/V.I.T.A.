@@ -18,7 +18,8 @@ from src.llm.providers import Models
 
 def _settings(**keys):
     """HELPER _settings: settings in which only these provider keys are set."""
-    values = {"groq_api_key": None, "groq_api_key_2": None, "gemini_api_key": None, "gemini_fra_key": None}
+    values = {"groq_api_key": None, "groq_api_key_2": None, "gemini_api_key": None, "gemini_fra_key": None,
+              "huggingface_api_key": None, "cloudflare_api_key": None, "cloudflare_account_id": None}
     return lambda: types.SimpleNamespace(**{**values, **keys}, temperature=0.0)
 
 
@@ -50,9 +51,12 @@ class PanelCase(unittest.TestCase):
 class TestChoices(PanelCase):
     def test_text_and_vision_lists(self):
         """TEST panel choices: text models exclude the vision-only ones, vision models are only those that read images."""
-        self.with_keys(groq_api_key_2="k", gemini_fra_key="k")
+        self.with_keys(groq_api_key_2="k", gemini_fra_key="k", huggingface_api_key="k", cloudflare_api_key="k",
+                       cloudflare_account_id="a")
         self.assertEqual([model_choice.label(m) for m in model_choice.choices("text")],
-                         ["gpt-oss-120b", "gpt-oss-20b", "llama3", "gemini-3.8-flash"])
+                         ["gpt-oss-120b", "gpt-oss-20b", "llama3.2", "gemini-3.8-flash",
+                          "Llama-3.2-3B-Instruct:featherless-ai", "llama-3.2-3b-instruct", "llama-3.2-1b-instruct",
+                          "granite-4.0-h-micro"])
         self.assertEqual([model_choice.label(m) for m in model_choice.choices("vision")],
                          ["qwen3.8-27b", "moondream", "gemini-3.8-flash"])
         self.assertEqual(model_choice.missing_keys_note("text"), "")
@@ -61,7 +65,7 @@ class TestChoices(PanelCase):
         """TEST panel choices: the models of a provider whose key is missing are left out; local models need no key."""
         self.with_keys(groq_api_key_2="k")
         self.assertNotIn(Models.GEMINI_FLASH, model_choice.choices("text"))
-        self.assertIn(Models.LLAMA3, model_choice.choices("text"))
+        self.assertIn(Models.LLAMA3_2_LOCAL, model_choice.choices("text"))
 
     def test_the_panel_says_which_models_are_left_out_and_how_to_add_them(self):
         """TEST panel choices: a missing key is named with the models it hides and the command that sets it, never a key."""
@@ -111,16 +115,16 @@ class TestChoose(PanelCase):
     def test_local_model_that_does_not_answer_is_refused(self):
         """TEST panel choose: a local model whose server is off is refused, with the reason, and the previous one stays."""
         with mock.patch.object(model_choice.httpx, "get", side_effect=httpx.ConnectError("refused")):
-            problem = model_choice.choose("text", "llama3")
+            problem = model_choice.choose("text", "llama3.2")
         self.assertIn("non risponde", problem)
         self.assertIn("gpt-oss-120b", problem)
         self.assertEqual(self.built, [])
 
     def test_local_model_installed_is_accepted(self):
         """TEST panel choose: a local model listed by the local server is accepted; one that is not installed is refused."""
-        answer = types.SimpleNamespace(json=lambda: {"data": [{"id": "llama3:latest"}]})
+        answer = types.SimpleNamespace(json=lambda: {"data": [{"id": "llama3.2:latest"}]})
         with mock.patch.object(model_choice.httpx, "get", return_value=answer):
-            self.assertIsNone(model_choice.choose("text", "llama3"))
+            self.assertIsNone(model_choice.choose("text", "llama3.2"))
             problem = model_choice.choose("vision", "moondream")
         self.assertIn("non è installato", problem)
 
@@ -166,10 +170,10 @@ class TestPanelInTheApp(helpers.VitaTestCase):
 
     def test_a_refused_choice_is_explained_in_the_panel_not_in_the_chat(self):
         """TEST panel in the app: when a model cannot be selected the reason goes under that choice in the panel; the chat stays empty."""
-        refuse = lambda kind, label: "llama3 non selezionato: il servizio locale non risponde." if kind == "text" else None
+        refuse = lambda kind, label: "llama3.2 non selezionato: il servizio locale non risponde." if kind == "text" else None
         with mock.patch.object(model_choice, "choose", refuse):
-            self.update(text_model="llama3", vision_model="qwen3.8-27b")
-        self.assertEqual(self.panels, [(False, {"text": "llama3 non selezionato: il servizio locale non risponde."})])
+            self.update(text_model="llama3.2", vision_model="qwen3.8-27b")
+        self.assertEqual(self.panels, [(False, {"text": "llama3.2 non selezionato: il servizio locale non risponde."})])
         self.assertEqual(self.chat, [])
 
     def test_after_the_first_message_the_model_cannot_change(self):
@@ -226,13 +230,17 @@ class TestRealPanel(helpers.VitaTestCase):
             async def send(self):
                 return {}
 
-        with mock.patch.object(app.cl, "ChatSettings", FakeSettings):
+        # Every key set, whatever the .env of the machine holds: no model is left out, so no note is shown.
+        every_key = _settings(groq_api_key_2="k", gemini_fra_key="k", huggingface_api_key="k",
+                              cloudflare_api_key="k", cloudflare_account_id="a")
+        with mock.patch.object(app.cl, "ChatSettings", FakeSettings), \
+                mock.patch.object(model_choice, "get_settings", every_key):
             helpers.run(app.send_panel, False)
             helpers.run(app.send_panel, True)
-            helpers.run(app.send_panel, False, {"text": "llama3 non selezionato."})
+            helpers.run(app.send_panel, False, {"text": "llama3.2 non selezionato."})
         unlocked, locked, refused = sent
         self.assertEqual([w.description for w in unlocked], [None, None])
-        self.assertEqual([w.description for w in refused], ["llama3 non selezionato.", None])
+        self.assertEqual([w.description for w in refused], ["llama3.2 non selezionato.", None])
         self.assertEqual([w.id for w in unlocked], ["text_model", "vision_model"])
         self.assertEqual([w.disabled for w in unlocked], [False, False])
         self.assertEqual([w.disabled for w in locked], [True, True])

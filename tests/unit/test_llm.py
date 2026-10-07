@@ -99,9 +99,24 @@ class TestClient(unittest.TestCase):
         groq = factory.build_llm(Models.GPT_OSS_120B)
         self.assertEqual(groq.max_retries, 0)
         self.assertEqual(groq.request_timeout, GROQ.request_timeout)
-        ollama = factory.build_llm(Models.LLAMA3)
+        ollama = factory.build_llm(Models.LLAMA3_2_LOCAL)
         self.assertEqual(ollama.max_retries, 0)
         self.assertIsNone(ollama.request_timeout)
+
+    def test_address_with_the_account_id(self):
+        """TEST client: a provider whose address holds the account id gets it from the settings, and needs both fields."""
+        from src.llm.providers import CLOUDFLARE
+        fake = types.SimpleNamespace(cloudflare_api_key="k", cloudflare_account_id="abc", temperature=0.0)
+        with mock.patch.object(factory, "get_settings", lambda: fake):
+            client = factory.build_llm(Models.LLAMA3_2_CF)
+            self.assertEqual(str(client.openai_api_base), "https://api.cloudflare.com/client/v4/accounts/abc/ai/v1")
+            self.assertEqual(factory.provider_of(client), "cloudflare")
+        fake.cloudflare_account_id = None
+        with mock.patch.object(factory, "get_settings", lambda: fake):
+            with self.assertRaisesRegex(RuntimeError, "CLOUDFLARE_ACCOUNT_ID"):
+                factory.build_llm(Models.LLAMA3_2_CF)
+        self.assertEqual(GROQ.account_field, None)
+        self.assertEqual({CLOUDFLARE.key_field, CLOUDFLARE.account_field} <= setup_env._KEY_FIELDS, True)
 
     def test_max_tokens_within_the_per_minute_limit(self):
         """TEST client: max_tokens shrinks as the prompt grows and is not set for Ollama."""
@@ -110,7 +125,7 @@ class TestClient(unittest.TestCase):
         long = calls.max_tokens_for("x" * 20000, groq)
         self.assertLessEqual(short, 4096)
         self.assertLess(long, short)
-        self.assertIsNone(calls.max_tokens_for("x", factory.build_llm(Models.LLAMA3)))
+        self.assertIsNone(calls.max_tokens_for("x", factory.build_llm(Models.LLAMA3_2_LOCAL)))
 
     def test_max_tokens_never_below_the_floor(self):
         """TEST client: even with a huge prompt, max_tokens never drops below the minimum for a complete JSON."""
@@ -138,7 +153,7 @@ class TestClient(unittest.TestCase):
         self.assertEqual(factory.provider_of(groq), "groq")
         self.assertEqual(factory.describe_llm(groq), "groq/openai/gpt-oss-120b (ragionamento low)")
         self.assertEqual(factory.tokens_per_minute_limit(groq), GROQ.tokens_per_minute)
-        self.assertEqual(factory.tokens_per_minute_limit(factory.build_llm(Models.LLAMA3)), None)
+        self.assertEqual(factory.tokens_per_minute_limit(factory.build_llm(Models.LLAMA3_2_LOCAL)), None)
 
 
 class TestNeededKeys(unittest.TestCase):
@@ -149,7 +164,7 @@ class TestNeededKeys(unittest.TestCase):
 
     def test_keys_asked_only_for_the_providers_in_use(self):
         """TEST setup_env: Ollama needs no key, a Groq model needs the Groq key, a Gemini model the Gemini key."""
-        self.assertEqual(self.needed(Models.LLAMA3, Models.MOONDREAM), set())
+        self.assertEqual(self.needed(Models.LLAMA3_2_LOCAL, Models.MOONDREAM), set())
         self.assertEqual(self.needed(Models.GPT_OSS_120B, Models.QWEN_27B), {GROQ.key_field})
         self.assertEqual(self.needed(Models.GEMINI_FLASH, Models.MOONDREAM), {GEMINI.key_field})
         self.assertEqual(self.needed(Models.GEMINI_FLASH, Models.QWEN_27B), {GEMINI.key_field, GROQ.key_field})
@@ -158,7 +173,9 @@ class TestNeededKeys(unittest.TestCase):
         """TEST setup_env: every provider key field of the settings is treated as a key, and each provider's exists."""
         from src.llm.providers import PROVIDERS
         from src.settings import Settings
-        self.assertEqual(setup_env._KEY_FIELDS, {"groq_api_key", "groq_api_key_2", "gemini_api_key", "gemini_fra_key"})
+        self.assertEqual(setup_env._KEY_FIELDS, {"groq_api_key", "groq_api_key_2", "gemini_api_key", "gemini_fra_key",
+                                                   "huggingface_api_key", "cloudflare_api_key",
+                                                   "cloudflare_account_id"})
         for provider in PROVIDERS:
             with self.subTest(provider=provider.name):
                 self.assertTrue(provider.key_field is None or provider.key_field in Settings.model_fields)

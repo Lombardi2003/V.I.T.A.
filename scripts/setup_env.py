@@ -47,8 +47,9 @@ def _write_env(values: dict[str, str]) -> None:
     )
 
 
-# Settings fields that hold a provider key: asked for only if a model in use needs them.
-_KEY_FIELDS = {name for name in Settings.model_fields if name.endswith("_key") or "_key_" in name}
+# Settings fields that hold a provider key or account id: asked for only if a model in use needs them.
+_KEY_FIELDS = {name for name in Settings.model_fields
+               if name.endswith("_key") or "_key_" in name or name.endswith("_account_id")}
 
 
 def _needed_key_fields() -> set[str]:

@@ -291,7 +291,7 @@ The model benchmark: the same cases run with different models. It drives the rea
 | `baseline.py` | The "model alone" condition: one request with the card and the retrieved guidelines. |
 | `metrics.py` | The measures, computed from the raw results. |
 | `table.py` | Builds the results tables, in Markdown and in CSV. |
-| `results/` | One `.jsonl` file of raw results per model, `TABLE.md`, `table.csv` and `cases.csv`. Created at the first run. |
+| `results/` | `TABLE.md`, `table.csv` and `cases.csv`, and in `raw/` one `.jsonl` file of raw results per model. Created at the first run. |
 
 ---
 

@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     groq_api_key_2: Optional[str] = None  # Second account, with separate daily limits.
     gemini_api_key: Optional[str] = None
     gemini_fra_key: Optional[str] = None  # Second account, with a separate daily quota.
+    huggingface_api_key: Optional[str] = None  # Access token with the permission for Inference Providers.
+    cloudflare_api_key: Optional[str] = None  # Workers AI API token.
+    cloudflare_account_id: Optional[str] = None  # The account the token belongs to: part of the provider's address.
 
     temperature: float = 0.0
 

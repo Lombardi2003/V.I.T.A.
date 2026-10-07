@@ -51,7 +51,7 @@ from . import baseline, steps  # noqa: E402
 from .baseline import run_baseline  # noqa: E402
 from .cases import CASES, CASES_BY_ID, MANUAL, Case  # noqa: E402
 
-RESULTS_DIR = Path(__file__).resolve().parent / "results"  # One .jsonl file per model, one line per case and run.
+RAW_DIR = Path(__file__).resolve().parent / "results" / "raw"  # One .jsonl file per model, one line per case and run.
 CONDITIONS = ("system", "baseline")  # The whole table, and the model alone.
 # Texts the app shows when a node fell back because the model gave no usable answer.
 ROUTING_FAILED_TEXT = "Smistamento automatico non disponibile"
@@ -268,8 +268,8 @@ def _commit() -> str:
 
 async def run_all(args, model: Model, model_name: str, cases: list[Case] | None) -> int:
     """Runs what is still missing of a step (or of the chosen cases), saving each case as it ends; stops at the first error that is not the model's."""
-    RESULTS_DIR.mkdir(exist_ok=True)
-    path = RESULTS_DIR / f"{model_name}.jsonl"
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    path = RAW_DIR / f"{model_name}.jsonl"
     done = _done(path)
     if cases is None:
         plan, problem = step_plan(_records(path), args.step)

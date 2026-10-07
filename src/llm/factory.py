@@ -5,10 +5,17 @@ from typing import Optional
 from langchain_openai import ChatOpenAI
 
 from src.settings import get_settings
-from .providers import Model, Models, PROVIDERS
+from .providers import Model, Models, Provider, PROVIDERS
 
 TEXT_MODEL = Models.GPT_OSS_120B  # ACTIVE MODEL for every text agent: the only place where it is chosen.
 VISION_MODEL = Models.QWEN_27B  # ACTIVE MODEL for the photo.
+
+
+def provider_url(provider: Provider) -> str:
+    """The provider's address, with the account id filled in when the address needs one."""
+    if not provider.account_field:
+        return provider.base_url
+    return provider.base_url.format(account=getattr(get_settings(), provider.account_field) or "")
 
 
 def build_llm(model: Model) -> ChatOpenAI:
@@ -24,10 +31,15 @@ def build_llm(model: Model) -> ChatOpenAI:
             "in .env. Set it with 'python scripts/setup_env.py --update', or choose a model "
             "of another provider at the top of src/llm/factory.py."
         )
+    if provider.account_field and not getattr(settings, provider.account_field):
+        raise RuntimeError(
+            f"The provider '{provider.name}' also needs {provider.account_field.upper()} in .env. "
+            f"Set it with 'python scripts/setup_env.py --key {provider.account_field}'."
+        )
     extra = {"reasoning_effort": model.reasoning_effort} if model.reasoning_effort else {}
     return ChatOpenAI(
         api_key=api_key,
-        base_url=provider.base_url,
+        base_url=provider_url(provider),
         model=model.name,
         temperature=settings.temperature,
         **extra,
@@ -45,20 +57,21 @@ def get_llm(*, vision: bool = False) -> ChatOpenAI:
 
 
 def needed_key_fields() -> set[str]:
-    """The settings fields holding the keys the active models need (none for a local-only setup)."""
-    return {m.provider.key_field for m in (TEXT_MODEL, VISION_MODEL) if m.provider.key_field}
+    """The settings fields holding the keys and account ids the active models need (none for a local-only setup)."""
+    providers = {m.provider for m in (TEXT_MODEL, VISION_MODEL)}
+    return {field for p in providers for field in (p.key_field, p.account_field) if field}
 
 
 def provider_of(llm: ChatOpenAI) -> Optional[str]:
     """The name of the provider of a client, from its server address."""
     base_url = str(getattr(llm, "openai_api_base", "") or "")
-    return next((p.name for p in PROVIDERS if p.base_url == base_url), None)
+    return next((p.name for p in PROVIDERS if provider_url(p) == base_url), None)
 
 
 def tokens_per_minute_limit(llm: ChatOpenAI) -> Optional[int]:
     """The per-minute token limit that applies to this client, or None."""
     base_url = str(getattr(llm, "openai_api_base", "") or "")
-    return next((p.tokens_per_minute for p in PROVIDERS if p.base_url == base_url), None)
+    return next((p.tokens_per_minute for p in PROVIDERS if provider_url(p) == base_url), None)
 
 
 def describe_llm(llm: ChatOpenAI) -> str:

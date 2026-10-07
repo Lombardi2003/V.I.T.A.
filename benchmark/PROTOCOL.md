@@ -64,7 +64,7 @@ Every model is run in two conditions, on the same cases.
 
 **Full system.** The real graph runs from the supervisor to the summary report, starting from a patient card already filled in and confirmed. The collection of personal data and symptoms and the photo step are skipped: they are not what is being compared, and every model starts from the same card. The patients use the app's test fiscal code, so nothing is saved in the database.
 
-**Model alone.** One request to the same model, with the same card and the guidelines retrieved as for a turn of the general practitioner, asking for the code and the specialists. The prompt is in `baseline.py`; its shared rules are worded as in the specialist prompt. The difference between the two conditions is the round table.
+**Model alone.** One request to the same model, with the same card and the guidelines retrieved as for a turn of the general practitioner, asking for the code and the specialists. The prompt is in `baseline.py`. Its shared rules are worded as in the specialist prompt, and the specialists are asked with the list and the rule on their names copied from the supervisor's prompt, so for the same task the two conditions receive the same instruction. The answer is read with the same function the app uses: a specialist written in a form the app does not recognise is not counted. The difference between the two conditions is the round table.
 
 What stays the same for every model: the cases, the prompts, the guideline index and the retrieval, the temperature, the limits of the round table, the retry rules. The only thing that changes is the model, chosen from `src/llm/providers.py`.
 
@@ -99,7 +99,11 @@ The benchmark compares text models. The models attached so far are listed below;
 | gpt-oss-120b | OpenAI | Groq |
 | gpt-oss-20b | OpenAI | Groq |
 | gemini-3.8-flash | Google | Google |
-| llama3 | Meta | Ollama (local) |
+| llama3.2 (3B, 4-bit) | Meta | Ollama (local) |
+| llama-3.2-3b-instruct | Meta | Hugging Face (Featherless AI) |
+| llama-3.2-3b-instruct | Meta | Cloudflare |
+| llama-3.2-1b-instruct | Meta | Cloudflare |
+| granite-4.0-h-micro | IBM | Cloudflare |
 
 ## 📏 Measures
 
@@ -141,6 +145,8 @@ A pilot on three cases (04, 10, 13) with one model was run to check the script a
 
 The pilot also showed that no prompt said what the five codes mean: the model used a scale of its own and called ARANCIONE what it described as a case to be seen within a few hours. The national definition of the codes (name, definition, maximum waiting time) was therefore added to the specialist prompt, to the primary prompt and to the prompt of the model alone, from one shared text. This was done before the freeze; the cases and the expected answers were not changed.
 
+The first step was started once and restarted. With the first two models the model-alone prompt listed the specialists in its own wording, as `ent (Otorinolaringoiatria)`, without the areas of competence the supervisor is given; one model copied that form in two cases, which the app does not recognise. The reading was not changed, because it is the app's and is the same for every model. The question was: it now uses the supervisor's list and rule, so the two conditions are asked in the same way, and the step was run again from the start for both models. The two runs made with the first wording are not part of the results.
+
 </div>
 
 ## ⚠️ Limits
@@ -163,6 +169,6 @@ python -m benchmark.table                               # the tables, from the s
 
 <div align="justify">
 
-The raw results are in `results/`, one `.jsonl` file per model with one line per case, condition and run: codes, specialists, the whole discussion, the report, date, model, temperature and the commit of the code. A step interrupted by a daily limit is resumed by running the same command again. `benchmark.table` rebuilds three files from the raw results at every call: `results/TABLE.md`, with the step each model reached, one table per step and one table per condition with the code each model gave to each case; `results/table.csv`, the step tables as plain numbers; and `results/cases.csv`, one row per case run. The CSV files use commas and decimal points.
+The raw results are in `results/raw/`, one `.jsonl` file per model with one line per case, condition and run: codes, specialists, the whole discussion, the report, date, model, temperature and the commit of the code. A step interrupted by a daily limit is resumed by running the same command again. `benchmark.table` rebuilds three files from the raw results at every call: `results/TABLE.md`, with the step each model reached, one table per step and one table per condition with the code each model gave to each case; `results/table.csv`, the step tables as plain numbers; and `results/cases.csv`, one row per case run. The CSV files use commas and decimal points.
 
 </div>

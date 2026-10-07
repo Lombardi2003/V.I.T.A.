@@ -340,7 +340,7 @@ Each entry has the same shape: the decision, the reason, and, where relevant, wh
 
 **Expected codes come from a triage manual, not from the author.** Each case is built from one row of the regional triage manual, which gives the code; the row and the page are recorded with the case. *Discarded:* published vignette sets, which use a different scale or have unclear terms of reuse, and codes assigned by hand, which would measure agreement with whoever wrote them.
 
-**Two conditions per model.** The full system, and the same model asked once with the same card and guidelines. The difference between the two is the round table, so the benchmark also says whether the table helps.
+**Two conditions per model.** The full system, and the same model asked once with the same card and guidelines. The difference between the two is the round table, so the benchmark also says whether the table helps. For what both conditions are asked, they are asked in the same words: the code definitions and the list of specialists are the app's own text, copied into the model-alone prompt. *Observed:* with a list written differently for the model alone, a model copied a form the app does not read, and the comparison on the choice of specialist was not on equal terms.
 
 **Three steps, the same for every model.** The model alone on every case, then the full system on five core cases, then the full system on the rest. A model with little quota stops earlier but has done exactly what the others did up to that point, and the cheapest step, which costs about a seventeenth of a full-system case, already covers every case. *Discarded:* deciding in advance which model deserves which amount of testing.
 
