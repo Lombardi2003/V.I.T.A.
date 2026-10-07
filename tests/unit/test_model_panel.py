@@ -65,7 +65,7 @@ class TestChoices(PanelCase):
         """TEST panel choices: the models of a provider whose key is missing are left out; local models need no key."""
         self.with_keys(groq_api_key_2="k")
         self.assertNotIn(Models.GEMINI_FLASH, model_choice.choices("text"))
-        self.assertIn(Models.LLAMA3_2_LOCAL, model_choice.choices("text"))
+        self.assertIn(Models.LLAMA3_2, model_choice.choices("text"))
 
     def test_the_panel_says_which_models_are_left_out_and_how_to_add_them(self):
         """TEST panel choices: a missing key is named with the models it hides and the command that sets it, never a key."""

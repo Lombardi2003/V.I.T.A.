@@ -99,7 +99,7 @@ class TestClient(unittest.TestCase):
         groq = factory.build_llm(Models.GPT_OSS_120B)
         self.assertEqual(groq.max_retries, 0)
         self.assertEqual(groq.request_timeout, GROQ.request_timeout)
-        ollama = factory.build_llm(Models.LLAMA3_2_LOCAL)
+        ollama = factory.build_llm(Models.LLAMA3_2)
         self.assertEqual(ollama.max_retries, 0)
         self.assertIsNone(ollama.request_timeout)
 
@@ -125,7 +125,7 @@ class TestClient(unittest.TestCase):
         long = calls.max_tokens_for("x" * 20000, groq)
         self.assertLessEqual(short, 4096)
         self.assertLess(long, short)
-        self.assertIsNone(calls.max_tokens_for("x", factory.build_llm(Models.LLAMA3_2_LOCAL)))
+        self.assertIsNone(calls.max_tokens_for("x", factory.build_llm(Models.LLAMA3_2)))
 
     def test_max_tokens_never_below_the_floor(self):
         """TEST client: even with a huge prompt, max_tokens never drops below the minimum for a complete JSON."""
@@ -153,7 +153,7 @@ class TestClient(unittest.TestCase):
         self.assertEqual(factory.provider_of(groq), "groq")
         self.assertEqual(factory.describe_llm(groq), "groq/openai/gpt-oss-120b (ragionamento low)")
         self.assertEqual(factory.tokens_per_minute_limit(groq), GROQ.tokens_per_minute)
-        self.assertEqual(factory.tokens_per_minute_limit(factory.build_llm(Models.LLAMA3_2_LOCAL)), None)
+        self.assertEqual(factory.tokens_per_minute_limit(factory.build_llm(Models.LLAMA3_2)), None)
 
 
 class TestNeededKeys(unittest.TestCase):
@@ -164,7 +164,7 @@ class TestNeededKeys(unittest.TestCase):
 
     def test_keys_asked_only_for_the_providers_in_use(self):
         """TEST setup_env: Ollama needs no key, a Groq model needs the Groq key, a Gemini model the Gemini key."""
-        self.assertEqual(self.needed(Models.LLAMA3_2_LOCAL, Models.MOONDREAM), set())
+        self.assertEqual(self.needed(Models.LLAMA3_2, Models.MOONDREAM), set())
         self.assertEqual(self.needed(Models.GPT_OSS_120B, Models.QWEN_27B), {GROQ.key_field})
         self.assertEqual(self.needed(Models.GEMINI_FLASH, Models.MOONDREAM), {GEMINI.key_field})
         self.assertEqual(self.needed(Models.GEMINI_FLASH, Models.QWEN_27B), {GEMINI.key_field, GROQ.key_field})
