@@ -82,7 +82,7 @@ class Models:
     GEMINI_FLASH = Model("gemini-3.8-flash", GEMINI, vision=True)  # Reasoning model.
 
     # HUGGING FACE models (the part after ":" names the service that hosts the model)
-    LLAMA3_2 = Model("meta-llama/Llama-3.2-3B-Instruct:featherless-ai", HUGGINGFACE)
+    LLAMA3_2_HF = Model("meta-llama/Llama-3.2-3B-Instruct:featherless-ai", HUGGINGFACE)
 
     # CLOUDFLARE models
     LLAMA3_2_CF = Model("@cf/meta/llama-3.2-3b-instruct", CLOUDFLARE)
