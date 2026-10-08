@@ -77,6 +77,8 @@ class Models:
     # OLLAMA models
     LLAMA3_2 = Model("llama3.2:latest", OLLAMA)
     LLAMA3_1_8B = Model("llama3.1:8b", OLLAMA)
+    QWEN3_8B = Model("qwen3:8b", OLLAMA)  # qwen3 (not qwen3.8), 8B. Writes a <think> block before the JSON.
+    QWEN3_14B = Model("qwen3:14b", OLLAMA)  # qwen3, 14B.
     MOONDREAM = Model("moondream", OLLAMA, vision=True)
 
     # GEMINI models

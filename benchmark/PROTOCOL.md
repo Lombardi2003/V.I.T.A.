@@ -98,9 +98,12 @@ The benchmark compares text models. The models attached so far are listed below;
 |---|---|---|
 | gpt-oss-120b | OpenAI | Groq |
 | gpt-oss-20b | OpenAI | Groq |
+| qwen3.8-27b | Alibaba | Groq |
 | gemini-3.8-flash | Google | Google |
 | llama3.2 (3B, 4-bit) | Meta | Ollama (local) |
 | llama3.1 (8B, 4-bit) | Meta | Ollama (local) |
+| qwen3 (8B, 4-bit) | Alibaba | Ollama (local) |
+| qwen3 (14B, 4-bit) | Alibaba | Ollama (local) |
 | llama-3.2-3b-instruct | Meta | Hugging Face (Featherless AI) |
 | llama-3.2-3b-instruct | Meta | Cloudflare |
 | llama-3.2-1b-instruct | Meta | Cloudflare |
@@ -109,6 +112,12 @@ The benchmark compares text models. The models attached so far are listed below;
 <div align="justify">
 
 The models on Ollama run on a GPU of Google Colab, with a context of 16,384 tokens. The app asks every model for answers of at most 4,096 tokens, but Ollama ignores the field that carries this limit, and an answer that falls into a repetition would never end: for these models the limit is set inside Ollama, at 8,192 tokens. A run of llama3.2 with the limit at 4,096 gave the same codes and the same specialists in all the 15 cases.
+
+</div>
+
+<div align="justify">
+
+The three Qwen models were added after the first four models had been run (gpt-oss-120b, gpt-oss-20b, llama3.1, llama3.2), to test a hypothesis written here before running them: between 8 and 20 billion parameters the full system gives a better triage code than the same model asked alone. The two qwen3 models on Ollama are the same family, generation and compression, served in the same way, so that only the size changes. qwen3.8-27b, on Groq, is a later generation and is not compressed: it is a second model near 20 billion parameters, not a larger copy of the other two. The results of the three are kept whatever they are.
 
 </div>
 
