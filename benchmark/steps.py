@@ -1,14 +1,17 @@
-"""The three steps every model goes through, in the same order: each one adds to the one before."""
+"""The four steps every model goes through, in the same order: each one adds something to the one before."""
 
 from .cases import CASES
 
+ALL_CASES = [case.id for case in CASES]  # Every step runs the 15 cases, in this order.
 # Step -> (name, condition, the cases it runs). A model stops at the step its quota allows.
 STEPS = {
-    1: ("minimum", "baseline", [case.id for case in CASES]),  # The model alone, on every case: one call each.
-    2: ("intermediate", "system", [case.id for case in CASES if case.core]),  # The full system, on the core cases.
-    3: ("complete", "system", [case.id for case in CASES if not case.core]),  # The full system, on the other cases.
+    1: ("bare model", "bare", ALL_CASES),  # The patient, the names of the codes and of the specialists.
+    2: ("model with guidelines", "rag", ALL_CASES),  # The same, with the retrieved guidelines.
+    3: ("single agent", "single", ALL_CASES),  # The same, with the code definitions and the rules of a specialist.
+    4: ("full system", "system", ALL_CASES),  # Supervisor, round table and primary.
 }
-CALLS_PER_CASE = {"baseline": 1, "system": 7}  # Model calls of one case, to announce what a step will use (system: measured mean).
+CONDITIONS = tuple(condition for _, condition, _ in STEPS.values())  # In the order of the steps.
+CALLS_PER_CASE = {"bare": 1, "rag": 1, "single": 1, "system": 7}  # Model calls of one case, to announce what a step will use (system: measured mean).
 FIRST_RUN = 1  # The steps are made of first runs; repetitions, if any, come after them.
 
 

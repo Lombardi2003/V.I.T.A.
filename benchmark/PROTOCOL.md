@@ -8,13 +8,15 @@
 
 This document fixes what the benchmark measures and how, before any model is run. Cases, expected answers, measures and conditions are frozen by a commit made before the first real run: nothing is adapted to the results afterwards. The benchmark is run on the finished system: the system is not changed between one model and the next, nor in response to the results.
 
+This is the second version of the benchmark. Its conditions were decided after the first version had been run and before any run of this one; what changed, and why, is in *Previous version*.
+
 </div>
 
 ## 🎯 Questions
 
 <div align="justify">
 
-The benchmark answers two questions. The first: with the system unchanged, how much does the quality of the triage change with the language model? The second: does the multi-agent round table do better than the same model asked alone?
+The benchmark answers three questions. The first: with the system unchanged, how much does the quality of the triage change with the language model? The second: what does the system add to a model used as it is? The third: where does that come from, the retrieved guidelines, the instructions given to the agents, or the multi-agent round table?
 
 </div>
 
@@ -32,7 +34,7 @@ The manual numbers its codes from 1 (most urgent) to 5 and names only two colour
 
 The expected specialty is the one named by the sheet when the sheet names one (for example *Oculistico*, *Urologico*). In cases 02, 03, 04, 05, 08 and 15 the sheet names none and the specialty was assigned by hand.
 
-Five cases, one per code, are the core set (01, 04, 07, 10, 13). A model with very little free quota runs only these, and every model is compared on them.
+Five cases, one per code, are the core set (01, 04, 07, 10, 13), marked ★: their reports are the ones read by hand to count the invented details.
 
 The table below is a summary. The full text of every patient, with what is expected, is in `CASES.md`, written from `cases.py` by `python -m benchmark.cases_doc`.
 
@@ -60,29 +62,36 @@ The table below is a summary. The full text of every patient, with what is expec
 
 <div align="justify">
 
-Every model is run in two conditions, on the same cases.
+Every model is run in four conditions, on the same cases. Each condition adds one thing to the one before.
+
+**Bare model.** One request to the model with the patient card, the names of the five codes in order of urgency and the names of the ten specialists. No guideline, no definition of the codes, no rule. The names of the codes and of the specialists are given because without them an answer could not be compared with the others.
+
+**Model with guidelines.** The same request, with the guidelines retrieved for the patient: the passages the general practitioner of the table would receive.
+
+**Single agent.** The same request, with what a specialist of the table is given besides the guidelines: the definition of the five codes, with the instruction to choose by the definition and not out of caution, and the rule to use as facts only what the patient reported. It is one agent of the system, without the table.
 
 **Full system.** The real graph runs from the supervisor to the summary report, starting from a patient card already filled in and confirmed. The collection of personal data and symptoms and the photo step are skipped: they are not what is being compared, and every model starts from the same card. The patients use the app's test fiscal code, so nothing is saved in the database.
 
-**Model alone.** One request to the same model, with the same card and the guidelines retrieved as for a turn of the general practitioner, asking for the code and the specialists. The prompt is in `baseline.py`. Its shared rules are worded as in the specialist prompt, and the specialists are asked with the list and the rule on their names copied from the supervisor's prompt, so for the same task the two conditions receive the same instruction. The answer is read with the same function the app uses: a specialist written in a form the app does not recognise is not counted. The difference between the two conditions is the round table.
+The three single-call prompts are in `baseline.py` and are built from the same pieces: same opening, same patient, same list of specialists, same answer format. The definitions of the codes and the rule on the facts are those of the specialist prompt. The specialists are listed by name, with the rule on their names copied from the supervisor's prompt; the areas of competence of each specialist are given only to the supervisor, in the full system. The answers are read with the same functions the app uses: a specialist written in a form the app does not recognise is not counted.
 
 What stays the same for every model: the cases, the prompts, the guideline index and the retrieval, the temperature, the limits of the round table, the retry rules. The only thing that changes is the model, chosen from `src/llm/providers.py`.
 
-Every model goes through the same three steps, in the same order, and stops at the step its quota allows. A step starts only when the one before is complete, so every model that reached a step has done exactly the same things.
+Every model goes through the same four steps, in the same order, and stops at the step its quota allows. Every step runs the 15 cases, in order. A step starts only when the one before is complete, so every model that reached a step has done exactly the same things.
 
 </div>
 
-| Step | What is run | Cases | Model calls | Tokens (measured on one model) |
-|---|---|---|---|---|
-| 1 - minimum | The model alone | all 15 | 15 | about 50,000 |
-| 2 - intermediate | The full system | the 5 core cases | about 35 | about 285,000 |
-| 3 - complete | The full system | the other 10 | about 70 | about 570,000 |
+| Step | What is run | Cases | Model calls |
+|---|---|---|---|
+| 1 - bare model | One request: patient, names of the codes and of the specialists | all 15 | 15 |
+| 2 - model with guidelines | One request: the same, with the retrieved guidelines | all 15 | 15 |
+| 3 - single agent | One request: the same, with the definition of the codes and the rules of a specialist | all 15 | 15 |
+| 4 - full system | Supervisor, round table and primary | all 15 | about 105 |
 
 <div align="justify">
 
-The first step costs about a seventeenth of the others and gives a result on every case, so even a model with very little quota enters the comparison. The second adds the round table on the five most representative cases, the same patients the model has already answered alone: the two answers side by side say whether the table helps. The third adds the other ten cases to the full system, which makes its numbers more solid without changing what is measured.
+The first three steps cost one call per case, so even a model with very little quota reaches them. The first and the last step side by side say what the system adds to the model. The steps in between say where it comes from: from the first to the second the guidelines, from the second to the third the definitions and the rules, from the third to the fourth the round table.
 
-Each step has its own table, which lists only the models that completed it. Repetitions of a case, to see whether a model answers the same every time, are not part of the steps: they can be added afterwards for the models that still have quota, and the table reports how many records each row is built on.
+Each step has its own table, which lists only the models that completed it, and one more table puts the steps side by side, model by model. Repetitions of a case, to see whether a model answers the same every time, are not part of the steps: they can be added afterwards for the models that still have quota, and the table reports how many records each row is built on.
 
 </div>
 
@@ -112,19 +121,13 @@ The benchmark compares text models. The models attached so far are listed below;
 
 <div align="justify">
 
-The models on Ollama run on a GPU of Google Colab, with a context of 16,384 tokens. The app asks every model for answers of at most 4,096 tokens, but Ollama ignores the field that carries this limit, and an answer that falls into a repetition would never end: for these models the limit is set inside Ollama, at 8,192 tokens. A run of llama3.2 with the limit at 4,096 gave the same codes and the same specialists in all the 15 cases.
+The models on Ollama run on a GPU of Google Colab, with a context of 16,384 tokens. The app asks every model for answers of at most 4,096 tokens, but Ollama ignores the field that carries this limit, and an answer that falls into a repetition would never end: for these models the limit is set inside Ollama, at 8,192 tokens. In the first version, a run of llama3.2 with the limit at 4,096 gave the same codes and the same specialists in all the 15 cases.
 
 </div>
 
 <div align="justify">
 
-The three Qwen models were added after the first four models had been run (gpt-oss-120b, gpt-oss-20b, llama3.1, llama3.2), to test a hypothesis written here before running them: between 8 and 20 billion parameters the full system gives a better triage code than the same model asked alone. The two qwen3 models on Ollama are the same family, generation and compression, served in the same way, so that only the size changes. qwen3.8-27b, on Groq, is a later generation and is not compressed: it is a second model near 20 billion parameters, not a larger copy of the other two. The results of the three are kept whatever they are.
-
-</div>
-
-<div align="justify">
-
-The two ministral-3 models were added after seven models had been run (the four above and the three Qwen models), to test a prediction written here before running them. Read after the fact, the results of the seven models show a pattern: the full system brings the code closer to the expected one for the models that are less precise alone, and not for the others. The distance is the number of levels between the given code and the expected one, averaged over the 15 cases, with an unreadable answer counted as 4. The prediction: a model whose mean distance alone is 0.8 levels or more has a lower mean distance in the full system; a model below 0.8 does not. Each of the two models is read against the prediction by its own mean distance alone, and the results are kept whatever they are.
+This version is run on nine of these models: gpt-oss-120b, gpt-oss-20b and qwen3.8-27b on Groq; llama3.2, llama3.1, qwen3 8B, qwen3 14B, ministral-3 8B and ministral-3 14B on Ollama. They are the eight models of the first version and ministral-3 14B, which was in its list and had not been run yet. A model on Groq may be run with the keys of two accounts, because of the daily limit of the provider.
 
 </div>
 
@@ -142,11 +145,11 @@ All the measures are computed by `metrics.py` from the raw results, and the comp
 | Within one | Records whose code is at most one level from the expected one |
 | Under | Records with a code less urgent than expected (under-triage, the dangerous error) |
 | Over | Records with a code more urgent than expected (over-triage) |
-| No answer | Records without a code: no report, or an unreadable answer of the model alone. Counted as wrong, in neither direction |
+| No answer | Records without a code: no report, or an unreadable answer to a single call. Counted as wrong, in neither direction |
 | Kappa | Quadratic weighted Cohen's kappa between expected and given codes, over the records with a code |
 | Stable | Among the cases run more than once, those whose runs all gave the same code. A dash when no case was repeated |
 | Specialty | Records where the expected specialist is among those chosen. In the full system, those chosen by the supervisor: a colleague recruited later or the second opinion does not count |
-| Invalid answers | Answers the system could not use: failed turns at the table, a failed routing, a report replaced by the fallback; for the model alone, an unreadable answer |
+| Invalid answers | Answers the system could not use: failed turns at the table, a failed routing, a report replaced by the fallback; in a single call, an unreadable answer |
 | Turns | Mean turns of the round table (full system only) |
 | Sheet seen | Records in which the manual page the case was built from was among the guideline passages delivered. It explains an error, it is not a score of the model |
 | Seconds, Wait | Mean time per record without the waits a provider imposes before a retry, and the mean of those waits. The waits say how tight a plan is, not how fast a model is |
@@ -164,11 +167,19 @@ Invented details are not counted automatically. They are counted by hand, with a
 
 <div align="justify">
 
-A pilot on three cases (04, 10, 13) with one model was run to check the script and to measure what a case costs: about 6-9 model calls and 45,000-80,000 tokens for the full system, one call and about 3,500 tokens for the model alone. Its results are not part of the benchmark.
+A pilot on three cases (04, 10, 13) with one model was run to check the script and to measure what a case costs: about 6-9 model calls and 45,000-80,000 tokens for the full system, one call and about 3,500 tokens for a single call. Its results are not part of the benchmark.
 
-The pilot also showed that no prompt said what the five codes mean: the model used a scale of its own and called ARANCIONE what it described as a case to be seen within a few hours. The national definition of the codes (name, definition, maximum waiting time) was therefore added to the specialist prompt, to the primary prompt and to the prompt of the model alone, from one shared text. This was done before the freeze; the cases and the expected answers were not changed.
+The pilot also showed that no prompt said what the five codes mean: the model used a scale of its own and called ARANCIONE what it described as a case to be seen within a few hours. The national definition of the codes (name, definition, maximum waiting time) was therefore added to the specialist prompt, to the primary prompt and to the prompt of the single agent, from one shared text. This was done before the freeze; the cases and the expected answers were not changed.
 
-The first step was started once and restarted. With the first two models the model-alone prompt listed the specialists in its own wording, as `ent (Otorinolaringoiatria)`, without the areas of competence the supervisor is given; one model copied that form in two cases, which the app does not recognise. The reading was not changed, because it is the app's and is the same for every model. The question was: it now uses the supervisor's list and rule, so the two conditions are asked in the same way, and the step was run again from the start for both models. The two runs made with the first wording are not part of the results.
+</div>
+
+## 🔁 Previous version
+
+<div align="justify">
+
+A first version of this benchmark compared two conditions: the full system and a single agent that was also given the supervisor's list of specialists with their areas of competence. It was run on eight models. Its raw results and its tables are in the commit `b23ef6e` of the repository and are not part of the results of this version.
+
+This version changes three things, decided before running it. The bare model and the model with guidelines were added, to measure what the system adds to a model used as it is and where it comes from. The single agent no longer receives the areas of competence of the specialists, so that it is given what one specialist of the table is given; the specialists are listed by name in quotes, as in the supervisor's list, because a list written as `ent (Otorinolaringoiatria)` had been copied whole by one model, a form the app does not recognise. The full system runs the 15 cases in one step, instead of the five core cases first. Every model is run again from the start, in all the conditions.
 
 </div>
 
@@ -176,7 +187,7 @@ The first step was started once and restarted. With the first two models the mod
 
 <div align="justify">
 
-Fifteen cases allow a descriptive comparison, not statistical conclusions. The expected answers come from a regional manual; the patient texts were written for the benchmark. The manual is in the guideline archive of the system, but the retrieval returns only a few passages per turn and does not guarantee the row a case was built from: a model may never see it. The benchmark therefore measures the code the system reaches with what it retrieves, not the ability to read a row it is shown; the model alone gets its guidelines through the same retrieval. The manual is a nursing triage tool that relies on measured vital signs, which the patient card holds only as text. Models with little free quota stop at the first or at the second step.
+Fifteen cases allow a descriptive comparison, not statistical conclusions. The expected answers come from a regional manual; the patient texts were written for the benchmark. The manual is in the guideline archive of the system, but the retrieval returns only a few passages per turn and does not guarantee the row a case was built from: a model may never see it. The benchmark therefore measures the code the system reaches with what it retrieves, not the ability to read a row it is shown. The single calls get their guidelines through the same retrieval, as a general practitioner would, while each specialist of the table retrieves for its own specialty: from the single agent to the full system the guidelines change together with the table. The conditions of this version were chosen knowing the results of the first one, on the same 15 cases. The manual is a nursing triage tool that relies on measured vital signs, which the patient card holds only as text. Models with little free quota stop at an earlier step.
 
 </div>
 
@@ -184,14 +195,15 @@ Fifteen cases allow a descriptive comparison, not statistical conclusions. The e
 
 ```bash
 python -m benchmark.run --model GPT_OSS_120B --check    # one tiny request: key, model name, token counts
-python -m benchmark.run --model GPT_OSS_120B --step 1   # minimum: the model alone, 15 cases
-python -m benchmark.run --model GPT_OSS_120B --step 2   # intermediate: the full system, 5 core cases
-python -m benchmark.run --model GPT_OSS_120B --step 3   # complete: the full system, the other 10 cases
+python -m benchmark.run --model GPT_OSS_120B --step 1   # the bare model, 15 cases
+python -m benchmark.run --model GPT_OSS_120B --step 2   # the model with guidelines, 15 cases
+python -m benchmark.run --model GPT_OSS_120B --step 3   # the single agent, 15 cases
+python -m benchmark.run --model GPT_OSS_120B --step 4   # the full system, 15 cases
 python -m benchmark.table                               # the tables, from the saved results
 ```
 
 <div align="justify">
 
-The raw results are in `results/raw/`, one `.jsonl` file per model with one line per case, condition and run: codes, specialists, the whole discussion, the report, date, model, temperature and the commit of the code. A step interrupted by a daily limit is resumed by running the same command again. `benchmark.table` rebuilds three files from the raw results at every call: `results/TABLE.md`, with the step each model reached, one table per step and one table per condition with the code each model gave to each case; `results/table.csv`, the step tables as plain numbers; and `results/cases.csv`, one row per case run. The CSV files use commas and decimal points.
+The raw results are in `results/raw/`, one `.jsonl` file per model with one line per case, condition and run: codes, specialists, the whole discussion, the report, date, model, temperature and the commit of the code. A step interrupted by a daily limit is resumed by running the same command again. `benchmark.table` rebuilds three files from the raw results at every call: `results/TABLE.md`, with the step each model reached, one table per step, the steps side by side model by model, and one table per condition with the code each model gave to each case; `results/table.csv`, the step tables as plain numbers; and `results/cases.csv`, one row per case run. The CSV files use commas and decimal points.
 
 </div>

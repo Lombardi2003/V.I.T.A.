@@ -15,6 +15,7 @@ class Settings(BaseSettings):
 
     groq_api_key: Optional[str] = None
     groq_api_key_2: Optional[str] = None  # Second account, with separate daily limits.
+    groq_api_key_3: Optional[str] = None  # Third account, with separate daily limits.
     gemini_api_key: Optional[str] = None
     gemini_fra_key: Optional[str] = None  # Second account, with a separate daily quota.
     huggingface_api_key: Optional[str] = None  # Access token with the permission for Inference Providers.

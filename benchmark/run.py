@@ -2,15 +2,17 @@
 
 Usage, from the project folder:
     python -m benchmark.run --model GPT_OSS_120B --check     one tiny request: is the key valid, does the model exist, are tokens counted
-    python -m benchmark.run --model GPT_OSS_120B --step 1    minimum: the model alone, on the 15 cases
-    python -m benchmark.run --model GPT_OSS_120B --step 2    intermediate: the full system, on the 5 core cases
-    python -m benchmark.run --model GPT_OSS_120B --step 3    complete: the full system, on the other 10 cases
-    python -m benchmark.run --model GPT_OSS_120B             the three steps, one after the other
+    python -m benchmark.run --model GPT_OSS_120B --step 1    the bare model: patient, names of the codes and of the specialists
+    python -m benchmark.run --model GPT_OSS_120B --step 2    the model with the retrieved guidelines
+    python -m benchmark.run --model GPT_OSS_120B --step 3    the single agent: guidelines, code definitions and rules
+    python -m benchmark.run --model GPT_OSS_120B --step 4    the full system
+    python -m benchmark.run --model GPT_OSS_120B             the four steps, one after the other
     --key-field FIELD   read the API key from another settings.py field
     --no-usage          do not ask the provider for token counts (for a provider that rejects the option)
     --cases / --condition / --runs   run chosen cases outside the steps (trials, repetitions)
 
-Every model goes through the same steps in the same order: a step starts only when the one before is complete.
+Every step runs the 15 cases, in order. Every model goes through the same steps in the same order: a step starts
+only when the one before is complete.
 A case already in the results file is skipped: after a daily limit, run the same command again.
 """
 
@@ -48,11 +50,11 @@ from src.llm.providers import Model, Models  # noqa: E402
 from src.state import MedicalState  # noqa: E402
 
 from . import baseline, steps  # noqa: E402
-from .baseline import run_baseline  # noqa: E402
+from .baseline import run_single_call  # noqa: E402
 from .cases import CASES, CASES_BY_ID, MANUAL, Case  # noqa: E402
 
 RAW_DIR = Path(__file__).resolve().parent / "results" / "raw"  # One .jsonl file per model, one line per case and run.
-CONDITIONS = ("system", "baseline")  # The whole table, and the model alone.
+CONDITIONS = steps.CONDITIONS  # The three single calls and the whole table, in the order of the steps.
 # Texts the app shows when a node fell back because the model gave no usable answer.
 ROUTING_FAILED_TEXT = "Smistamento automatico non disponibile"
 PRIMARY_FALLBACK_TEXTS = ("Sintesi del primario non disponibile", "Ne' il tavolo degli specialisti ne' il primario")
@@ -277,7 +279,7 @@ async def run_all(args, model: Model, model_name: str, cases: list[Case] | None)
             print(problem)
             return 1
     else:
-        conditions = CONDITIONS if args.condition in (None, "both") else (args.condition,)
+        conditions = CONDITIONS if args.condition in (None, "all") else (args.condition,)
         plan = [(run, case, condition) for run in range(1, args.runs + 1) for case in cases
                 for condition in conditions if (case.id, condition, run) not in done]
     calls = sum(steps.CALLS_PER_CASE[condition] for _, _, condition in plan)
@@ -292,9 +294,9 @@ async def run_all(args, model: Model, model_name: str, cases: list[Case] | None)
         meter.reset()
         start = time.monotonic()
         try:
-            outcome = await (run_system(case) if condition == "system" else run_baseline(case))
+            outcome = await (run_system(case) if condition == "system" else run_single_call(case, condition))
         except Exception:
-            # The model alone has no node that absorbs a failed call: it arrives here and is handled just below.
+            # A single call has no node that absorbs a failed call: it arrives here and is handled just below.
             if not meter.escaped:
                 raise
         seconds = time.monotonic() - start
@@ -333,10 +335,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="V.I.T.A. model benchmark (uses API quota).")
     parser.add_argument("--model", required=True, choices=names, help="a model of src/llm/providers.py")
     parser.add_argument("--step", type=int, choices=sorted(steps.STEPS),
-                        help="1 minimum (model alone, 15 cases), 2 intermediate (system, 5 core cases), "
-                             "3 complete (system, the other 10); without it, the three in order")
+                        help="1 bare model, 2 model with guidelines, 3 single agent, 4 full system, each on the "
+                             "15 cases; without it, the four in order")
     parser.add_argument("--cases", nargs="+", help="outside the steps: all, core, or case ids (01 ... 15)")
-    parser.add_argument("--condition", choices=CONDITIONS + ("both",), help="outside the steps: which condition")
+    parser.add_argument("--condition", choices=CONDITIONS + ("all",), help="outside the steps: which condition")
     parser.add_argument("--runs", type=int, default=1, help="outside the steps: runs per case")
     parser.add_argument("--key-field", metavar="FIELD", help="settings.py field of the API key to use")
     parser.add_argument("--no-usage", action="store_true", help="do not ask the provider for token counts")

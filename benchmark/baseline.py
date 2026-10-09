@@ -1,4 +1,12 @@
-"""The "model alone" condition: one request with the patient card and the guidelines, without the round table."""
+"""The three single-call conditions: one request to the model, without the round table.
+
+    bare    the patient card, the names of the codes and the names of the specialists
+    rag     the same, with the guidelines retrieved for the patient
+    single  the same, with the definition of the codes and the rules a specialist of the table is given
+
+Each condition adds one thing to the one before, and nothing else changes: same opening, same patient, same list
+of specialists, same answer format.
+"""
 
 import asyncio
 import json
@@ -9,57 +17,59 @@ from src.agents.roundtable import SPECIALIST_DISPLAY_NAMES, _parse_urgency
 from src.agents.supervisor import _roles_from
 from src.rag.retriever import build_queries, retrieve
 
-from .cases import Case
+from .cases import LEVELS, Case
 
-GUIDELINE_ROLE = "general_practitioner"  # The baseline retrieves the guidelines the general practitioner would get.
+SINGLE_CALL_CONDITIONS = ("bare", "rag", "single")  # From the least to the most informed.
+GUIDELINE_ROLE = "general_practitioner"  # The guidelines are those the general practitioner of the table would get.
 
-# The specialists and the rule on their names are copied from the supervisor's prompt, not rewritten: the model alone
-# chooses them from the same list, with the same instruction, as the supervisor does in the full system.
-_LIST_TITLE = "LISTA SPECIALISTI E AMBITI DI COMPETENZA:"
-SPECIALIST_LIST = SUPERVISOR_PROMPT.split(_LIST_TITLE)[1].split("RESTITUISCI SOLO UN JSON")[0].strip()
+# The rule on the names is the supervisor's own, and the names are written as in its list (in quotes, then an arrow):
+# a name copied with its label would not be recognised by the app. The areas of competence are left out: they are
+# what the supervisor is given, not a specialist.
 NAMES_RULE = next(line.strip("- ").strip() for line in SUPERVISOR_PROMPT.splitlines() if "Usa SOLO i nomi esatti" in line)
+SPECIALIST_NAMES = "\n".join(f'- "{role}" -> {name}' for role, name in SPECIALIST_DISPLAY_NAMES.items())
+CHOICE_RULE = f"da uno a tre, i piu' pertinenti per i sintomi del paziente. {NAMES_RULE}"
 
-# In Italian like every prompt of the app; the shared rules and the code definitions are those of the specialist prompt.
-BASELINE_PROMPT = """Sei un medico di pronto soccorso. Valuta da solo il paziente: formula un'ipotesi diagnostica preliminare, assegna il codice di triage e indica gli specialisti pertinenti.
-
-DATI PAZIENTE:
-{card}
-
-LINEE GUIDA RECUPERATE (forse pertinenti, forse no: valutale tu; ogni passaggio ha il suo riferimento [documento, p. pagina]):
-{linee_guida}
-
-LISTA SPECIALISTI E AMBITI DI COMPETENZA:
-{specialisti}
-
-REGOLE:
+# In Italian like every prompt of the app.
+OPENING = ("Sei un medico di pronto soccorso. Valuta da solo il paziente: formula un'ipotesi diagnostica preliminare, "
+           "assegna il codice di triage e indica gli specialisti pertinenti.")
+GUIDELINES_TITLE = ("LINEE GUIDA RECUPERATE (forse pertinenti, forse no: valutale tu; ogni passaggio ha il suo "
+                    "riferimento [documento, p. pagina]):")
+NO_GUIDELINES = "Nessuna linea guida pertinente trovata nel database."
+CODE_NAMES = f"CODICI DI TRIAGE, dal piu' al meno urgente: {', '.join(LEVELS)}."
+SPECIALISTS = f"SPECIALISTI DISPONIBILI:\n{SPECIALIST_NAMES}"
+# The rules and the code definitions are those of the specialist prompt.
+RULES = f"""REGOLE:
 - FATTI E IPOTESI: come fatti usa SOLO i DATI PAZIENTE. Non attribuire al paziente segni, sintomi, durate, terapie o esiti di esami che non ha riferito. Un segno non riferito NON e' assente, e' sconosciuto.
-- URGENZA: [TRIAGE_CODES]
-- SPECIALISTI: da uno a tre, i piu' pertinenti per i sintomi del paziente. {regola_nomi}
-
-RISPONDI SOLO CON QUESTO JSON (nessun altro testo):
-{{"diagnosis": "la tua ipotesi diagnostica preliminare", "urgency_level": "ROSSO" | "ARANCIONE" | "AZZURRO" | "VERDE" | "BIANCO",
- "specialists": ["specialista 1", "specialista 2"], "motivazione": "il ragionamento clinico, in 2-3 frasi"}}
-""".replace("[TRIAGE_CODES]", TRIAGE_CODES)
+- URGENZA: {TRIAGE_CODES}
+- SPECIALISTI: {CHOICE_RULE}"""
+ANSWER = """RISPONDI SOLO CON QUESTO JSON (nessun altro testo):
+{"diagnosis": "la tua ipotesi diagnostica preliminare", "urgency_level": "ROSSO" | "ARANCIONE" | "AZZURRO" | "VERDE" | "BIANCO",
+ "specialists": ["specialista 1", "specialista 2"], "motivazione": "il ragionamento clinico, in 2-3 frasi"}"""
 
 
-def build_prompt(case: Case) -> str:
-    """The baseline prompt for a case, with the guidelines retrieved as for a specialist turn."""
+def guidelines_for(case: Case) -> str:
+    """The guidelines of a case, retrieved as for a turn of the general practitioner."""
     display_name = SPECIALIST_DISPLAY_NAMES[GUIDELINE_ROLE]
     queries = build_queries(display_name, [s.description for s in case.card.symptom.symptoms])
     chunks = retrieve(queries, GUIDELINE_ROLE)
-    guideline_text = ("\n\n".join(f"- [{chunk.citation}] {chunk.text}" for chunk in chunks)
-                      if chunks else "Nessuna linea guida pertinente trovata nel database.")
-    return BASELINE_PROMPT.format(
-        card=case.card.model_dump_json(),
-        linee_guida=guideline_text,
-        specialisti=SPECIALIST_LIST,
-        regola_nomi=NAMES_RULE,
-    )
+    return "\n\n".join(f"- [{chunk.citation}] {chunk.text}" for chunk in chunks) if chunks else NO_GUIDELINES
 
 
-async def run_baseline(case: Case) -> dict:
+def build_prompt(case: Case, condition: str) -> str:
+    """The prompt of one single-call condition for a case; only "rag" and "single" retrieve the guidelines."""
+    sections = [OPENING, f"DATI PAZIENTE:\n{case.card.model_dump_json()}"]
+    if condition != "bare":
+        sections.append(f"{GUIDELINES_TITLE}\n{guidelines_for(case)}")
+    if condition == "single":
+        sections += [SPECIALISTS, RULES]
+    else:
+        sections += [CODE_NAMES, f"{SPECIALISTS}\nIndicane {CHOICE_RULE}"]
+    return "\n\n".join(sections + [ANSWER]) + "\n"
+
+
+async def run_single_call(case: Case, condition: str) -> dict:
     """One request to the active text model; an unreadable answer gives no code."""
-    prompt = await asyncio.to_thread(build_prompt, case)
+    prompt = await asyncio.to_thread(build_prompt, case, condition)
     content = await asyncio.to_thread(common.stream_response, prompt)
     try:
         data = common.extract_json(content)
