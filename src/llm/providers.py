@@ -79,6 +79,8 @@ class Models:
     LLAMA3_1_8B = Model("llama3.1:8b", OLLAMA)
     QWEN3_8B = Model("qwen3:8b", OLLAMA)  # qwen3 (not qwen3.8), 8B. Writes a <think> block before the JSON.
     QWEN3_14B = Model("qwen3:14b", OLLAMA)  # qwen3, 14B.
+    MINISTRAL3_8B = Model("ministral-3:8b", OLLAMA)
+    MINISTRAL3_14B = Model("ministral-3:14b", OLLAMA)
     MOONDREAM = Model("moondream", OLLAMA, vision=True)
 
     # GEMINI models
@@ -90,4 +92,3 @@ class Models:
     # CLOUDFLARE models
     LLAMA3_2_CF = Model("@cf/meta/llama-3.2-3b-instruct", CLOUDFLARE)
     LLAMA3_2_1B = Model("@cf/meta/llama-3.2-1b-instruct", CLOUDFLARE)
-    GRANITE_MICRO = Model("@cf/ibm-granite/granite-4.0-h-micro", CLOUDFLARE)

@@ -104,10 +104,11 @@ The benchmark compares text models. The models attached so far are listed below;
 | llama3.1 (8B, 4-bit) | Meta | Ollama (local) |
 | qwen3 (8B, 4-bit) | Alibaba | Ollama (local) |
 | qwen3 (14B, 4-bit) | Alibaba | Ollama (local) |
+| ministral-3 (8B, 4-bit) | Mistral AI | Ollama (local) |
+| ministral-3 (14B, 4-bit) | Mistral AI | Ollama (local) |
 | llama-3.2-3b-instruct | Meta | Hugging Face (Featherless AI) |
 | llama-3.2-3b-instruct | Meta | Cloudflare |
 | llama-3.2-1b-instruct | Meta | Cloudflare |
-| granite-4.0-h-micro | IBM | Cloudflare |
 
 <div align="justify">
 
@@ -118,6 +119,12 @@ The models on Ollama run on a GPU of Google Colab, with a context of 16,384 toke
 <div align="justify">
 
 The three Qwen models were added after the first four models had been run (gpt-oss-120b, gpt-oss-20b, llama3.1, llama3.2), to test a hypothesis written here before running them: between 8 and 20 billion parameters the full system gives a better triage code than the same model asked alone. The two qwen3 models on Ollama are the same family, generation and compression, served in the same way, so that only the size changes. qwen3.8-27b, on Groq, is a later generation and is not compressed: it is a second model near 20 billion parameters, not a larger copy of the other two. The results of the three are kept whatever they are.
+
+</div>
+
+<div align="justify">
+
+The two ministral-3 models were added after seven models had been run (the four above and the three Qwen models), to test a prediction written here before running them. Read after the fact, the results of the seven models show a pattern: the full system brings the code closer to the expected one for the models that are less precise alone, and not for the others. The distance is the number of levels between the given code and the expected one, averaged over the 15 cases, with an unreadable answer counted as 4. The prediction: a model whose mean distance alone is 0.8 levels or more has a lower mean distance in the full system; a model below 0.8 does not. Each of the two models is read against the prediction by its own mean distance alone, and the results are kept whatever they are.
 
 </div>
 
