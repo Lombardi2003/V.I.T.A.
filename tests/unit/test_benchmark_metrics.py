@@ -199,19 +199,33 @@ class TestModelAlonePrompt(helpers.VitaTestCase):
         self.assertIn("Usa SOLO i nomi esatti tra virgolette nella lista sopra.", prompt)
         self.assertNotIn("(Otorinolaringoiatria)", prompt)   # the form that invited a copy with the label
 
+    def test_the_bare_model_gets_only_the_patient_and_the_names(self):
+        """TEST bare model: the prompt has the patient, the names of the codes and of the specialists and the answer format; no guideline, definition or rule, and nothing is retrieved."""
+        from benchmark import baseline
+        with mock.patch.object(baseline, "retrieve", side_effect=AssertionError("the bare model retrieves nothing")):
+            prompt = baseline.build_bare_prompt(CASES[0])
+        self.assertIn(CASES[0].card.model_dump_json(), prompt)
+        self.assertIn("CODICI DI TRIAGE, dal piu' al meno urgente: ROSSO, ARANCIONE, AZZURRO, VERDE, BIANCO.", prompt)
+        for role in ALL_SPECIALISTS:
+            self.assertIn(f'- "{role}" -> ', prompt)
+        self.assertIn("Usa SOLO i nomi esatti tra virgolette nella lista sopra.", prompt)
+        self.assertIn('"urgency_level": "ROSSO" | "ARANCIONE" | "AZZURRO" | "VERDE" | "BIANCO"', prompt)
+        for absent in ("LINEE GUIDA", "REGOLE:", "emergenza:", "Accesso entro", "Dolore toracico"):
+            self.assertNotIn(absent, prompt)
+
 
 class TestSteps(unittest.TestCase):
-    def test_the_three_steps_cover_everything_once(self):
-        """TEST steps: step 1 is the model alone on the 15 cases, step 2 the system on the 5 core cases, step 3 the system on the other 10."""
-        self.assertEqual([(steps.STEPS[n][1], len(steps.STEPS[n][2])) for n in (1, 2, 3)],
-                         [("baseline", 15), ("system", 5), ("system", 10)])
+    def test_the_four_steps_cover_everything_once(self):
+        """TEST steps: step 1 is the model alone on the 15 cases, step 2 the system on the 5 core cases, step 3 the system on the other 10, step 4 the bare model on the 15 cases."""
+        self.assertEqual([(steps.STEPS[n][1], len(steps.STEPS[n][2])) for n in sorted(steps.STEPS)],
+                         [("baseline", 15), ("system", 5), ("system", 10), ("bare", 15)])
         system_cases = steps.STEPS[2][2] + steps.STEPS[3][2]
         self.assertEqual(sorted(system_cases), [case.id for case in CASES])
         self.assertEqual(steps.STEPS[2][2], [case.id for case in CASES if case.core])
 
     def test_step_reached_needs_every_step_before(self):
         """TEST steps: a step counts only with all the ones before it; one missing case keeps a model at the step below."""
-        self.assertEqual([steps.step_reached(_upto(n)) for n in (0, 1, 2, 3)], [0, 1, 2, 3])
+        self.assertEqual([steps.step_reached(_upto(n)) for n in (0, 1, 2, 3, 4)], [0, 1, 2, 3, 4])
         self.assertEqual(steps.step_reached(_upto(2)[:-1]), 1)
         only_system = [r for r in _upto(3) if r["condition"] == "system"]
         self.assertEqual(steps.step_reached(only_system), 0)
@@ -227,7 +241,11 @@ class TestTable(unittest.TestCase):
     def test_a_step_table_lists_only_the_models_that_completed_it(self):
         """TEST table: each step has its table, with only the models that completed the step and the cases of that step."""
         results = {"FULL": _upto(3), "CORE": _upto(2), "ALONE": _upto(1), "STARTED": _upto(1)[:4]}
-        models = {step: [row[0] for row in table.step_rows(results, step)] for step in (1, 2, 3)}
+        models = {step: [row[0] for row in table.step_rows(results, step)] for step in (1, 2, 3, 4)}
+        self.assertEqual(models[4], [])                                    # nobody has run the bare model here
+        self.assertEqual([row[:4] for row in table.step_rows({"BARE": _upto(4)}, 4)],
+                         [["BARE", "Full system", "15", "15"], ["BARE", "Model alone", "15", "15"],
+                          ["BARE", "Bare model", "15", "15"]])
         self.assertEqual(models[1], ["FULL", "CORE", "ALONE"])
         self.assertEqual(models[2], ["FULL", "FULL", "CORE", "CORE"])      # full system and model alone, on the core cases
         self.assertEqual(models[3], ["FULL", "FULL"])
@@ -238,15 +256,17 @@ class TestTable(unittest.TestCase):
 
     def test_status_says_the_step_reached(self):
         """TEST table: the progress gives the step each model completed and the cases done per condition."""
-        results = {"FULL": _upto(3), "ALONE": _upto(1), "STARTED": _upto(1)[:13], "HALF": _upto(2)[:-2]}
+        results = {"FULL": _upto(3), "ALONE": _upto(1), "STARTED": _upto(1)[:13], "HALF": _upto(2)[:-2],
+                   "BARE": _upto(4)}
         rows = {line.split(" | ")[0].strip("| "): line for line in table.build_status(results).splitlines()[2:]}
-        self.assertEqual(rows["FULL"], "| FULL | 3 - complete | 15/15 | 15/15 |")
-        self.assertEqual(rows["ALONE"], "| ALONE | 1 - minimum | 15/15 | 0/15 |")
-        self.assertEqual(rows["STARTED"], "| STARTED | 0 - not started | 13/15 | 0/15 |")
-        self.assertEqual(rows["HALF"], "| HALF | 1 - minimum | 15/15 | 3/15 |")
+        self.assertEqual(rows["FULL"], "| FULL | 3 - complete | 15/15 | 15/15 | 0/15 |")
+        self.assertEqual(rows["ALONE"], "| ALONE | 1 - minimum | 15/15 | 0/15 | 0/15 |")
+        self.assertEqual(rows["STARTED"], "| STARTED | 0 - not started | 13/15 | 0/15 | 0/15 |")
+        self.assertEqual(rows["HALF"], "| HALF | 1 - minimum | 15/15 | 3/15 | 0/15 |")
+        self.assertEqual(rows["BARE"], "| BARE | 4 - bare model | 15/15 | 15/15 | 15/15 |")
 
     def test_csv_files_hold_the_same_numbers(self):
-        """TEST table csv: table.csv has the rows of the three step tables as plain numbers; cases.csv has one row per case run."""
+        """TEST table csv: table.csv has the rows of the step tables as plain numbers; cases.csv has one row per case run."""
         results = {"FULL": _upto(3)}
         summary = table.table_csv_rows(results)
         self.assertEqual([row[:3] for row in summary[1:]],

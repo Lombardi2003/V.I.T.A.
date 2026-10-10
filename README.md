@@ -114,10 +114,11 @@ While the app runs, the settings panel (the icon beside the message box) lets th
 | llama3.1 (8B) | Meta | Ollama (local) |
 | qwen3 (8B) | Alibaba | Ollama (local) |
 | qwen3 (14B) | Alibaba | Ollama (local) |
+| ministral-3 (8B) | Mistral AI | Ollama (local) |
+| ministral-3 (14B) | Mistral AI | Ollama (local) |
 | llama-3.2-3b-instruct | Meta | Hugging Face (Featherless AI) |
 | llama-3.2-3b-instruct | Meta | Cloudflare |
 | llama-3.2-1b-instruct | Meta | Cloudflare |
-| granite-4.0-h-micro | IBM | Cloudflare |
 
 | Vision models | Developed by | Runs on |
 |---|---|---|
@@ -151,7 +152,7 @@ Runs the unit tests (real graph, fake model, no API quota) and the retrieval ben
 
 <div align="justify">
 
-The `benchmark/` folder compares language models on the same 15 triage cases, three per priority code, each built from one row of a regional triage manual that gives the expected code. Every model is run in two conditions: the full system, from the supervisor to the report, and the model alone, asked once without the round table. Every model goes through the same three steps in the same order and stops where its quota allows. It uses API quota, saves each case as soon as it ends and restarts from where it stopped.
+The `benchmark/` folder compares language models on the same 15 triage cases, three per priority code, each built from one row of a regional triage manual that gives the expected code. Every model is run in three conditions: the full system, from the supervisor to the report; the model alone, asked once with the guidelines and the rules but without the round table; and the bare model, asked once with the patient only. Every model goes through the same four steps in the same order and stops where its quota allows. It uses API quota, saves each case as soon as it ends and restarts from where it stopped.
 
 </div>
 
@@ -159,6 +160,7 @@ The `benchmark/` folder compares language models on the same 15 triage cases, th
 python -m benchmark.run --model GPT_OSS_120B --step 1   # the model alone, on the 15 cases
 python -m benchmark.run --model GPT_OSS_120B --step 2   # the full system, on the 5 core cases
 python -m benchmark.run --model GPT_OSS_120B --step 3   # the full system, on the other 10 cases
+python -m benchmark.run --model GPT_OSS_120B --step 4   # the bare model, on the 15 cases
 python -m benchmark.table                               # the tables (Markdown and CSV), from the saved results
 ```
 

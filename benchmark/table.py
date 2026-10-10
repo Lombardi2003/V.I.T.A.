@@ -1,4 +1,4 @@
-"""Builds the benchmark tables from the raw results: progress, one table per step, the conditions side by side, one row per case. No model is called.
+"""Builds the benchmark tables from the raw results: progress, one table per step, one row per case. No model is called.
 
 Usage, from the project folder:
     python -m benchmark.table
@@ -18,22 +18,24 @@ from .metrics import code_error, summarize
 RESULTS_DIR = Path(__file__).resolve().parent / "results"  # The tables built here.
 RAW_DIR = RESULTS_DIR / "raw"  # Where run.py writes one .jsonl file per model.
 TABLE_FILE = RESULTS_DIR / "TABLE.md"  # Rewritten whole at every call, like the two CSV files.
-TABLE_CSV = RESULTS_DIR / "table.csv"  # One row per model and step, with every measure.
+TABLE_CSV = RESULTS_DIR / "table.csv"  # One row per model, step and condition, with every measure.
 CASES_CSV = RESULTS_DIR / "cases.csv"  # One row per case run: expected and given code, specialists, cost.
-# As shown in the tables, in the order of the steps.
-CONDITION_NAMES = {"bare": "Bare model", "rag": "Model with guidelines", "single": "Single agent", "system": "Full system"}
+CONDITION_NAMES = {"system": "Full system", "baseline": "Model alone", "bare": "Bare model"}  # As shown in the tables.
 ERROR_COLUMN = "Error (levels, - over, + under)"  # The distance of the given code from the expected one, in cases.csv.
 MEASURES = ["Cases", "Records", "Exact", "Within one", "Under", "Over", "No answer", "Kappa", "Stable", "Specialty",
             "Sheet seen", "Invalid answers", "Turns", "Seconds", "Wait", "Calls", "Tokens"]
 HEADER = ["Model", "Condition"] + MEASURES
 OVER_MARK, UNDER_MARK = "▲", "▼"  # Beside a code more urgent, or less urgent, than expected.
 NO_ANSWER, NOT_RUN = "no answer", "-"  # A record without a code, and a case not run yet.
-# What each step gives the model, for the title of its table.
-STEP_CONTENT = {
-    1: "the patient, the names of the codes and of the specialists",
-    2: "the same, with the retrieved guidelines",
-    3: "the same, with the definition of the codes and the rules of a specialist",
-    4: "supervisor, round table and primary",
+CORE_IDS = [case.id for case in CASES if case.core]
+ALL_IDS = [case.id for case in CASES]
+# Step -> (title, the cases compared, the conditions shown). A table lists only the models that completed the step.
+STEP_TABLES = {
+    1: ("Step 1 - minimum: the model alone, on the 15 cases", ALL_IDS, ["baseline"]),
+    2: ("Step 2 - intermediate: full system and model alone, on the 5 core cases", CORE_IDS, ["system", "baseline"]),
+    3: ("Step 3 - complete: full system and model alone, on the 15 cases", ALL_IDS, ["system", "baseline"]),
+    4: ("Step 4 - bare model: full system, model alone and bare model, on the 15 cases", ALL_IDS,
+        ["system", "baseline", "bare"]),
 }
 
 
@@ -65,20 +67,16 @@ def _measures(records: list[dict]) -> list[str]:
             _number(s["requests"], 1), _number(s["tokens"])]
 
 
-def step_title(step: int) -> str:
-    """The title of one step's table."""
-    return f"Step {step} - {steps.STEPS[step][0]}: {STEP_CONTENT[step]}"
-
-
 def step_groups(results: dict[str, list[dict]], step: int) -> list[tuple[str, str, list[dict]]]:
-    """What one step's table shows: for each model that completed the step, (model, condition, its records)."""
-    condition = steps.STEPS[step][1]
-    return [(model, condition, [r for r in records if r["condition"] == condition])
-            for model, records in results.items() if steps.step_reached(records) >= step]
+    """What one step's table compares: for each model that completed the step, (model, condition, its records)."""
+    _, case_ids, conditions = STEP_TABLES[step]
+    return [(model, condition, [r for r in records if r["condition"] == condition and r["case"] in case_ids])
+            for model, records in results.items() if steps.step_reached(records) >= step
+            for condition in conditions]
 
 
 def step_rows(results: dict[str, list[dict]], step: int) -> list[list[str]]:
-    """The rows of one step's table: one row for each model that completed the step."""
+    """The rows of one step's table: for each model that completed the step, one row per condition."""
     return [[model, CONDITION_NAMES[condition]] + _measures(records)
             for model, condition, records in step_groups(results, step)]
 
@@ -89,27 +87,14 @@ def build_step_table(results: dict[str, list[dict]], step: int) -> str:
     return _markdown(HEADER, rows) if rows else "*No model has completed this step yet.*"
 
 
-def comparison_rows(results: dict[str, list[dict]]) -> list[list[str]]:
-    """The steps each model completed, one under the other: the same rows as the step tables, model by model."""
-    return [[model, CONDITION_NAMES[steps.STEPS[step][1]]]
-            + _measures([r for r in records if r["condition"] == steps.STEPS[step][1]])
-            for model, records in results.items() for step in range(1, steps.step_reached(records) + 1)]
-
-
-def build_comparison(results: dict[str, list[dict]]) -> str:
-    """The table with the conditions side by side, or a note when no model has completed a step."""
-    rows = comparison_rows(results)
-    return _markdown(HEADER, rows) if rows else "*No model has completed a step yet.*"
-
-
 def build_status(results: dict[str, list[dict]]) -> str:
     """For each model: the step it has completed and how many cases each condition has."""
     rows = []
     for model, records in results.items():
         done = steps.done_items(records)
-        counts = [f"{sum(1 for _, c in done if c == condition)}/{len(CASES)}" for condition in CONDITION_NAMES]
+        counts = [f"{sum(1 for _, c in done if c == condition)}/{len(CASES)}" for condition in ("baseline", "system", "bare")]
         rows.append([model, steps.step_label(steps.step_reached(records))] + counts)
-    return _markdown(["Model", "Step reached"] + list(CONDITION_NAMES.values()), rows)
+    return _markdown(["Model", "Step reached", "Model alone", "Full system", "Bare model"], rows)
 
 
 def _code_cell(expected: str, records: list[dict]) -> str:
@@ -128,7 +113,7 @@ def build_case_table(results: dict[str, list[dict]], condition: str) -> str:
     """One row per case and one column per model, with the code given in one condition."""
     rows = []
     for case in CASES:
-        row = [case.id, case.expected_code]
+        row = [case.id + (" ★" if case.core else ""), case.expected_code]
         for records in results.values():
             row.append(_code_cell(case.expected_code,
                                   [r for r in records if r["case"] == case.id and r["condition"] == condition]))
@@ -139,19 +124,19 @@ def build_case_table(results: dict[str, list[dict]], condition: str) -> str:
 def build_document(results: dict[str, list[dict]]) -> str:
     """The whole results document."""
     legend = (f"`{OVER_MARK}` more urgent than expected (over-triage), `{UNDER_MARK}` less urgent than expected "
-              f"(under-triage), `{NOT_RUN}` not run yet; several codes in a cell are the runs of that case, in order.")
+              f"(under-triage), `{NOT_RUN}` not run yet; several codes in a cell are the runs of that case, in order. "
+              "★ marks the core cases.")
     parts = ["# Benchmark results", "",
              "Built by `python -m benchmark.table` from the raw results in `raw/`. The steps and the measures are "
              "defined in `benchmark/PROTOCOL.md`, the cases in `benchmark/CASES.md`. The same numbers are in "
              "`table.csv` and, case by case, in `cases.csv`.", "",
              "## Progress", "", build_status(results)]
-    for step in steps.STEPS:
-        parts += ["", f"## {step_title(step)}", "", build_step_table(results, step)]
-    parts += ["", "## The conditions side by side, model by model", "", build_comparison(results)]
-    for number, (condition, name) in enumerate(CONDITION_NAMES.items()):
-        parts += ["", f"## Case by case: {name.lower()}", ""] + ([legend, ""] if number == 0 else [])
-        parts += [build_case_table(results, condition)]
-    return "\n".join(parts + [""])
+    for step, (title, _, _) in STEP_TABLES.items():
+        parts += ["", f"## {title}", "", build_step_table(results, step)]
+    parts += ["", "## Case by case: model alone", "", legend, "", build_case_table(results, "baseline"),
+              "", "## Case by case: full system", "", build_case_table(results, "system"),
+              "", "## Case by case: bare model", "", build_case_table(results, "bare"), ""]
+    return "\n".join(parts)
 
 
 def table_csv_rows(results: dict[str, list[dict]]) -> list[list]:
@@ -159,7 +144,7 @@ def table_csv_rows(results: dict[str, list[dict]]) -> list[list]:
     rows = [["Step", "Model", "Condition", "Cases", "Records", "Exact", "Within one", "Under", "Over", "No answer",
              "Kappa", "Stable", "Repeated", "Specialty", "Sheet seen", "Invalid answers", "Turns", "Seconds", "Wait",
              "Calls", "Tokens"]]
-    for step in steps.STEPS:
+    for step in STEP_TABLES:
         for model, condition, records in step_groups(results, step):
             s = summarize(records)
             means = [None if s[key] is None else round(s[key], 2)
@@ -172,14 +157,13 @@ def table_csv_rows(results: dict[str, list[dict]]) -> list[list]:
 
 def cases_csv_rows(results: dict[str, list[dict]]) -> list[list]:
     """The rows of cases.csv: every case run, with what was expected, what was given and what it cost."""
-    rows = [["Model", "Case", "Condition", "Run", "Expected code", "Given code", ERROR_COLUMN, "Expected role",
+    rows = [["Model", "Case", "Core", "Condition", "Run", "Expected code", "Given code", ERROR_COLUMN, "Expected role",
              "Roles", "Role ok", "Sheet delivered", "Invalid answers", "Turns", "Seconds", "Wait seconds", "Calls",
              "Tokens", "Date", "Commit"]]
-    order = list(CONDITION_NAMES)
     for model, records in results.items():
-        for r in sorted(records, key=lambda r: (order.index(r["condition"]), r["case"], r["run"])):
+        for r in sorted(records, key=lambda r: (r["condition"], r["case"], r["run"])):
             roles = r.get("roles") or []
-            rows.append([model, r["case"], CONDITION_NAMES[r["condition"]], r["run"],
+            rows.append([model, r["case"], "yes" if r.get("core") else "no", CONDITION_NAMES[r["condition"]], r["run"],
                          r["expected_code"], r.get("code") or "", code_error(r["expected_code"], r.get("code")),
                          r["expected_role"], ";".join(roles), "yes" if r["expected_role"] in roles else "no",
                          "yes" if r.get("sheet_delivered") else "no", r.get("invalid_answers"), r.get("turns"),

@@ -2,17 +2,16 @@
 
 Usage, from the project folder:
     python -m benchmark.run --model GPT_OSS_120B --check     one tiny request: is the key valid, does the model exist, are tokens counted
-    python -m benchmark.run --model GPT_OSS_120B --step 1    the bare model: patient, names of the codes and of the specialists
-    python -m benchmark.run --model GPT_OSS_120B --step 2    the model with the retrieved guidelines
-    python -m benchmark.run --model GPT_OSS_120B --step 3    the single agent: guidelines, code definitions and rules
-    python -m benchmark.run --model GPT_OSS_120B --step 4    the full system
+    python -m benchmark.run --model GPT_OSS_120B --step 1    minimum: the model alone, on the 15 cases
+    python -m benchmark.run --model GPT_OSS_120B --step 2    intermediate: the full system, on the 5 core cases
+    python -m benchmark.run --model GPT_OSS_120B --step 3    complete: the full system, on the other 10 cases
+    python -m benchmark.run --model GPT_OSS_120B --step 4    bare model: the patient only, on the 15 cases
     python -m benchmark.run --model GPT_OSS_120B             the four steps, one after the other
     --key-field FIELD   read the API key from another settings.py field
     --no-usage          do not ask the provider for token counts (for a provider that rejects the option)
     --cases / --condition / --runs   run chosen cases outside the steps (trials, repetitions)
 
-Every step runs the 15 cases, in order. Every model goes through the same steps in the same order: a step starts
-only when the one before is complete.
+Every model goes through the same steps in the same order: a step starts only when the one before is complete.
 A case already in the results file is skipped: after a daily limit, run the same command again.
 """
 
@@ -54,7 +53,7 @@ from .baseline import run_single_call  # noqa: E402
 from .cases import CASES, CASES_BY_ID, MANUAL, Case  # noqa: E402
 
 RAW_DIR = Path(__file__).resolve().parent / "results" / "raw"  # One .jsonl file per model, one line per case and run.
-CONDITIONS = steps.CONDITIONS  # The three single calls and the whole table, in the order of the steps.
+CONDITIONS = ("system", "baseline", "bare")  # The whole table, the model alone and the bare model.
 # Texts the app shows when a node fell back because the model gave no usable answer.
 ROUTING_FAILED_TEXT = "Smistamento automatico non disponibile"
 PRIMARY_FALLBACK_TEXTS = ("Sintesi del primario non disponibile", "Ne' il tavolo degli specialisti ne' il primario")
@@ -335,8 +334,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="V.I.T.A. model benchmark (uses API quota).")
     parser.add_argument("--model", required=True, choices=names, help="a model of src/llm/providers.py")
     parser.add_argument("--step", type=int, choices=sorted(steps.STEPS),
-                        help="1 bare model, 2 model with guidelines, 3 single agent, 4 full system, each on the "
-                             "15 cases; without it, the four in order")
+                        help="1 minimum (model alone, 15 cases), 2 intermediate (system, 5 core cases), "
+                             "3 complete (system, the other 10), 4 bare model (15 cases); without it, the four in order")
     parser.add_argument("--cases", nargs="+", help="outside the steps: all, core, or case ids (01 ... 15)")
     parser.add_argument("--condition", choices=CONDITIONS + ("all",), help="outside the steps: which condition")
     parser.add_argument("--runs", type=int, default=1, help="outside the steps: runs per case")

@@ -18,7 +18,8 @@ from src.llm.providers import Models
 
 def _settings(**keys):
     """HELPER _settings: settings in which only these provider keys are set."""
-    values = {"groq_api_key": None, "groq_api_key_2": None, "gemini_api_key": None, "gemini_fra_key": None,
+    values = {"groq_api_key": None, "groq_api_key_2": None, "groq_api_key_3": None, "gemini_api_key": None,
+              "gemini_fra_key": None,
               "huggingface_api_key": None, "cloudflare_api_key": None, "cloudflare_account_id": None}
     return lambda: types.SimpleNamespace(**{**values, **keys}, temperature=0.0)
 

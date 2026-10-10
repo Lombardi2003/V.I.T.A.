@@ -173,7 +173,8 @@ class TestNeededKeys(unittest.TestCase):
         """TEST setup_env: every provider key field of the settings is treated as a key, and each provider's exists."""
         from src.llm.providers import PROVIDERS
         from src.settings import Settings
-        self.assertEqual(setup_env._KEY_FIELDS, {"groq_api_key", "groq_api_key_2", "gemini_api_key", "gemini_fra_key",
+        self.assertEqual(setup_env._KEY_FIELDS, {"groq_api_key", "groq_api_key_2", "groq_api_key_3", "gemini_api_key",
+                                                   "gemini_fra_key",
                                                    "huggingface_api_key", "cloudflare_api_key",
                                                    "cloudflare_account_id"})
         for provider in PROVIDERS:

@@ -8,7 +8,7 @@
 
 The 15 patients of the benchmark, as the models receive them, each with what is expected. This file is written by `python -m benchmark.cases_doc` from `cases.py`: it is not edited by hand. The rules used to write the cases and the measures are in `PROTOCOL.md`.
 
-Every expected code comes from one row of the regional triage manual (`data/guidelines/generale_fvg_manuale_triage_adulto_2018.pdf`); the page is the one printed on the manual. The patient texts are in Italian, the language of the app. The cases marked ★ are the core set, one per code: their reports are the ones read by hand (`python -m benchmark.review`).
+Every expected code comes from one row of the regional triage manual (`data/guidelines/generale_fvg_manuale_triage_adulto_2018.pdf`); the page is the one printed on the manual. The patient texts are in Italian, the language of the app. The cases marked ★ are the core set.
 
 </div>
 
