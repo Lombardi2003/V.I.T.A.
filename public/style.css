@@ -790,3 +790,207 @@ main.bg-background {
         max-width: 88% !important;
     }
 }
+
+/*
+ * NESSUNO SCORRIMENTO ORIZZONTALE
+ * I contenitori della pagina scorrono solo in verticale: bastava un pixel in piu' (un'estensione del browser,
+ * lo zoom) per far comparire una barra orizzontale in fondo alla finestra.
+ */
+html,
+body,
+#root,
+.flex.flex-row.flex-grow.overflow-auto,
+.flex.flex-col.flex-grow.overflow-y-auto {
+    overflow-x: clip !important;
+}
+
+/*
+ * VOCI DELLA CRONOLOGIA
+ * Chainlit sfuma la fine di ogni titolo con il colore pieno della barra laterale e mette il pulsante del menu
+ * su un riquadro scuro: sulla barra semitrasparente si vedevano come blocchi scuri. La sfumatura si toglie,
+ * il pulsante resta senza sfondo e compare solo passando sulla riga; la chat aperta ha una tinta leggera.
+ */
+.bg-sidebar li.relative .bg-gradient-to-l {
+    background-image: none !important;
+}
+.bg-sidebar li.relative #thread-options {
+    background-color: transparent !important;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+.bg-sidebar li.relative:hover #thread-options,
+.bg-sidebar li.relative #thread-options[data-state="open"] {
+    opacity: 1;
+}
+.bg-sidebar li.relative button[data-sidebar="menu-button"] {
+    transition: background-color 0.15s ease;
+}
+.bg-sidebar li.relative button[data-sidebar="menu-button"]:hover {
+    background-color: rgba(var(--pulse-color-rgb), 0.10) !important;
+}
+.bg-sidebar li.relative button[data-sidebar="menu-button"][data-active="true"] {
+    background-color: rgba(var(--pulse-color-rgb), 0.18) !important;
+    color: var(--button-color) !important;
+}
+
+/*
+ * RIFINITURE
+ * Le superfici di Chainlit (tabelle, menu, finestre) prendono i colori da public/theme.json, accordati alla
+ * tavolozza qui sopra. Queste regole sistemano cio' che i soli colori non bastano a sistemare.
+ */
+
+/* CRONOLOGIA: i titoli delle chat nel colore del testo, il verde resta alla chat aperta; le etichette dei
+ * gruppi piccole e spaziate, cosi' si distinguono dai titoli. */
+.bg-sidebar [data-sidebar="group-label"] {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    margin-top: 6px;
+}
+.dark .bg-sidebar [data-sidebar="group-label"] {
+    color: rgba(252, 252, 252, 0.55) !important;
+}
+.light .bg-sidebar [data-sidebar="group-label"] {
+    color: rgba(31, 41, 55, 0.62) !important;
+}
+.dark .bg-sidebar li.relative a,
+.dark .bg-sidebar li.relative button[data-sidebar="menu-button"] {
+    color: rgba(252, 252, 252, 0.88) !important;
+}
+.light .bg-sidebar li.relative a,
+.light .bg-sidebar li.relative button[data-sidebar="menu-button"] {
+    color: var(--chat-text-light-mode) !important;
+}
+.bg-sidebar li.relative button[data-sidebar="menu-button"] {
+    border-radius: 10px !important;
+}
+.dark .bg-sidebar li.relative button[data-sidebar="menu-button"][data-active="true"] {
+    color: var(--button-color) !important;
+    font-weight: 600 !important;
+    box-shadow: inset 3px 0 0 var(--button-color);
+}
+.light .bg-sidebar li.relative button[data-sidebar="menu-button"][data-active="true"] {
+    color: hsl(165 90% 22%) !important;
+    font-weight: 600 !important;
+    background-color: rgba(var(--pulse-color-rgb), 0.16) !important;
+    box-shadow: inset 3px 0 0 hsl(165 90% 27%);
+}
+.light .bg-sidebar #thread-options {
+    color: var(--chat-text-light-mode) !important;
+}
+
+/* MENU: stessa superficie delle altre finestre nel tema in uso, bordo sfumato sottile, voci che si tingono
+ * invece di riempirsi. La voce che elimina resta rossa, anche al passaggio. */
+html.dark div[role="menu"],
+html.light div[role="menu"] {
+    border: 1px solid transparent !important;
+    border-radius: 12px !important;
+    padding: 6px !important;
+    background-color: hsl(var(--popover)) !important;
+    background-image:
+        linear-gradient(hsl(var(--popover)), hsl(var(--popover))),
+        linear-gradient(90deg, var(--left-color) 0%, var(--right-color) 100%) !important;
+    background-origin: border-box !important;
+    background-clip: padding-box, border-box !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22) !important;
+}
+html.dark div[role="menu"] > div:hover,
+html.dark div[role="menu"] > [role="menuitem"]:hover,
+html.light div[role="menu"] > div:hover,
+html.light div[role="menu"] > [role="menuitem"]:hover {
+    background-color: rgba(var(--pulse-color-rgb), 0.16) !important;
+    color: hsl(var(--popover-foreground)) !important;
+}
+html.dark div[role="menu"] > [role="menuitem"].text-destructive:hover,
+html.light div[role="menu"] > [role="menuitem"].text-destructive:hover,
+html.dark div[role="menu"] > #delete-thread:hover,
+html.light div[role="menu"] > #delete-thread:hover {
+    background-color: hsl(var(--destructive) / 0.14) !important;
+    color: hsl(var(--destructive)) !important;
+}
+
+/* TABELLE (pagina Leggimi e messaggi): riquadro semitrasparente come la barra laterale, intestazione piccola
+ * e spaziata, ultima riga senza linea. */
+.bg-card:has(> div > table) {
+    backdrop-filter: blur(10px);
+    border-radius: 14px !important;
+    overflow: hidden;
+}
+.dark .bg-card:has(> div > table) {
+    background-color: rgba(18, 43, 34, 0.5) !important;
+    border-color: rgba(var(--pulse-color-rgb), 0.18) !important;
+}
+.light .bg-card:has(> div > table) {
+    background-color: rgba(255, 255, 255, 0.72) !important;
+    border-color: rgba(var(--pulse-color-rgb), 0.3) !important;
+}
+.bg-card:has(> div > table) th {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    height: 40px !important;
+}
+.bg-card:has(> div > table) td {
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+}
+.bg-card:has(> div > table) tbody tr:last-child {
+    border-bottom: 0 !important;
+}
+.bg-card:has(> div > table) tbody tr:hover {
+    background-color: rgba(var(--pulse-color-rgb), 0.08) !important;
+}
+
+/* CITAZIONI: la barra a sinistra nei colori del logo. */
+blockquote.border-l-2 {
+    border-left: 3px solid transparent !important;
+    border-image: linear-gradient(180deg, var(--left-color), var(--right-color)) 1 !important;
+    opacity: 0.95;
+}
+
+/* LINK nel tema chiaro: il verde del logo su bianco si legge poco, qui e' piu' scuro. */
+.light a,
+.light a:link,
+.light a:visited {
+    color: hsl(165 90% 27%) !important;
+}
+
+/* TASTIERA: chi si muove con il tabulatore vede sempre dov'e'. La casella dei messaggi e' esclusa: mentre si
+ * scrive ha gia' il suo bordo sfumato, e il contorno le disegnava un rettangolo dentro. */
+:focus-visible {
+    outline: 2px solid var(--button-color) !important;
+    outline-offset: 2px !important;
+}
+#chat-input:focus-visible,
+#message-composer textarea:focus-visible {
+    outline: none !important;
+}
+
+/* MOVIMENTO RIDOTTO: se il sistema lo chiede, niente pulsazioni ne' ingrandimenti. */
+@media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/*
+ * SCHERMATA INIZIALE: IL PRIMO MESSAGGIO E' IL CODICE FISCALE
+ * Il suggerimento sta sotto la casella e solo in questa schermata: non e' un messaggio della chat, quindi la
+ * schermata centrale resta, e sparisce da solo quando l'operatore scrive.
+ */
+#welcome-screen::after {
+    content: "\1FAAA\00A0\00A0Per iniziare, scrivere il codice fiscale del paziente\00A0\00A0\1FA7A";
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
+}
+.dark #welcome-screen::after {
+    color: rgba(252, 252, 252, 0.72);
+}
+.light #welcome-screen::after {
+    color: rgba(31, 41, 55, 0.78);
+}
