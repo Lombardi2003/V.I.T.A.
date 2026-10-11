@@ -6,14 +6,15 @@ Built by `python -m benchmark.table` from the raw results in `raw/`. The steps a
 
 | Model | Step reached | Model alone | Full system | Bare model |
 |---|---|---|---|---|
-| GPT_OSS_120B | 3 - complete | 15/15 | 15/15 | 0/15 |
-| GPT_OSS_20B | 3 - complete | 15/15 | 15/15 | 0/15 |
-| LLAMA3_1_8B | 3 - complete | 15/15 | 15/15 | 0/15 |
-| LLAMA3_2 | 3 - complete | 15/15 | 15/15 | 0/15 |
-| MINISTRAL3_8B | 3 - complete | 15/15 | 15/15 | 0/15 |
-| QWEN3_14B | 3 - complete | 15/15 | 15/15 | 0/15 |
-| QWEN3_8B | 3 - complete | 15/15 | 15/15 | 0/15 |
-| QWEN_27B | 3 - complete | 15/15 | 15/15 | 0/15 |
+| GPT_OSS_120B | 4 - bare model | 15/15 | 15/15 | 15/15 |
+| GPT_OSS_20B | 4 - bare model | 15/15 | 15/15 | 15/15 |
+| LLAMA3_1_8B | 4 - bare model | 15/15 | 15/15 | 15/15 |
+| LLAMA3_2 | 4 - bare model | 15/15 | 15/15 | 15/15 |
+| MINISTRAL3_14B | 4 - bare model | 15/15 | 15/15 | 15/15 |
+| MINISTRAL3_8B | 4 - bare model | 15/15 | 15/15 | 15/15 |
+| QWEN3_14B | 4 - bare model | 15/15 | 15/15 | 15/15 |
+| QWEN3_8B | 4 - bare model | 15/15 | 15/15 | 15/15 |
+| QWEN_27B | 4 - bare model | 15/15 | 15/15 | 15/15 |
 
 ## Step 1 - minimum: the model alone, on the 15 cases
 
@@ -23,6 +24,7 @@ Built by `python -m benchmark.table` from the raw results in `raw/`. The steps a
 | GPT_OSS_20B | Model alone | 15 | 15 | 5/15 | 13/15 | 2 | 8 | 0 | 0.76 | - | 15/15 | 5/15 | 0 | - | 1 | 11 | 1.0 | 4137 |
 | LLAMA3_1_8B | Model alone | 15 | 15 | 3/15 | 9/15 | 0 | 12 | 0 | 0.35 | - | 12/15 | 5/15 | 0 | - | 9 | 0 | 1.0 | 2079 |
 | LLAMA3_2 | Model alone | 15 | 15 | 4/15 | 6/15 | 0 | 10 | 1 | 0.19 | - | 9/15 | 5/15 | 1 | - | 4 | 0 | 1.0 | 2083 |
+| MINISTRAL3_14B | Model alone | 15 | 15 | 9/15 | 14/15 | 0 | 5 | 1 | 0.90 | - | 13/15 | 5/15 | 1 | - | 24 | 0 | 1.0 | 2930 |
 | MINISTRAL3_8B | Model alone | 15 | 15 | 6/15 | 11/15 | 0 | 6 | 3 | 0.77 | - | 12/15 | 5/15 | 3 | - | 15 | 0 | 1.0 | 2935 |
 | QWEN3_14B | Model alone | 15 | 15 | 5/15 | 14/15 | 1 | 9 | 0 | 0.79 | - | 14/15 | 5/15 | 0 | - | 51 | 0 | 1.0 | 2595 |
 | QWEN3_8B | Model alone | 15 | 15 | 7/15 | 14/15 | 0 | 8 | 0 | 0.83 | - | 15/15 | 5/15 | 0 | - | 31 | 0 | 1.0 | 2665 |
@@ -40,6 +42,8 @@ Built by `python -m benchmark.table` from the raw results in `raw/`. The steps a
 | LLAMA3_1_8B | Model alone | 5 | 5 | 1/5 | 3/5 | 0 | 4 | 0 | 0.29 | - | 5/5 | 1/5 | 0 | - | 9 | 0 | 1.0 | 2119 |
 | LLAMA3_2 | Full system | 5 | 5 | 2/5 | 3/5 | 0 | 3 | 0 | 0.30 | - | 5/5 | 2/5 | 0 | 11.0 | 120 | 0 | 13.0 | 61162 |
 | LLAMA3_2 | Model alone | 5 | 5 | 2/5 | 2/5 | 0 | 2 | 1 | 0.20 | - | 4/5 | 1/5 | 1 | - | 5 | 0 | 1.0 | 2133 |
+| MINISTRAL3_14B | Full system | 5 | 5 | 2/5 | 4/5 | 1 | 2 | 0 | 0.57 | - | 5/5 | 2/5 | 6 | 4.6 | 433 | 0 | 6.6 | 38159 |
+| MINISTRAL3_14B | Model alone | 5 | 5 | 3/5 | 5/5 | 0 | 2 | 0 | 0.89 | - | 5/5 | 1/5 | 0 | - | 29 | 0 | 1.0 | 2965 |
 | MINISTRAL3_8B | Full system | 5 | 5 | 2/5 | 4/5 | 1 | 2 | 0 | 0.57 | - | 5/5 | 3/5 | 11 | 4.0 | 274 | 0 | 6.0 | 33630 |
 | MINISTRAL3_8B | Model alone | 5 | 5 | 1/5 | 3/5 | 0 | 3 | 1 | 0.57 | - | 4/5 | 1/5 | 1 | - | 19 | 0 | 1.0 | 2972 |
 | QWEN3_14B | Full system | 5 | 5 | 3/5 | 4/5 | 0 | 2 | 0 | 0.71 | - | 5/5 | 2/5 | 0 | 5.4 | 523 | 0 | 7.4 | 35830 |
@@ -61,6 +65,8 @@ Built by `python -m benchmark.table` from the raw results in `raw/`. The steps a
 | LLAMA3_1_8B | Model alone | 15 | 15 | 3/15 | 9/15 | 0 | 12 | 0 | 0.35 | - | 12/15 | 5/15 | 0 | - | 9 | 0 | 1.0 | 2079 |
 | LLAMA3_2 | Full system | 15 | 15 | 5/15 | 9/15 | 1 | 9 | 0 | 0.19 | - | 12/15 | 7/15 | 10 | 10.5 | 152 | 0 | 12.5 | 61422 |
 | LLAMA3_2 | Model alone | 15 | 15 | 4/15 | 6/15 | 0 | 10 | 1 | 0.19 | - | 9/15 | 5/15 | 1 | - | 4 | 0 | 1.0 | 2083 |
+| MINISTRAL3_14B | Full system | 15 | 15 | 7/15 | 13/15 | 2 | 6 | 0 | 0.74 | - | 15/15 | 8/15 | 18 | 4.4 | 419 | 0 | 6.4 | 36211 |
+| MINISTRAL3_14B | Model alone | 15 | 15 | 9/15 | 14/15 | 0 | 5 | 1 | 0.90 | - | 13/15 | 5/15 | 1 | - | 24 | 0 | 1.0 | 2930 |
 | MINISTRAL3_8B | Full system | 15 | 15 | 8/15 | 14/15 | 1 | 6 | 0 | 0.81 | - | 14/15 | 9/15 | 30 | 4.5 | 300 | 0 | 6.5 | 38895 |
 | MINISTRAL3_8B | Model alone | 15 | 15 | 6/15 | 11/15 | 0 | 6 | 3 | 0.77 | - | 12/15 | 5/15 | 3 | - | 15 | 0 | 1.0 | 2935 |
 | QWEN3_14B | Full system | 15 | 15 | 5/15 | 13/15 | 2 | 8 | 0 | 0.69 | - | 14/15 | 9/15 | 1 | 4.6 | 460 | 0 | 6.6 | 30369 |
@@ -72,66 +78,94 @@ Built by `python -m benchmark.table` from the raw results in `raw/`. The steps a
 
 ## Step 4 - bare model: full system, model alone and bare model, on the 15 cases
 
-*No model has completed this step yet.*
+| Model | Condition | Cases | Records | Exact | Within one | Under | Over | No answer | Kappa | Stable | Specialty | Sheet seen | Invalid answers | Turns | Seconds | Wait | Calls | Tokens |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| GPT_OSS_120B | Full system | 15 | 15 | 6/15 | 15/15 | 1 | 8 | 0 | 0.87 | - | 14/15 | 12/15 | 0 | 5.3 | 20 | 205 | 7.3 | 64020 |
+| GPT_OSS_120B | Model alone | 15 | 15 | 8/15 | 15/15 | 0 | 7 | 0 | 0.89 | - | 15/15 | 5/15 | 0 | - | 1 | 11 | 1.0 | 4202 |
+| GPT_OSS_120B | Bare model | 15 | 15 | 5/15 | 13/15 | 0 | 10 | 0 | 0.76 | - | 15/15 | 0/15 | 0 | - | 1 | 0 | 1.0 | 1383 |
+| GPT_OSS_20B | Full system | 15 | 15 | 8/15 | 15/15 | 1 | 6 | 0 | 0.88 | - | 13/15 | 7/15 | 0 | 4.3 | 15 | 159 | 6.3 | 49326 |
+| GPT_OSS_20B | Model alone | 15 | 15 | 5/15 | 13/15 | 2 | 8 | 0 | 0.76 | - | 15/15 | 5/15 | 0 | - | 1 | 11 | 1.0 | 4137 |
+| GPT_OSS_20B | Bare model | 15 | 15 | 9/15 | 14/15 | 0 | 6 | 0 | 0.84 | - | 14/15 | 0/15 | 0 | - | 1 | 0 | 1.0 | 1292 |
+| LLAMA3_1_8B | Full system | 15 | 15 | 4/15 | 12/15 | 2 | 9 | 0 | 0.44 | - | 13/15 | 7/15 | 0 | 6.2 | 162 | 0 | 8.2 | 35440 |
+| LLAMA3_1_8B | Model alone | 15 | 15 | 3/15 | 9/15 | 0 | 12 | 0 | 0.35 | - | 12/15 | 5/15 | 0 | - | 9 | 0 | 1.0 | 2079 |
+| LLAMA3_1_8B | Bare model | 15 | 15 | 3/15 | 7/15 | 0 | 12 | 0 | 0.22 | - | 13/15 | 0/15 | 0 | - | 5 | 0 | 1.0 | 609 |
+| LLAMA3_2 | Full system | 15 | 15 | 5/15 | 9/15 | 1 | 9 | 0 | 0.19 | - | 12/15 | 7/15 | 10 | 10.5 | 152 | 0 | 12.5 | 61422 |
+| LLAMA3_2 | Model alone | 15 | 15 | 4/15 | 6/15 | 0 | 10 | 1 | 0.19 | - | 9/15 | 5/15 | 1 | - | 4 | 0 | 1.0 | 2083 |
+| LLAMA3_2 | Bare model | 15 | 15 | 3/15 | 6/15 | 0 | 12 | 0 | 0.07 | - | 13/15 | 0/15 | 0 | - | 2 | 0 | 1.0 | 631 |
+| MINISTRAL3_14B | Full system | 15 | 15 | 7/15 | 13/15 | 2 | 6 | 0 | 0.74 | - | 15/15 | 8/15 | 18 | 4.4 | 419 | 0 | 6.4 | 36211 |
+| MINISTRAL3_14B | Model alone | 15 | 15 | 9/15 | 14/15 | 0 | 5 | 1 | 0.90 | - | 13/15 | 5/15 | 1 | - | 24 | 0 | 1.0 | 2930 |
+| MINISTRAL3_14B | Bare model | 15 | 15 | 7/15 | 15/15 | 2 | 6 | 0 | 0.88 | - | 14/15 | 0/15 | 0 | - | 15 | 0 | 1.0 | 1335 |
+| MINISTRAL3_8B | Full system | 15 | 15 | 8/15 | 14/15 | 1 | 6 | 0 | 0.81 | - | 14/15 | 9/15 | 30 | 4.5 | 300 | 0 | 6.5 | 38895 |
+| MINISTRAL3_8B | Model alone | 15 | 15 | 6/15 | 11/15 | 0 | 6 | 3 | 0.77 | - | 12/15 | 5/15 | 3 | - | 15 | 0 | 1.0 | 2935 |
+| MINISTRAL3_8B | Bare model | 15 | 15 | 6/15 | 14/15 | 0 | 9 | 0 | 0.71 | - | 15/15 | 0/15 | 0 | - | 10 | 0 | 1.0 | 1347 |
+| QWEN3_14B | Full system | 15 | 15 | 5/15 | 13/15 | 2 | 8 | 0 | 0.69 | - | 14/15 | 9/15 | 1 | 4.6 | 460 | 0 | 6.6 | 30369 |
+| QWEN3_14B | Model alone | 15 | 15 | 5/15 | 14/15 | 1 | 9 | 0 | 0.79 | - | 14/15 | 5/15 | 0 | - | 51 | 0 | 1.0 | 2595 |
+| QWEN3_14B | Bare model | 15 | 15 | 4/15 | 13/15 | 0 | 11 | 0 | 0.73 | - | 8/15 | 0/15 | 0 | - | 48 | 0 | 1.0 | 1108 |
+| QWEN3_8B | Full system | 15 | 15 | 7/15 | 14/15 | 0 | 8 | 0 | 0.73 | - | 14/15 | 8/15 | 1 | 6.1 | 335 | 0 | 8.1 | 40336 |
+| QWEN3_8B | Model alone | 15 | 15 | 7/15 | 14/15 | 0 | 8 | 0 | 0.83 | - | 15/15 | 5/15 | 0 | - | 31 | 0 | 1.0 | 2665 |
+| QWEN3_8B | Bare model | 15 | 15 | 3/15 | 10/15 | 0 | 12 | 0 | 0.45 | - | 14/15 | 0/15 | 0 | - | 31 | 0 | 1.0 | 1258 |
+| QWEN_27B | Full system | 15 | 15 | 10/15 | 14/15 | 0 | 5 | 0 | 0.88 | - | 13/15 | 7/15 | 0 | 5.5 | 19 | 198 | 7.5 | 63966 |
+| QWEN_27B | Model alone | 15 | 15 | 11/15 | 14/15 | 0 | 4 | 0 | 0.89 | - | 14/15 | 5/15 | 0 | - | 1 | 11 | 1.0 | 3900 |
+| QWEN_27B | Bare model | 15 | 15 | 8/15 | 14/15 | 0 | 7 | 0 | 0.83 | - | 14/15 | 0/15 | 0 | - | 3 | 3 | 1.0 | 1220 |
 
 ## Case by case: model alone
 
 `▲` more urgent than expected (over-triage), `▼` less urgent than expected (under-triage), `-` not run yet; several codes in a cell are the runs of that case, in order. ★ marks the core cases.
 
-| Case | Expected | GPT_OSS_120B | GPT_OSS_20B | LLAMA3_1_8B | LLAMA3_2 | MINISTRAL3_8B | QWEN3_14B | QWEN3_8B | QWEN_27B |
-|---|---|---|---|---|---|---|---|---|---|
-| 01 ★ | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | no answer | ROSSO | ROSSO | ROSSO |
-| 02 | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO |
-| 03 | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | no answer | ROSSO | ROSSO | ROSSO |
-| 04 ★ | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ |
-| 05 | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ARANCIONE | ROSSO ▲ | ARANCIONE | ARANCIONE |
-| 06 | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | no answer | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ |
-| 07 ★ | AZZURRO | ARANCIONE ▲ | ROSSO ▲ | ARANCIONE ▲ | ROSSO ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ROSSO ▲ | ARANCIONE ▲ |
-| 08 | AZZURRO | ARANCIONE ▲ | AZZURRO | ARANCIONE ▲ | ROSSO ▲ | ARANCIONE ▲ | VERDE ▼ | ARANCIONE ▲ | AZZURRO |
-| 09 | AZZURRO | AZZURRO | VERDE ▼ | ARANCIONE ▲ | ROSSO ▲ | AZZURRO | ARANCIONE ▲ | ARANCIONE ▲ | AZZURRO |
-| 10 ★ | VERDE | VERDE | VERDE | ARANCIONE ▲ | ARANCIONE ▲ | VERDE | AZZURRO ▲ | VERDE | VERDE |
-| 11 | VERDE | VERDE | BIANCO ▼ | ARANCIONE ▲ | ROSSO ▲ | VERDE | AZZURRO ▲ | VERDE | VERDE |
-| 12 | VERDE | VERDE | AZZURRO ▲ | ARANCIONE ▲ | ARANCIONE ▲ | VERDE | VERDE | VERDE | VERDE |
-| 13 ★ | BIANCO | VERDE ▲ | AZZURRO ▲ | ARANCIONE ▲ | no answer | AZZURRO ▲ | AZZURRO ▲ | VERDE ▲ | AZZURRO ▲ |
-| 14 | BIANCO | VERDE ▲ | VERDE ▲ | AZZURRO ▲ | ARANCIONE ▲ | VERDE ▲ | VERDE ▲ | VERDE ▲ | BIANCO |
-| 15 | BIANCO | BIANCO | VERDE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | VERDE ▲ | BIANCO | VERDE ▲ | BIANCO |
+| Case | Expected | GPT_OSS_120B | GPT_OSS_20B | LLAMA3_1_8B | LLAMA3_2 | MINISTRAL3_14B | MINISTRAL3_8B | QWEN3_14B | QWEN3_8B | QWEN_27B |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 01 ★ | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | no answer | ROSSO | ROSSO | ROSSO |
+| 02 | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | no answer | ROSSO | ROSSO | ROSSO | ROSSO |
+| 03 | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | no answer | ROSSO | ROSSO | ROSSO |
+| 04 ★ | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ARANCIONE | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ |
+| 05 | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ARANCIONE | ARANCIONE | ROSSO ▲ | ARANCIONE | ARANCIONE |
+| 06 | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | no answer | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ |
+| 07 ★ | AZZURRO | ARANCIONE ▲ | ROSSO ▲ | ARANCIONE ▲ | ROSSO ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ROSSO ▲ | ARANCIONE ▲ |
+| 08 | AZZURRO | ARANCIONE ▲ | AZZURRO | ARANCIONE ▲ | ROSSO ▲ | ARANCIONE ▲ | ARANCIONE ▲ | VERDE ▼ | ARANCIONE ▲ | AZZURRO |
+| 09 | AZZURRO | AZZURRO | VERDE ▼ | ARANCIONE ▲ | ROSSO ▲ | AZZURRO | AZZURRO | ARANCIONE ▲ | ARANCIONE ▲ | AZZURRO |
+| 10 ★ | VERDE | VERDE | VERDE | ARANCIONE ▲ | ARANCIONE ▲ | VERDE | VERDE | AZZURRO ▲ | VERDE | VERDE |
+| 11 | VERDE | VERDE | BIANCO ▼ | ARANCIONE ▲ | ROSSO ▲ | VERDE | VERDE | AZZURRO ▲ | VERDE | VERDE |
+| 12 | VERDE | VERDE | AZZURRO ▲ | ARANCIONE ▲ | ARANCIONE ▲ | VERDE | VERDE | VERDE | VERDE | VERDE |
+| 13 ★ | BIANCO | VERDE ▲ | AZZURRO ▲ | ARANCIONE ▲ | no answer | VERDE ▲ | AZZURRO ▲ | AZZURRO ▲ | VERDE ▲ | AZZURRO ▲ |
+| 14 | BIANCO | VERDE ▲ | VERDE ▲ | AZZURRO ▲ | ARANCIONE ▲ | VERDE ▲ | VERDE ▲ | VERDE ▲ | VERDE ▲ | BIANCO |
+| 15 | BIANCO | BIANCO | VERDE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | BIANCO | VERDE ▲ | BIANCO | VERDE ▲ | BIANCO |
 
 ## Case by case: full system
 
-| Case | Expected | GPT_OSS_120B | GPT_OSS_20B | LLAMA3_1_8B | LLAMA3_2 | MINISTRAL3_8B | QWEN3_14B | QWEN3_8B | QWEN_27B |
-|---|---|---|---|---|---|---|---|---|---|
-| 01 ★ | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ARANCIONE ▼ | ROSSO | ROSSO | ROSSO |
-| 02 | ROSSO | ROSSO | ROSSO | ARANCIONE ▼ | ARANCIONE ▼ | ROSSO | ROSSO | ROSSO | ROSSO |
-| 03 | ROSSO | ROSSO | ARANCIONE ▼ | ARANCIONE ▼ | ROSSO | ROSSO | ARANCIONE ▼ | ROSSO | ROSSO |
-| 04 ★ | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ARANCIONE | ARANCIONE | ARANCIONE | ARANCIONE | ROSSO ▲ | ROSSO ▲ |
-| 05 | ARANCIONE | ROSSO ▲ | ARANCIONE | ROSSO ▲ | ARANCIONE | ARANCIONE | ARANCIONE | ARANCIONE | ARANCIONE |
-| 06 | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ARANCIONE | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ |
-| 07 ★ | AZZURRO | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ROSSO ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ |
-| 08 | AZZURRO | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ |
-| 09 | AZZURRO | ARANCIONE ▲ | AZZURRO | AZZURRO | ARANCIONE ▲ | AZZURRO | VERDE ▼ | ARANCIONE ▲ | AZZURRO |
-| 10 ★ | VERDE | VERDE | VERDE | AZZURRO ▲ | AZZURRO ▲ | VERDE | VERDE | VERDE | VERDE |
-| 11 | VERDE | VERDE | VERDE | AZZURRO ▲ | ARANCIONE ▲ | VERDE | ARANCIONE ▲ | VERDE | VERDE |
-| 12 | VERDE | BIANCO ▼ | VERDE | AZZURRO ▲ | ARANCIONE ▲ | VERDE | AZZURRO ▲ | VERDE | VERDE |
-| 13 ★ | BIANCO | VERDE ▲ | BIANCO | ARANCIONE ▲ | ARANCIONE ▲ | AZZURRO ▲ | AZZURRO ▲ | ARANCIONE ▲ | AZZURRO ▲ |
-| 14 | BIANCO | VERDE ▲ | VERDE ▲ | AZZURRO ▲ | ARANCIONE ▲ | VERDE ▲ | VERDE ▲ | VERDE ▲ | BIANCO |
-| 15 | BIANCO | BIANCO | VERDE ▲ | AZZURRO ▲ | ARANCIONE ▲ | VERDE ▲ | VERDE ▲ | VERDE ▲ | BIANCO |
+| Case | Expected | GPT_OSS_120B | GPT_OSS_20B | LLAMA3_1_8B | LLAMA3_2 | MINISTRAL3_14B | MINISTRAL3_8B | QWEN3_14B | QWEN3_8B | QWEN_27B |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 01 ★ | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ARANCIONE ▼ | ARANCIONE ▼ | ROSSO | ROSSO | ROSSO |
+| 02 | ROSSO | ROSSO | ROSSO | ARANCIONE ▼ | ARANCIONE ▼ | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO |
+| 03 | ROSSO | ROSSO | ARANCIONE ▼ | ARANCIONE ▼ | ROSSO | ROSSO | ROSSO | ARANCIONE ▼ | ROSSO | ROSSO |
+| 04 ★ | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ARANCIONE | ARANCIONE | ARANCIONE | ARANCIONE | ARANCIONE | ROSSO ▲ | ROSSO ▲ |
+| 05 | ARANCIONE | ROSSO ▲ | ARANCIONE | ROSSO ▲ | ARANCIONE | ARANCIONE | ARANCIONE | ARANCIONE | ARANCIONE | ARANCIONE |
+| 06 | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ARANCIONE | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ |
+| 07 ★ | AZZURRO | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ROSSO ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ |
+| 08 | AZZURRO | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ |
+| 09 | AZZURRO | ARANCIONE ▲ | AZZURRO | AZZURRO | ARANCIONE ▲ | AZZURRO | AZZURRO | VERDE ▼ | ARANCIONE ▲ | AZZURRO |
+| 10 ★ | VERDE | VERDE | VERDE | AZZURRO ▲ | AZZURRO ▲ | VERDE | VERDE | VERDE | VERDE | VERDE |
+| 11 | VERDE | VERDE | VERDE | AZZURRO ▲ | ARANCIONE ▲ | BIANCO ▼ | VERDE | ARANCIONE ▲ | VERDE | VERDE |
+| 12 | VERDE | BIANCO ▼ | VERDE | AZZURRO ▲ | ARANCIONE ▲ | VERDE | VERDE | AZZURRO ▲ | VERDE | VERDE |
+| 13 ★ | BIANCO | VERDE ▲ | BIANCO | ARANCIONE ▲ | ARANCIONE ▲ | AZZURRO ▲ | AZZURRO ▲ | AZZURRO ▲ | ARANCIONE ▲ | AZZURRO ▲ |
+| 14 | BIANCO | VERDE ▲ | VERDE ▲ | AZZURRO ▲ | ARANCIONE ▲ | AZZURRO ▲ | VERDE ▲ | VERDE ▲ | VERDE ▲ | BIANCO |
+| 15 | BIANCO | BIANCO | VERDE ▲ | AZZURRO ▲ | ARANCIONE ▲ | VERDE ▲ | VERDE ▲ | VERDE ▲ | VERDE ▲ | BIANCO |
 
 ## Case by case: bare model
 
-| Case | Expected | GPT_OSS_120B | GPT_OSS_20B | LLAMA3_1_8B | LLAMA3_2 | MINISTRAL3_8B | QWEN3_14B | QWEN3_8B | QWEN_27B |
-|---|---|---|---|---|---|---|---|---|---|
-| 01 ★ | ROSSO | - | - | - | - | - | - | - | - |
-| 02 | ROSSO | - | - | - | - | - | - | - | - |
-| 03 | ROSSO | - | - | - | - | - | - | - | - |
-| 04 ★ | ARANCIONE | - | - | - | - | - | - | - | - |
-| 05 | ARANCIONE | - | - | - | - | - | - | - | - |
-| 06 | ARANCIONE | - | - | - | - | - | - | - | - |
-| 07 ★ | AZZURRO | - | - | - | - | - | - | - | - |
-| 08 | AZZURRO | - | - | - | - | - | - | - | - |
-| 09 | AZZURRO | - | - | - | - | - | - | - | - |
-| 10 ★ | VERDE | - | - | - | - | - | - | - | - |
-| 11 | VERDE | - | - | - | - | - | - | - | - |
-| 12 | VERDE | - | - | - | - | - | - | - | - |
-| 13 ★ | BIANCO | - | - | - | - | - | - | - | - |
-| 14 | BIANCO | - | - | - | - | - | - | - | - |
-| 15 | BIANCO | - | - | - | - | - | - | - | - |
+| Case | Expected | GPT_OSS_120B | GPT_OSS_20B | LLAMA3_1_8B | LLAMA3_2 | MINISTRAL3_14B | MINISTRAL3_8B | QWEN3_14B | QWEN3_8B | QWEN_27B |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 01 ★ | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO |
+| 02 | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO |
+| 03 | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO | ROSSO |
+| 04 ★ | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ |
+| 05 | ARANCIONE | ROSSO ▲ | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ARANCIONE | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ARANCIONE |
+| 06 | ARANCIONE | ROSSO ▲ | ARANCIONE | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ | ROSSO ▲ |
+| 07 ★ | AZZURRO | ROSSO ▲ | ARANCIONE ▲ | ROSSO ▲ | ROSSO ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ROSSO ▲ | ROSSO ▲ | ARANCIONE ▲ |
+| 08 | AZZURRO | ARANCIONE ▲ | ARANCIONE ▲ | ROSSO ▲ | ROSSO ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | ROSSO ▲ | ARANCIONE ▲ |
+| 09 | AZZURRO | ARANCIONE ▲ | AZZURRO | ARANCIONE ▲ | ROSSO ▲ | VERDE ▼ | ARANCIONE ▲ | ARANCIONE ▲ | ARANCIONE ▲ | AZZURRO |
+| 10 ★ | VERDE | VERDE | VERDE | ARANCIONE ▲ | ARANCIONE ▲ | VERDE | VERDE | AZZURRO ▲ | AZZURRO ▲ | VERDE |
+| 11 | VERDE | ARANCIONE ▲ | VERDE | ROSSO ▲ | ROSSO ▲ | BIANCO ▼ | VERDE | AZZURRO ▲ | ARANCIONE ▲ | AZZURRO ▲ |
+| 12 | VERDE | VERDE | VERDE | ARANCIONE ▲ | ROSSO ▲ | VERDE | AZZURRO ▲ | VERDE | AZZURRO ▲ | VERDE |
+| 13 ★ | BIANCO | VERDE ▲ | AZZURRO ▲ | ARANCIONE ▲ | ARANCIONE ▲ | VERDE ▲ | ARANCIONE ▲ | AZZURRO ▲ | ARANCIONE ▲ | AZZURRO ▲ |
+| 14 | BIANCO | VERDE ▲ | VERDE ▲ | ARANCIONE ▲ | ROSSO ▲ | VERDE ▲ | VERDE ▲ | VERDE ▲ | ARANCIONE ▲ | VERDE ▲ |
+| 15 | BIANCO | VERDE ▲ | VERDE ▲ | ARANCIONE ▲ | ROSSO ▲ | BIANCO | VERDE ▲ | VERDE ▲ | VERDE ▲ | BIANCO |

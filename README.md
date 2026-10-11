@@ -166,7 +166,7 @@ python -m benchmark.table                               # the tables (Markdown a
 
 <div align="justify">
 
-What is measured and how is fixed in [benchmark/PROTOCOL.md](benchmark/PROTOCOL.md); the patients and the expected answers are in [benchmark/CASES.md](benchmark/CASES.md).
+What is measured and how is fixed in [benchmark/PROTOCOL.md](benchmark/PROTOCOL.md); the patients and the expected answers are in [benchmark/CASES.md](benchmark/CASES.md); what the nine models run showed is in [benchmark/RESULTS.md](benchmark/RESULTS.md).
 
 </div>
 
@@ -209,4 +209,5 @@ chainlit.md             the "Leggimi" page shown inside the app
 | [tests/README.md](tests/README.md) | How to run the tests and what each kind checks. |
 | [benchmark/PROTOCOL.md](benchmark/PROTOCOL.md) | How the models are compared: cases, conditions, measures, limits. |
 | [benchmark/CASES.md](benchmark/CASES.md) | The 15 benchmark patients, each with the expected code and specialty. |
+| [benchmark/RESULTS.md](benchmark/RESULTS.md) | What the benchmark showed: the system against the bare model and the model alone, and its limits. |
 | [data/README.md](data/README.md) | How the guidelines are organised and how to rebuild the index. |

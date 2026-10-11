@@ -6,7 +6,7 @@
 
 <div align="justify">
 
-This document fixes what the benchmark measures and how, before any model is run. Cases, expected answers, measures and conditions are frozen by a commit made before the first real run: nothing is adapted to the results afterwards. The benchmark is run on the finished system: the system is not changed between one model and the next, nor in response to the results.
+This document fixes what the benchmark measures and how, before any model is run. Cases, expected answers, measures and conditions are frozen by a commit made before the first real run: nothing is adapted to the results afterwards. The benchmark is run on the finished system: the system is not changed between one model and the next, nor in response to the results. What the benchmark showed is in [RESULTS.md](RESULTS.md).
 
 </div>
 
@@ -14,7 +14,7 @@ This document fixes what the benchmark measures and how, before any model is run
 
 <div align="justify">
 
-The benchmark answers two questions. The first: with the system unchanged, how much does the quality of the triage change with the language model? The second: does the multi-agent round table do better than the same model asked alone?
+The benchmark answers two questions. The first: with the system unchanged, how much does the quality of the triage change with the language model? The second: does the multi-agent round table do better than the same model asked alone? A third question was added with the fourth step, after the first two had been answered on eight models: what does the system add to a model used as it is?
 
 </div>
 
@@ -95,7 +95,7 @@ Each step has its own table, which lists only the models that completed it. Repe
 
 <div align="justify">
 
-The benchmark compares text models. The models attached so far are listed below; a model is added to the table when it is attached, before it is run. Vision models are not part of the benchmark: no case has a photo, so they are never called.
+The benchmark compares text models. The models attached are listed below; a model is added to the table when it is attached, before it is run. Nine of them were run on the four steps and are in the results: gpt-oss-120b, gpt-oss-20b and qwen3.8-27b on Groq; llama3.2, llama3.1, qwen3 8B, qwen3 14B, ministral-3 8B and ministral-3 14B on Ollama. The others were attached as alternatives and are not in the results: where they were tried, their providers did not carry a step to its end. Vision models are not part of the benchmark: no case has a photo, so they are never called.
 
 </div>
 
@@ -147,11 +147,11 @@ All the measures are computed by `metrics.py` from the raw results, and the comp
 | Within one | Records whose code is at most one level from the expected one |
 | Under | Records with a code less urgent than expected (under-triage, the dangerous error) |
 | Over | Records with a code more urgent than expected (over-triage) |
-| No answer | Records without a code: no report, or an unreadable answer of the model alone. Counted as wrong, in neither direction |
+| No answer | Records without a code: no report, or an unreadable answer to a single call. Counted as wrong, in neither direction |
 | Kappa | Quadratic weighted Cohen's kappa between expected and given codes, over the records with a code |
 | Stable | Among the cases run more than once, those whose runs all gave the same code. A dash when no case was repeated |
 | Specialty | Records where the expected specialist is among those chosen. In the full system, those chosen by the supervisor: a colleague recruited later or the second opinion does not count |
-| Invalid answers | Answers the system could not use: failed turns at the table, a failed routing, a report replaced by the fallback; for the model alone, an unreadable answer |
+| Invalid answers | Answers the system could not use: failed turns at the table, a failed routing, a report replaced by the fallback; for the model alone and the bare model, an unreadable answer |
 | Turns | Mean turns of the round table (full system only) |
 | Sheet seen | Records in which the manual page the case was built from was among the guideline passages delivered. It explains an error, it is not a score of the model |
 | Seconds, Wait | Mean time per record without the waits a provider imposes before a retry, and the mean of those waits. The waits say how tight a plan is, not how fast a model is |
@@ -160,8 +160,6 @@ All the measures are computed by `metrics.py` from the raw results, and the comp
 <div align="justify">
 
 A case in which a model call fails for a reason that is not the model's answer (daily limit, connection, rejected request) is not saved: the run stops and restarts from that case. A case in which the model gives unusable answers is saved and counted, because that is the model's behaviour.
-
-Invented details are not counted automatically. They are counted by hand, with a fixed grid, on the five core cases: every statement of the report about the patient that is not in the card and is not marked as "to verify". The sheet for the count, with the patient and the report of each core case, is written by `python -m benchmark.review --model <NAME>`.
 
 </div>
 
@@ -181,7 +179,7 @@ The first step was started once and restarted. With the first two models the mod
 
 <div align="justify">
 
-Fifteen cases allow a descriptive comparison, not statistical conclusions. The expected answers come from a regional manual; the patient texts were written for the benchmark. The manual is in the guideline archive of the system, but the retrieval returns only a few passages per turn and does not guarantee the row a case was built from: a model may never see it. The benchmark therefore measures the code the system reaches with what it retrieves, not the ability to read a row it is shown; the model alone gets its guidelines through the same retrieval. The manual is a nursing triage tool that relies on measured vital signs, which the patient card holds only as text. Models with little free quota stop at the first or at the second step.
+Fifteen cases allow a descriptive comparison, not statistical conclusions. The expected answers come from a regional manual; the patient texts were written for the benchmark. The manual is in the guideline archive of the system, but the retrieval returns only a few passages per turn and does not guarantee the row a case was built from: a model may never see it. The benchmark therefore measures the code the system reaches with what it retrieves, not the ability to read a row it is shown; the model alone gets its guidelines through the same retrieval. The manual is a nursing triage tool that relies on measured vital signs, which the patient card holds only as text. Every case was run once: with the models on Groq a few codes change from one run to another at temperature 0, so a difference of one or two cases between two conditions is within that variation.
 
 </div>
 
@@ -199,5 +197,7 @@ python -m benchmark.table                               # the tables, from the s
 <div align="justify">
 
 The raw results are in `results/raw/`, one `.jsonl` file per model with one line per case, condition and run: codes, specialists, the whole discussion, the report, date, model, temperature and the commit of the code. A step interrupted by a daily limit is resumed by running the same command again. `benchmark.table` rebuilds three files from the raw results at every call: `results/TABLE.md`, with the step each model reached, one table per step and one table per condition with the code each model gave to each case; `results/table.csv`, the step tables as plain numbers; and `results/cases.csv`, one row per case run. The CSV files use commas and decimal points.
+
+Two notes on the records. The 15 bare-model records of gpt-oss-120b and of gpt-oss-20b carry the commit `7260855`: they were run from the code of the fourth step before it was committed (`a52faee`), with the same prompt as every other model. The results file of llama3.1 was named `LLAMA3_1.jsonl` during the first three steps and is now `LLAMA3_1_8B.jsonl`, the name of the model in `src/llm/providers.py`: its lines were not changed.
 
 </div>
