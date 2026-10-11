@@ -189,7 +189,7 @@ The specialists do not write separate reports: they work on one shared hypothesi
 
 ### 🚪 `app.py`
 
-The Chainlit entry point. It registers the chat archive and the automatic user, which together make Chainlit show the history sidebar. `on_chat_start` creates the thread and shows the settings panel; `on_settings_update` applies what the operator confirmed in it; `on_message` locks the model choice at the first message, adds the message (and the path of an attached image) to the state, resumes the graph, and titles the chat once the patient card is confirmed. A node error arrives here as an exception: the traceback goes to the terminal, the chat gets a short message.
+The Chainlit entry point. It registers the chat archive and the automatic user, which together make Chainlit show the history sidebar. `on_chat_start` creates the thread and shows the settings panel; `on_settings_update` applies what the operator confirmed in it; `on_message` locks the model choice at the first message, adds the message (and the path of an attached image) to the state, resumes the graph, and titles the chat once the patient card is confirmed. A chat opened with the test fiscal code is not titled: it is discarded from the archive, so it never appears in the sidebar. A node error arrives here as an exception: the traceback goes to the terminal, the chat gets a short message.
 
 ### 🎛️ `src/model_choice.py`
 
@@ -197,7 +197,7 @@ The logic of the settings panel, without interface code. `choices` lists the tex
 
 ### 🗂️ `src/chat_history.py`
 
-The chat archive. `build_data_layer` creates the file `data/chat_history.db` with the tables Chainlit expects and returns Chainlit's own SQL archive pointed at it; from then on Chainlit saves every message and step by itself. `ChatArchive` is that archive with three corrections: the user's display name, dates written in real UTC, and titles that only the app can write. `new_chat_title` and `chat_title` build the title of a chat (neutral at first, then the patient's name) and `rename_chat` writes it to the archive and to the sidebar. No file storage is configured, so attached photos are not archived.
+The chat archive. `build_data_layer` creates the file `data/chat_history.db` with the tables Chainlit expects and returns Chainlit's own SQL archive pointed at it; from then on Chainlit saves every message and step by itself. `ChatArchive` is that archive with four corrections: the user's display name, dates written in real UTC, titles that only the app can write, and nothing stored for a discarded chat. `new_chat_title` and `chat_title` build the title of a chat (neutral at first, then the patient's name) and `rename_chat` writes it to the archive and to the sidebar. `discard_chat` keeps the current chat out of the archive: it deletes what was stored of it and makes the archive ignore what follows. No file storage is configured, so attached photos are not archived.
 
 ### 🕸️ `src/graph.py`
 
@@ -284,11 +284,12 @@ The model benchmark: the same cases run with different models. It drives the rea
 | File | Content |
 |---|---|
 | `PROTOCOL.md` | What is measured and how: cases, conditions, measures, limits. |
+| `RESULTS.md` | What the benchmark showed, read from the tables. |
 | `cases.py` | The 15 cases: the patient card, and the manual row that gives the expected code and specialty. |
 | `CASES.md`, `cases_doc.py` | The readable version of the cases, and the script that writes it from `cases.py`. |
-| `steps.py` | The three steps every model goes through, and which one a model has completed. |
+| `steps.py` | The four steps every model goes through, and which one a model has completed. |
 | `run.py` | Runs one step of one model, counts calls and tokens, saves each case as it ends and resumes. |
-| `baseline.py` | The "model alone" condition: one request with the card and the retrieved guidelines. |
+| `baseline.py` | The two single-call conditions: the "model alone" (the card, the retrieved guidelines and the rules) and the bare model (the card only). |
 | `metrics.py` | The measures, computed from the raw results. |
 | `table.py` | Builds the results tables, in Markdown and in CSV. |
 | `results/` | `TABLE.md`, `table.csv` and `cases.csv`, and in `raw/` one `.jsonl` file of raw results per model. Created at the first run. |
@@ -308,8 +309,9 @@ Chainlit looks for these in the folder the app is started from, which is why the
 | `.chainlit/config.toml` | Interface configuration, including the upload rules (images only, one file, 20 MB). |
 | `public/avatars/` | One avatar per chat author; the file name is the author's name. |
 | `public/style.css`, `public/icon/`, `public/favicon.svg` | Style and logo. |
+| `public/script.js` | The script the interface loads; it holds no logic. |
 | `chainlit.md` | The page shown by "Leggimi" inside the app. |
-| `.files/` | Uploaded photos, created at run time and not under version control. |
+| `.files/` | Uploaded photos, created at run time and not under version control. Chainlit deletes the whole folder when the app is closed: nothing to keep should be put there. |
 
 ---
 

@@ -34,7 +34,7 @@ V.I.T.A. is written in Python with **LangGraph** and **LangChain**, and is used 
 | **Specialists** | cardiology, neurology, dermatology, orthopaedics, gastroenterology, pulmonology, otorhinolaryngology, ophthalmology, urology, general medicine |
 | **Priority codes** | ROSSO · ARANCIONE · AZZURRO · VERDE · BIANCO (Italian triage colour codes) |
 | **Guidelines** | 23 Italian emergency-department documents, searched locally (see [data/README.md](data/README.md)) |
-| **Models** | any OpenAI-compatible provider: Groq and Gemini (cloud), Ollama (local) |
+| **Models** | any OpenAI-compatible provider: Groq, Gemini, Hugging Face and Cloudflare (cloud), Ollama (local) |
 | **Language** | the app speaks Italian; code, comments and tests are in English |
 
 ---
@@ -85,7 +85,7 @@ The guideline index is included in the repository, so nothing has to be built be
 
 <div align="justify">
 
-- Start by entering a **fiscal code**. The code `1234` is a test code: it is always accepted, always opens a new patient and is never saved.
+- Start by entering a **fiscal code**. The code `1234` is a test code: it is always accepted, always opens a new patient and is never saved, neither in the database nor in the chat history.
 - Answer in plain Italian. When the card or the symptoms are complete, the app asks for confirmation; a correction is always possible ("sì, ma l'età è 45", "togli la nausea").
 - When asked for a **photo**, attach an image or write "no".
 - From there the discussion runs on its own, up to the summary report.

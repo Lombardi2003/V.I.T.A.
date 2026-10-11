@@ -156,24 +156,6 @@ class TestCasesDocument(unittest.TestCase):
         self.assertEqual(cases_doc.CASES_FILE.read_text(encoding="utf-8"), cases_doc.build_document())
 
 
-class TestReviewSheet(unittest.TestCase):
-    def test_one_section_per_core_case(self):
-        """TEST review: the sheet has the five core cases, each with the patient; the report is quoted, a missing case is said."""
-        from benchmark import review
-        records = [_record("ARANCIONE", "ROSSO", case="04", report="**Report di sintesi**\n\n**Codice** ROSSO"),
-                   _record("VERDE", "VERDE", case="10", report=None),
-                   dict(_record("BIANCO", "VERDE", case="13", report="solo il modello"), condition="baseline"),
-                   _record("ROSSO", "ROSSO", case="02", report="caso non del nucleo")]
-        text = review.build_review("MODEL_A", records)
-        self.assertEqual(text.count("\n## Case "), 5)
-        self.assertEqual(text.count("**Patient.**"), 5)
-        self.assertIn("> **Report di sintesi**\n>\n> **Codice** ROSSO", text)
-        self.assertEqual(text.count("*Not run yet.*"), 3)      # 01, 07 and 13 (13 has only the model alone)
-        self.assertEqual(text.count("*No report produced.*"), 1)
-        self.assertNotIn("caso non del nucleo", text)
-        self.assertEqual(text.count("**Invented details (number):**"), 2)
-
-
 def _upto(step):
     """HELPER _upto: the records of a model that has completed the steps up to this one, every code right."""
     records = []

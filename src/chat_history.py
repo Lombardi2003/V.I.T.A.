@@ -20,6 +20,7 @@ OPERATOR = "operatore"  # The single user every visitor is signed in as: no logi
 OPERATOR_NAME = "Operatore Sanitario"  # The name shown in the user menu.
 NEW_CHAT_LABEL = "Nuovo triage"  # Title of a chat whose patient card is not confirmed yet.
 TITLE_REPEAT_SECONDS = 1.5  # Chainlit sends the sidebar its own title for a new chat around the same time: ours is sent again after it.
+_discarded: set[str] = set()  # Chats opened with the test fiscal code: nothing of them is kept in the archive.
 
 # Chainlit's archive expects these tables. Its own schema is written for PostgreSQL; this is the SQLite equivalent.
 _STEP_TYPES = {"id": "TEXT PRIMARY KEY", "streaming": "BOOLEAN", "waitForAnswer": "BOOLEAN", "isError": "BOOLEAN",
@@ -52,11 +53,19 @@ class ChatArchive(SQLAlchemyDataLayer):
     async def update_thread(self, thread_id, name=None, user_id=None, metadata=None, tags=None):
         """Chainlit names a chat after its first message, here the fiscal code: that name is never stored. A chat
         without a title gets the neutral one, a titled chat keeps its own; only set_title changes a title."""
+        if thread_id in _discarded:
+            return
         if name is not None:
             stored = await self.execute_sql('SELECT "name" FROM threads WHERE "id" = :id', {"id": thread_id})
             titled = isinstance(stored, list) and bool(stored) and bool(stored[0].get("name"))
             name = None if titled else new_chat_title()
         await super().update_thread(thread_id, name=name, user_id=user_id, metadata=metadata, tags=tags)
+
+    async def create_step(self, step_dict: StepDict):
+        """Stores a message or a step, unless its chat was discarded. Chainlit updates a step through this same call."""
+        if step_dict.get("threadId") in _discarded:
+            return
+        await super().create_step(step_dict)
 
     async def set_title(self, thread_id: str, title: str) -> None:
         """Gives a chat its title: the one way a title is written."""
@@ -69,7 +78,7 @@ class ChatArchive(SQLAlchemyDataLayer):
 
 
 def create_tables(path=HISTORY_DB) -> None:
-    """Creates the archive file and its tables, if they are not there yet, and clears the leftovers of deleted chats."""
+    """Creates the archive file and its tables, if they are not there yet, and clears the leftovers of deleted or discarded chats."""
     connection = sqlite3.connect(path)
     try:
         for statement in _TABLES:
@@ -77,6 +86,8 @@ def create_tables(path=HISTORY_DB) -> None:
         # Deleting the chat that is open leaves a row without owner when the session closes: it can never be shown.
         connection.execute('DELETE FROM steps WHERE "threadId" IN (SELECT "id" FROM threads WHERE "userId" IS NULL)')
         connection.execute('DELETE FROM threads WHERE "userId" IS NULL')
+        # A message written while its chat was being discarded is left without a chat.
+        connection.execute('DELETE FROM steps WHERE "threadId" NOT IN (SELECT "id" FROM threads)')
         connection.commit()
     finally:
         connection.close()
@@ -106,6 +117,18 @@ def chat_title(card: dict, when: datetime | None = None) -> str | None:
     if not (first_name and last_name):
         return None
     return f"{last_name} {first_name} · {_time_label(when)}"
+
+
+async def discard_chat() -> bool:
+    """Keeps the current chat out of the archive: what was stored of it is deleted and nothing more is written.
+    Called again at a later message, it removes what was being written while the chat was discarded. False if there is no archive."""
+    data_layer = get_data_layer()
+    if data_layer is None:
+        return False
+    thread_id = cl.context.session.thread_id
+    _discarded.add(thread_id)
+    await data_layer.delete_thread(thread_id)
+    return True
 
 
 async def rename_chat(title: str) -> bool:

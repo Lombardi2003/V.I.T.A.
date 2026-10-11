@@ -16,6 +16,7 @@ ensure_session_secret()
 from src.state import MedicalState, PatientCard, PhotoAnalysis
 from src.graph import generate_graph, thread_config
 from src import chat_history, model_choice
+from src.agents.persistence import TEST_FISCAL_CODE
 from src.rag.retriever import warm_up
 from src.log import get_logger
 
@@ -135,7 +136,22 @@ async def main(message: cl.Message):
         log.exception("error while processing the message")
         await cl.Message(content=_operator_error_message(e)).send()
 
-    await _title_chat(config)
+    if not await _discard_trial_chat(config):
+        await _title_chat(config)
+
+
+async def _discard_trial_chat(config: dict) -> bool:
+    """Keeps a chat opened with the test fiscal code out of the history, as its patient is kept out of the database; True if the chat is such a trial."""
+    card = app.get_state(config).values.get("patient_card") or {}
+    card = card if isinstance(card, dict) else card.model_dump()
+    if (card.get("fiscal_code") or "").strip() != TEST_FISCAL_CODE:
+        return False
+    try:
+        await chat_history.discard_chat()
+    # The history is a convenience: a failure here must not disturb the triage.
+    except Exception:
+        log.exception("could not discard the trial chat")
+    return True
 
 
 async def _title_chat(config: dict) -> None:

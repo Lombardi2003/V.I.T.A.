@@ -55,10 +55,70 @@ class TestArchive(unittest.TestCase):
             connection.close()
         self.assertEqual((threads, steps), (["kept"], ["s1"]))
 
+    def test_messages_without_a_chat_are_cleared_at_start(self):
+        """TEST archive: a message whose chat is no longer there is removed when the archive is opened."""
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "history.db"
+            chat_history.create_tables(path)
+            connection = sqlite3.connect(path)
+            connection.execute('INSERT INTO threads ("id", "name", "userId") VALUES (?, ?, ?)', ("kept", "Rossi Mario", "user-1"))
+            connection.executemany('INSERT INTO steps ("id", "threadId") VALUES (?, ?)', [("s1", "kept"), ("s2", "gone")])
+            connection.commit()
+            connection.close()
+            chat_history.create_tables(path)
+            connection = sqlite3.connect(path)
+            steps = [row[0] for row in connection.execute('SELECT "id" FROM steps')]
+            connection.close()
+        self.assertEqual(steps, ["s1"])
+
     def test_the_tests_never_reach_the_real_archive(self):
         """TEST archive: inside the tests Chainlit finds no archive, so nothing is written to the real file."""
         self.assertIsNone(chainlit.data.get_data_layer())
         self.assertFalse(helpers.run(chat_history.rename_chat, "x"))
+        self.assertFalse(helpers.run(chat_history.discard_chat))
+
+
+class TestDiscardedChat(unittest.TestCase):
+    def test_a_discarded_chat_leaves_nothing_in_the_archive(self):
+        """TEST archive discard: what was stored of a discarded chat is deleted and later writes are ignored; another chat is untouched."""
+        async def scenario(path):
+            archive = chat_history.build_data_layer(path)
+            context = types.SimpleNamespace(session=types.SimpleNamespace(thread_id="trial"))
+            try:
+                for thread_id in ("trial", "real"):
+                    await archive.update_thread(thread_id)
+                    await archive.execute_sql('INSERT INTO steps ("id", "threadId") VALUES (:id, :thread)',
+                                              {"id": f"first-{thread_id}", "thread": thread_id})
+                with mock.patch.object(chat_history, "get_data_layer", lambda: archive), \
+                        mock.patch.object(chat_history.cl, "context", context):
+                    discarded = await chat_history.discard_chat()
+                # Chainlit goes on updating the row of that chat.
+                await archive.update_thread("trial", name="1234")
+                threads = [row["id"] for row in await archive.execute_sql('SELECT "id" FROM threads', {})]
+                steps = [row["id"] for row in await archive.execute_sql('SELECT "id" FROM steps', {})]
+                return discarded, threads, steps
+            finally:
+                chat_history._discarded.discard("trial")
+                await archive.engine.dispose()
+
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder, mock.patch.object(chat_history.log, "info"):
+            discarded, threads, steps = helpers.run(scenario, Path(folder) / "history.db")
+        self.assertTrue(discarded)
+        self.assertEqual((threads, steps), (["real"], ["first-real"]))
+
+    def test_a_step_of_a_discarded_chat_is_not_stored(self):
+        """TEST archive discard: a message of a discarded chat never reaches the archive's own writing; one of another chat does."""
+        written = []
+
+        async def parent_create_step(self, step_dict):
+            written.append(step_dict["id"])
+        archive = chat_history.ChatArchive.__new__(chat_history.ChatArchive)
+        chat_history._discarded.add("trial")
+        self.addCleanup(chat_history._discarded.discard, "trial")
+        with mock.patch.object(chat_history.SQLAlchemyDataLayer, "create_step", parent_create_step):
+            helpers.run(archive.create_step, {"id": "a", "threadId": "trial"})
+            helpers.run(archive.create_step, {"id": "b", "threadId": "real"})
+        self.assertEqual(written, ["b"])
 
 
 class TestOperatorName(unittest.TestCase):
@@ -186,6 +246,32 @@ class TestTitleInTheApp(helpers.VitaTestCase):
         with mock.patch.object(chat_history, "rename_chat", broken), mock.patch.object(self.module.log, "exception"):
             self.title()
         self.assertNotIn("chat_title", self.session)
+
+    def test_a_chat_with_the_test_code_is_discarded_and_not_titled(self):
+        """TEST trial chat in the app: with the test fiscal code the chat is discarded from the history; with any other code it is not."""
+        discarded = []
+
+        async def discard():
+            discarded.append(True)
+            return True
+        with mock.patch.object(chat_history, "discard_chat", discard):
+            self.state["patient_card"] = {"fiscal_code": "RSSMRA80A01H501U"}
+            self.assertFalse(helpers.run(self.module._discard_trial_chat, {}))
+            self.state["patient_card"] = {}
+            self.assertFalse(helpers.run(self.module._discard_trial_chat, {}))
+            self.assertEqual(discarded, [])
+            self.state["patient_card"] = {"fiscal_code": "1234", "first_name": "Mario", "last_name": "Rossi"}
+            self.assertTrue(helpers.run(self.module._discard_trial_chat, {}))
+        self.assertEqual(discarded, [True])
+
+    def test_a_failed_discard_does_not_disturb_the_triage(self):
+        """TEST trial chat in the app: if the archive fails while discarding, the error stays in the log and the chat goes on untitled."""
+        self.state["patient_card"] = {"fiscal_code": "1234"}
+
+        async def broken():
+            raise RuntimeError("archive unreachable")
+        with mock.patch.object(chat_history, "discard_chat", broken), mock.patch.object(self.module.log, "exception"):
+            self.assertTrue(helpers.run(self.module._discard_trial_chat, {}))
 
     def test_every_visitor_is_the_same_operator(self):
         """TEST automatic user: whoever opens the app is signed in as the single operator, without credentials."""

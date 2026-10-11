@@ -107,7 +107,7 @@ Each entry has the same shape: the decision, the reason, and, where relevant, wh
 
 **The fiscal code is checked, not just measured.** Format, check character and omocodia letters are verified, after removing spaces and case. *Why:* with a length check only, one wrong letter on a registered patient was still "valid": the patient was not found and a second record was opened.
 
-**Test code `1234`.** Always accepted, always a new patient, never saved. It exists to try the app without touching the database.
+**Test code `1234`.** Always accepted, always a new patient, never saved. It exists to try the app without touching the database. A chat opened with it is also kept out of the chat history: what Chainlit stored of it before the code was read is deleted, and nothing more is written.
 
 **A database error does not stop the triage.** On a read error the conversation continues with a new card (the fiscal code is kept). On a write error the report stays in the chat and the operator is told the data was not saved.
 
@@ -276,7 +276,7 @@ Each entry has the same shape: the decision, the reason, and, where relevant, wh
 **Everything about a provider is in one place.** `src/llm/providers.py` lists each provider (address, key, limits) and each model with the provider it belongs to and its particular settings. Adding a provider is one block there.
 *Replaced:* names in one file and addresses, keys and limits in separate tables of another, linked only by the name of a class.
 
-**One client for every provider.** Groq, Ollama and Gemini expose an OpenAI-compatible endpoint, so the same client is built with different parameters. Agents do not know which provider they use.
+**One client for every provider.** Groq, Ollama, Gemini, Hugging Face and Cloudflare expose an OpenAI-compatible endpoint, so the same client is built with different parameters. Agents do not know which provider they use.
 
 **Low reasoning effort.** With the default, one specialist turn used about 4,000 tokens of hidden reasoning and answers were cut mid-JSON (9 failed turns in a row in one run). With "low" it uses about 600.
 

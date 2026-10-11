@@ -142,7 +142,7 @@ async def save_db_node(state: MedicalState):
 
     if cf == TEST_FISCAL_CODE:
         # The test code is never written to the database.
-        msg = "Codice di prova: nessun salvataggio nel database."
+        msg = "Codice di prova: nessun salvataggio nel database né nella cronologia delle chat."
         log.info("test code: nothing saved")
         await cl.Message(content=msg, author=Authors.SYSTEM).send()
         return {"general_history": [AIMessage(content=msg)]}
