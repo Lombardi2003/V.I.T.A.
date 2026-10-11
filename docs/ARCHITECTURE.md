@@ -309,7 +309,7 @@ Chainlit looks for these in the folder the app is started from, which is why the
 | `.chainlit/config.toml` | Interface configuration, including the upload rules (images only, one file, 20 MB). |
 | `public/avatars/` | One avatar per chat author; the file name is the author's name. |
 | `public/style.css`, `public/icon/`, `public/favicon.svg` | Style and logo. |
-| `public/script.js` | The script the interface loads; it holds no logic. |
+| `public/theme.json` | The colours Chainlit's own elements take, in the light and in the dark theme. |
 | `chainlit.md` | The page shown by "Leggimi" inside the app. |
 | `.files/` | Uploaded photos, created at run time and not under version control. Chainlit deletes the whole folder when the app is closed: nothing to keep should be put there. |
 

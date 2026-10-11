@@ -777,3 +777,16 @@ main.bg-background {
 #rename-thread {
     display: none !important;
 }
+
+/*
+ * SCHERMI STRETTI
+ * Sotto i 640px le bolle usano quasi tutta la larghezza: all'80% il testo andava a capo piu' del necessario.
+ */
+@media (max-width: 640px) {
+    :root {
+        --chat-max-width: 100%;
+    }
+    [data-step-type="user_message"] .bg-accent.rounded-3xl {
+        max-width: 88% !important;
+    }
+}

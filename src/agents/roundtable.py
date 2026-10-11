@@ -64,6 +64,7 @@ def _role_from_name(raw) -> str | None:
 
 # Italian triage colour codes, most urgent first.
 URGENCY_LEVELS = ["ROSSO", "ARANCIONE", "AZZURRO", "VERDE", "BIANCO"]
+URGENCY_MARKS = dict(zip(URGENCY_LEVELS, "🔴🟠🔵🟢⚪"))  # The coloured dot shown beside the code in the report.
 
 
 def _parse_urgency(value) -> str | None:

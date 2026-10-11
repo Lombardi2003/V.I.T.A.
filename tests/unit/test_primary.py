@@ -79,7 +79,7 @@ class TestPrimary(helpers.VitaTestCase):
             second_opinion_role="general_practitioner")
         self.assertEqual(fd["to_verify"], ["chiedere se fuma"])
         report = self.last_message()
-        for part in ("**Report di sintesi**", "**Codice** VERDE · **Ipotesi diagnostica preliminare** Bronchite acuta",
+        for part in ("**Report di sintesi**", "**Codice** 🟢 VERDE · **Ipotesi diagnostica preliminare** Bronchite acuta",
                      "**Specialisti coinvolti** Pneumologia, Medicina (secondo parere)", "**Hanno confermato**",
                      "**Esami e accertamenti** RX torace; saturazione", "**Da verificare** chiedere se fuma",
                      "**Indicazioni operative** Ambulatorio", "**Motivazione** Ragionamento completo."):

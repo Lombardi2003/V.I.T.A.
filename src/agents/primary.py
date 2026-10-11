@@ -11,7 +11,7 @@ from .common import extract_json, stream_response, as_list, as_text
 from .authors import Authors
 from .persistence import UNDETERMINED_DIAGNOSIS_PREFIX
 from .roundtable import (
-    SPECIALIST_DISPLAY_NAMES, URGENCY_LEVELS, _format_round_table, _format_urgencies, _parse_urgency,
+    SPECIALIST_DISPLAY_NAMES, URGENCY_LEVELS, URGENCY_MARKS, _format_round_table, _format_urgencies, _parse_urgency,
     _pediatric_note,
 )
 from src.log import get_logger
@@ -56,7 +56,8 @@ def _format_report(final: FinalDiagnosis, gh: GroupHypothesis | None, second_opi
     specialists_text = ", ".join(_display_name(r) for r in final.specialists_involved) or "nessuno"
     lines = [
         "**Report di sintesi**",
-        f"**Codice** {final.urgency_level} · **Ipotesi diagnostica preliminare** {final.diagnosis}",
+        f"**Codice** {URGENCY_MARKS.get(final.urgency_level, '')} {final.urgency_level} · "
+        f"**Ipotesi diagnostica preliminare** {final.diagnosis}",
         f"**Specialisti coinvolti** {specialists_text}"
         + (f" · **Hanno confermato** {', '.join(SPECIALIST_DISPLAY_NAMES.get(r, r) for r in gh.confirmed_by)}"
            if gh and gh.confirmed_by else ""),
