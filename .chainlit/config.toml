@@ -121,7 +121,7 @@ custom_css = "/public/style.css"
 
 # Specifica un file JavaScript che può essere utilizzato per personalizzare l'interfaccia utente.
 # Il file JavaScript può essere servito dalla directory pubblica.
-# custom_js = "/public/script.js"
+custom_js = "/public/script.js"
 
 # Lo stile delle caselle di avviso. Può essere "classic" o "modern".
 alert_style = "modern"

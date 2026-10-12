@@ -83,7 +83,12 @@ class TestDiscardedChat(unittest.TestCase):
         """TEST archive discard: what was stored of a discarded chat is deleted and later writes are ignored; another chat is untouched."""
         async def scenario(path):
             archive = chat_history.build_data_layer(path)
-            context = types.SimpleNamespace(session=types.SimpleNamespace(thread_id="trial"))
+            emitted = []
+
+            async def emit(event, data):
+                emitted.append((event, data["thread_id"]))
+            context = types.SimpleNamespace(session=types.SimpleNamespace(thread_id="trial"),
+                                            emitter=types.SimpleNamespace(emit=emit))
             try:
                 for thread_id in ("trial", "real"):
                     await archive.update_thread(thread_id)
@@ -92,6 +97,8 @@ class TestDiscardedChat(unittest.TestCase):
                 with mock.patch.object(chat_history, "get_data_layer", lambda: archive), \
                         mock.patch.object(chat_history.cl, "context", context):
                     discarded = await chat_history.discard_chat()
+                    await chat_history.discard_chat()  # at the next message: the sidebar is told only once
+                self.assertEqual(emitted, [("first_interaction", "trial")])
                 # Chainlit goes on updating the row of that chat.
                 await archive.update_thread("trial", name="1234")
                 threads = [row["id"] for row in await archive.execute_sql('SELECT "id" FROM threads', {})]

@@ -10,6 +10,12 @@ A multi-agent assistant that supports emergency-department triage: it collects t
 
 </div>
 
+<div align="center">
+
+![The start screen of V.I.T.A., in the light and in the dark theme](docs/images/home.png)
+
+</div>
+
 ---
 
 ## 📖 What it does
@@ -90,6 +96,19 @@ The guideline index is included in the repository, so nothing has to be built be
 - When asked for a **photo**, attach an image or write "no".
 - From there the discussion runs on its own, up to the summary report.
 - The **sidebar** on the left lists the past chats, by day. A chat is titled "Nuovo triage" with its time, and with the patient's name once the card is confirmed; the fiscal code never appears as a title. A past chat can be reopened and read, not continued, and it can be deleted from its menu.
+- Under a chat that has its summary report, **Salva in PDF** downloads the whole conversation as a document.
+
+</div>
+
+<div align="center">
+
+![The specialists discussing a case, each with its own colour](docs/images/discussion.png)
+
+*The round table: every specialist speaks with its own colour (light theme on the left, dark on the right).*
+
+![The summary report with the priority code](docs/images/report.png)
+
+*The summary report written by the primary, with the priority code.*
 
 </div>
 
@@ -189,6 +208,7 @@ src/
   llm/                  model catalogue, clients, calls and retries
   rag/                  guideline index and retrieval
 scripts/setup_env.py    creates or completes .env
+scripts/chat_pdf.py     the PDF of a chat, downloaded with "Salva in PDF"
 tests/                  unit tests, retrieval benchmark, live scripts
 benchmark/              model benchmark: cases, protocol, runner, measures, results
 data/                   guidelines (PDF), search index, patient database and chat archive (not versioned)

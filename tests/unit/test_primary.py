@@ -74,14 +74,14 @@ class TestPrimary(helpers.VitaTestCase):
     def test_complete_summary_report(self):
         """TEST primary: the report shows code, preliminary hypothesis, specialists, exams, checks, guidance and motivation."""
         fd = self.primary(answer(
-            "VERDE", recommended_exams=["RX torace", "saturazione"], to_verify=["chiedere se fuma"],
+            "VERDE", recommended_exams=["RX torace", "saturazione."], to_verify=["chiedere se fuma"],
             operational_guidance="Ambulatorio a bassa complessita'.", recommendations="Ragionamento completo."),
             second_opinion_role="general_practitioner")
         self.assertEqual(fd["to_verify"], ["chiedere se fuma"])
         report = self.last_message()
-        for part in ("**Report di sintesi**", "**Codice** 🟢 VERDE · **Ipotesi diagnostica preliminare** Bronchite acuta",
+        for part in ("**Report di sintesi**", "**Codice** `🟢 VERDE` · **Ipotesi diagnostica preliminare** Bronchite acuta",
                      "**Specialisti coinvolti** Pneumologia, Medicina (secondo parere)", "**Hanno confermato**",
-                     "**Esami e accertamenti** RX torace; saturazione", "**Da verificare** chiedere se fuma",
+                     "**Esami e accertamenti**\n- RX torace\n- saturazione\n", "**Da verificare**\n- chiedere se fuma\n",
                      "**Indicazioni operative** Ambulatorio", "**Motivazione** Ragionamento completo."):
             with self.subTest(part=part):
                 self.assertIn(part, report)

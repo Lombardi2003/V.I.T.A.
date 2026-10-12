@@ -271,6 +271,10 @@ The embedding model is `intfloat/multilingual-e5-small`, run locally. The corpus
 
 Creates or completes `.env`. The values to ask for are read from the `Settings` class; a provider key is requested only if one of the active models needs it. `ensure_env()` runs at startup, followed by `ensure_session_secret()`, which generates once the secret that signs the user's session and keeps it in `.env`; `--update` asks for everything again, `--key NAME` asks for one key that no active model needs (a model of the benchmark, a second account).
 
+### 📄 `scripts/chat_pdf.py`
+
+The PDF of a chat: an addition outside the triage, which only reads the archive the app writes. `read_chat` reads title and messages of a chat from the archive (steps and empty messages are left out), `chat_html` lays them out as a document (heading, then every message with its author, its time and the author's colour; the urgency code is a coloured label) and `chat_pdf` turns it into A4 pages with PyMuPDF. `register_route` adds the address `/vita/pdf/<chat id>` to Chainlit's web server, open only to the signed-in operator; the "Salva in PDF" button that `public/script.js` shows at the end of a chat with its summary report downloads the document from there, also for a chat reopened from the sidebar.
+
 ### 🧪 `tests/`
 
 Unit tests on the real graph with a fake model, the retrieval benchmark, and the scripts that use the real model. See [tests/README.md](../tests/README.md).
@@ -310,6 +314,7 @@ Chainlit looks for these in the folder the app is started from, which is why the
 | `public/avatars/` | One avatar per chat author; the file name is the author's name. |
 | `public/style.css`, `public/icon/`, `public/favicon.svg` | Style and logo. |
 | `public/theme.json` | The colours Chainlit's own elements take, in the light and in the dark theme. |
+| `public/script.js` | Shows the "Salva in PDF" button after the last message of a chat that has its summary report. |
 | `chainlit.md` | The page shown by "Leggimi" inside the app. |
 | `.files/` | Uploaded photos, created at run time and not under version control. Chainlit deletes the whole folder when the app is closed: nothing to keep should be put there. |
 

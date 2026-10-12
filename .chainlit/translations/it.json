@@ -58,7 +58,7 @@
     },
     "chat": {
         "input": {
-            "placeholder": "Scrivi un messaggio...",
+            "placeholder": "Scrivere qui...",
             "actions": {
                 "send": "Invia messaggio",
                 "stop": "Interrompi attività",
@@ -123,7 +123,7 @@
             "title": "Impostazioni",
             "customize": "Personalizza le impostazioni della tua chat qui"
         },
-        "watermark": "Gli LLMS possono commettere errori. Verifica le info importanti."
+        "watermark": "V.I.T.A. è uno strumento di supporto: verificare sempre le informazioni."
     },
     "threadHistory": {
         "sidebar": {

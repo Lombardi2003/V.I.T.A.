@@ -994,3 +994,181 @@ blockquote.border-l-2 {
 .light #welcome-screen::after {
     color: rgba(31, 41, 55, 0.78);
 }
+
+/*
+ * CHI PARLA
+ * Tutte le bolle sono uguali: sul lato dell'avatar hanno una barretta del colore del loro autore (lo stesso
+ * dell'avatar). A sinistra per gli agenti, a destra per l'utente. Chi non ha un colore suo usa quello di sistema.
+ */
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Anagrafica"]) { --speaker: var(--avatar-color-anagrafica); }
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Revisore"]) { --speaker: var(--avatar-color-revisore); }
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Fotografia"]) { --speaker: var(--avatar-color-fotografia); }
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Supervisore"]) { --speaker: var(--avatar-color-supervisore); }
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Cardiologia"]) { --speaker: var(--avatar-color-cardiologia); }
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Neurologia"]) { --speaker: var(--avatar-color-neurologia); }
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Dermatologia"]) { --speaker: var(--avatar-color-dermatologia); }
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Ortopedia"]) { --speaker: var(--avatar-color-ortopedia); }
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Gastroenterologia"]) { --speaker: var(--avatar-color-gastroenterologia); }
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Pneumologia"]) { --speaker: var(--avatar-color-pneumologia); }
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Otorinolaringoiatria"]) { --speaker: var(--avatar-color-otorino); }
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Oftalmologia"]) { --speaker: var(--avatar-color-oftalmologia); }
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Urologia"]) { --speaker: var(--avatar-color-urologia); }
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Medicina"]) { --speaker: var(--avatar-color-medicina); }
+[data-step-type="assistant_message"] .ai-message .message-content {
+    box-shadow: inset 3px 0 0 var(--speaker, var(--avatar-color-system)) !important;
+}
+[data-step-type="user_message"] .bg-accent.rounded-3xl {
+    box-shadow: inset -3px 0 0 var(--right-color) !important;
+}
+
+/*
+ * PASSAGGI INTERMEDI ("Ricerca Codice Fiscale", "Analisi sintomi", "Sintesi finale")
+ * Un po' piu' leggeri dei messaggi, ma ben leggibili: dicono chi sta per parlare.
+ */
+[data-step-type="tool"] .ai-message {
+    font-size: 14.5px !important;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+.dark [data-step-type="tool"] .ai-message {
+    color: rgba(252, 252, 252, 0.86) !important;
+}
+.light [data-step-type="tool"] .ai-message {
+    color: rgba(31, 41, 55, 0.88) !important;
+}
+
+/*
+ * DENTRO LE BOLLE
+ * Tra un paragrafo e l'altro basta il margine: senza questa regola gli "a capo" del testo si sommavano al
+ * margine e lasciavano una riga vuota doppia. Gli a capo dentro un paragrafo restano.
+ */
+[data-step-type="assistant_message"] .message-content .prose {
+    white-space: normal !important;
+}
+[data-step-type="assistant_message"] .message-content .prose > [role="article"]:not(:first-child) {
+    margin-top: 0.8rem !important;
+}
+/* Elenchi del report di sintesi (esami, cose da verificare): una voce per riga, puntini del colore dell'autore. */
+[data-step-type="assistant_message"] .message-content .prose ul {
+    margin: 0.3rem 0 0 0 !important;
+    padding-left: 1.25rem !important;
+    list-style: disc !important;
+}
+[data-step-type="assistant_message"] .message-content .prose li {
+    margin: 0.15rem 0 !important;
+    line-height: 1.6 !important;
+}
+[data-step-type="assistant_message"] .message-content .prose li::marker {
+    color: var(--speaker, var(--avatar-color-system));
+}
+/* Codice di urgenza del report: una pillola, cosi' e' la prima cosa che si vede. */
+[data-step-type="assistant_message"] .message-content .prose code {
+    display: inline-block;
+    padding: 1px 11px !important;
+    border-radius: 999px !important;
+    font-family: inherit !important;
+    font-size: 0.92em !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+.dark [data-step-type="assistant_message"] .message-content .prose code {
+    color: #fcfcfc !important;
+    background: rgba(255, 255, 255, 0.10) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+}
+.light [data-step-type="assistant_message"] .message-content .prose code {
+    color: #1f2937 !important;
+    background: rgba(255, 255, 255, 0.75) !important;
+    border: 1px solid rgba(31, 41, 55, 0.22) !important;
+}
+
+/*
+ * PULSANTE "SALVA IN PDF"
+ * Lo aggiunge public/script.js dopo l'ultimo messaggio, solo nelle chat che hanno il report di sintesi.
+ * Scarica tutta la conversazione in PDF, scritto dall'app (scripts/chat_pdf.py).
+ */
+#vita-pdf {
+    align-self: center;
+    margin: 18px 0 8px 0;
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1.5px solid transparent;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.dark #vita-pdf {
+    color: #fcfcfc;
+    background:
+        linear-gradient(var(--background-color-dark), var(--background-color-dark)) padding-box,
+        linear-gradient(120deg, var(--left-color) 0%, var(--right-color) 100%) border-box;
+}
+.light #vita-pdf {
+    color: #1f2937;
+    background:
+        linear-gradient(#ffffff, #ffffff) padding-box,
+        linear-gradient(120deg, #00a87a 0%, #0099d6 100%) border-box;
+}
+#vita-pdf:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(var(--pulse-color-rgb), 0.28);
+}
+
+/*
+ * EASTER EGG (scripts/easter_egg.py)
+ * L'autore del progetto ha il suo colore, come gli agenti: bordo dell'avatar e barretta della bolla.
+ */
+:root {
+    --avatar-color-daniele: #ef4444;
+}
+/* Solo qui le bolle sono rosse, molto tenui: chiare nel tema chiaro, scure nel tema scuro. */
+.light [data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Daniele"]) .message-content {
+    background-color: #fff0f0 !important;
+}
+.dark [data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Daniele"]) .message-content {
+    background-color: #4d1522 !important;
+}
+[data-step-type="assistant_message"] .ai-message > span.inline-block span:has(img[src*="/avatars/Daniele"]) {
+    --avatar-accent: var(--avatar-color-daniele);
+}
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Daniele"]) {
+    --speaker: var(--avatar-color-daniele);
+}
+/* Dietro al testo, sbiadite, le icone scelte in scripts/easter_egg.py (l'app le serve come un unico disegno). */
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Daniele"]) .message-content {
+    background-image: url('/vita/easter-egg/icons.svg') !important;
+    background-repeat: repeat !important;
+}
+/* Un link scritto in grassetto (quello del regalo finale) diventa un pulsante grande, che pulsa piano. */
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Daniele"]) .message-content .font-bold a {
+    display: inline-block;
+    margin: 6px 0 4px 0;
+    padding: 12px 30px;
+    border-radius: 999px;
+    font-size: 1.15em;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    background: linear-gradient(120deg, #00a87a 0%, #0099d6 100%);
+    box-shadow: 0 6px 22px rgba(var(--pulse-color-rgb), 0.45);
+    animation: vita-egg-pulse 1.6s ease-in-out infinite;
+}
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Daniele"]) .message-content .font-bold a:hover {
+    filter: brightness(1.08);
+}
+/* Il paragrafo che contiene quel pulsante lo tiene al centro della bolla. */
+[data-step-type="assistant_message"] .ai-message:has(> span img[src*="/avatars/Daniele"]) .message-content [role="article"]:has(.font-bold a) {
+    text-align: center;
+}
+@keyframes vita-egg-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 6px 22px rgba(var(--pulse-color-rgb), 0.45); }
+    50% { transform: scale(1.06); box-shadow: 0 8px 34px rgba(var(--pulse-color-rgb), 0.75); }
+}
+/* In quella chat non si scrive altro: la casella dei messaggi sparisce. Per tornare al triage c'e' "nuova chat". */
+body:has([data-step-type="assistant_message"] img[src*="/avatars/Daniele"]) div:has(> div > #message-composer) {
+    display: none !important;
+}

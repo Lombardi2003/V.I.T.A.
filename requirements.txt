@@ -10,6 +10,7 @@ sqlmodel==0.0.37
 SQLAlchemy==2.0.43
 aiosqlite==0.21.0                   # not imported directly: lets the chat archive use SQLite
 pillow==11.1.0
+pymupdf==1.28.0                     # writes the PDF of a chat
 
 # Guideline retrieval
 langchain-chroma==1.1.0

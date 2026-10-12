@@ -16,6 +16,7 @@ ensure_session_secret()
 from src.state import MedicalState, PatientCard, PhotoAnalysis
 from src.graph import generate_graph, thread_config
 from src import chat_history, model_choice
+from scripts import chat_pdf, easter_egg
 from src.agents.persistence import TEST_FISCAL_CODE
 from src.rag.retriever import warm_up
 from src.log import get_logger
@@ -38,6 +39,10 @@ def data_layer():
 def automatic_user(headers) -> cl.User:
     """Signs every visitor in as the same operator, without a login page: the history needs a user to belong to."""
     return cl.User(identifier=chat_history.OPERATOR, display_name=chat_history.OPERATOR_NAME)
+
+
+chat_pdf.register_route()  # The "Salva in PDF" button of a finished chat downloads the document from here.
+easter_egg.register_route()
 
 
 # The two model choices of the panel: widget id, kind and label.
@@ -97,6 +102,15 @@ async def settings_update(new_settings: dict):
 @cl.on_message
 async def main(message: cl.Message):
     """Adds the operator's message (and an attached image) to the state and resumes the graph."""
+    # The easter egg: its code, sent as the first message, never reaches the triage; that chat holds nothing else.
+    if cl.user_session.get("easter_egg"):
+        await easter_egg.answer_after()
+        return
+    if not cl.user_session.get("chat_started") and easter_egg.is_code(message.content):
+        cl.user_session.set("easter_egg", True)
+        await easter_egg.play()
+        return
+
     thread_id = cl.user_session.get("thread_id")
     config = thread_config(thread_id)
 
