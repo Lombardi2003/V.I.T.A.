@@ -15,6 +15,9 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 class PatientRecord(SQLModel, table=True):
     """One patient: the personal data saved at the end of a triage."""
+    # Chainlit started with -w loads this module again at every change: the table is then defined a second time.
+    __table_args__ = {"extend_existing": True}
+
     fiscal_code: str = Field(primary_key=True)  # Primary key.
     first_name: str = ""
     last_name: str = ""

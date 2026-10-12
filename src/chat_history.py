@@ -19,7 +19,8 @@ HISTORY_DB = PROJECT_ROOT / "data" / "chat_history.db"  # Kept out of version co
 OPERATOR = "operatore"  # The single user every visitor is signed in as: no login page. The chats belong to this name.
 OPERATOR_NAME = "Operatore Sanitario"  # The name shown in the user menu.
 NEW_CHAT_LABEL = "Nuovo triage"  # Title of a chat whose patient card is not confirmed yet.
-TITLE_REPEAT_SECONDS = 1.5  # Chainlit sends the sidebar its own title for a new chat around the same time: ours is sent again after it.
+DISCARDED_LABEL = "Chat di prova"  # Sent to the sidebar when a trial chat is discarded: never shown, the chat is gone.
+TITLE_REPEAT_SECONDS = 1.5 # Chainlit sends the sidebar its own title for a new chat around the same time: ours is sent again after it.
 _discarded: set[str] = set()  # Chats opened with the test fiscal code: nothing of them is kept in the archive.
 
 # Chainlit's archive expects these tables. Its own schema is written for PostgreSQL; this is the SQLite equivalent.
@@ -126,8 +127,12 @@ async def discard_chat() -> bool:
     if data_layer is None:
         return False
     thread_id = cl.context.session.thread_id
+    first_time = thread_id not in _discarded
     _discarded.add(thread_id)
     await data_layer.delete_thread(thread_id)
+    if first_time:
+        # Chainlit listed the chat in the sidebar at its first message: this event makes the sidebar read the list again.
+        await cl.context.emitter.emit("first_interaction", {"interaction": DISCARDED_LABEL, "thread_id": thread_id})
     return True
 
 

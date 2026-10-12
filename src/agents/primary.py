@@ -53,19 +53,23 @@ def _format_report(final: FinalDiagnosis, gh: GroupHypothesis | None, second_opi
         name = SPECIALIST_DISPLAY_NAMES.get(role, role)
         return f"{name} (secondo parere)" if role == second_opinion_role else name
 
+    def _bullets(items: list[str]) -> str:
+        """One item per line, without the punctuation the model leaves at the end."""
+        return "".join(f"\n- {item.strip().rstrip('.;, ')}" for item in items if item.strip())
+
     specialists_text = ", ".join(_display_name(r) for r in final.specialists_involved) or "nessuno"
+    code = f"{URGENCY_MARKS.get(final.urgency_level, '')} {final.urgency_level}".strip()
     lines = [
         "**Report di sintesi**",
-        f"**Codice** {URGENCY_MARKS.get(final.urgency_level, '')} {final.urgency_level} · "
-        f"**Ipotesi diagnostica preliminare** {final.diagnosis}",
+        f"**Codice** `{code}` · **Ipotesi diagnostica preliminare** {final.diagnosis}",
         f"**Specialisti coinvolti** {specialists_text}"
         + (f" · **Hanno confermato** {', '.join(SPECIALIST_DISPLAY_NAMES.get(r, r) for r in gh.confirmed_by)}"
            if gh and gh.confirmed_by else ""),
     ]
     if final.recommended_exams:
-        lines.append(f"**Esami e accertamenti** {'; '.join(final.recommended_exams)}")
+        lines.append(f"**Esami e accertamenti**{_bullets(final.recommended_exams)}")
     if final.to_verify:
-        lines.append(f"**Da verificare** {'; '.join(final.to_verify)}")
+        lines.append(f"**Da verificare**{_bullets(final.to_verify)}")
     if final.operational_guidance:
         lines.append(f"**Indicazioni operative** {final.operational_guidance}")
     if final.recommendations:
